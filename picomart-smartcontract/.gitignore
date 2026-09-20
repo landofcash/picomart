@@ -1,0 +1,11 @@
+build/
+
+# Keep this package safe to use independently of the repository root.
+.env
+.env.*
+!.env.example
+node_modules/
+artifacts/
+cache/
+coverage/
+*.log

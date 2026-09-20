@@ -1,0 +1,36 @@
+{
+  "chainId": 42431,
+  "admin": "0xa7965FF717aF7A9689930Bf8b438080e1D7FFAca",
+  "deployer": "0xc295fd4dCEf05Cd7Ea3923C7FF47E58ED64F9aCe",
+  "token": "0x20c0000000000000000000000000000000000000",
+  "tokenName": "PathUSD",
+  "tokenSymbol": "PathUSD",
+  "decimals": 6,
+  "deployerPathUsdBalance": "10000000000",
+  "build": {
+    "compiler": "0.8.37+commit.f401782d",
+    "evmVersion": "osaka",
+    "optimizer": {
+      "enabled": true,
+      "runs": 200
+    },
+    "viaIR": true,
+    "creationBytecodeHash": "0xd371b46036f818055f0f3fbc805b43b0cf475e0704b16c25121550e8f3353c4a",
+    "runtimeBytecodeHash": "0xea358dea361fdc6165cba5e0228900f87992aa711a16e0f3204cd874e334d5e5"
+  },
+  "address": "0x3c91183f0454eAB6eFf6F570AC402bE278Dbd6f4",
+  "owner": "0xa7965FF717aF7A9689930Bf8b438080e1D7FFAca",
+  "deploymentBlock": 37694566,
+  "deploymentTransaction": "0x28422e389427929b397b27f74c20ab7fc3c177b1d1b5645361c8dc16d1f0491d",
+  "deploymentFeeQuote": {
+    "estimatedGas": "16610542",
+    "gasLimit": "19932651",
+    "maximumFeeBaseUnits": "23920",
+    "maximumFeePathUSD": "0.02392"
+  },
+  "stageWindowSeconds": 432000,
+  "maximumDecisionHorizonSeconds": 1728000,
+  "targetMessageRetentionSeconds": 2592000,
+  "explorerVerified": false,
+  "liveTokenAcceptance": false
+}

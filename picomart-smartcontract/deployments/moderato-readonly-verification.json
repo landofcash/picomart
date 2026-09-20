@@ -1,0 +1,47 @@
+{
+  "verifiedAt": "2026-10-01T16:31:43.592Z",
+  "chainId": 42431,
+  "contract": "0x3c91183f0454eab6eff6f570ac402be278dbd6f4",
+  "throughBlock": 37726832,
+  "readOnly": true,
+  "checksPassed": true,
+  "runtimeBytecodeHash": "0xea358dea361fdc6165cba5e0228900f87992aa711a16e0f3204cd874e334d5e5",
+  "owner": "0xa7965ff717af7a9689930bf8b438080e1d7ffaca",
+  "pendingOwner": "0x0000000000000000000000000000000000000000",
+  "stageWindowSeconds": 432000,
+  "maximumDecisionHorizonSeconds": 1728000,
+  "targetRetentionSeconds": 2592000,
+  "token": "0x20c0000000000000000000000000000000000000",
+  "tokenName": "PathUSD",
+  "tokenDecimals": 6,
+  "deploymentTransaction": "0x28422e389427929b397b27f74c20ab7fc3c177b1d1b5645361c8dc16d1f0491d",
+  "deploymentBlock": 37694566,
+  "eventCounts": {
+    "OwnershipTransferred": 1,
+    "PaymentTokenAllowed": 1
+  },
+  "successfulMethods": {},
+  "checkedMessageCommitments": 0,
+  "orders": [],
+  "activeCatalogCount": 0,
+  "escrowBaseUnits": "0",
+  "contractTokenBalanceBaseUnits": "0",
+  "simulations": [
+    {
+      "check": "deployer cannot administer tokens",
+      "revert": "OwnableUnauthorizedAccount"
+    },
+    {
+      "check": "owner cannot renounce administration",
+      "revert": "InvalidInput"
+    }
+  ],
+  "transactions": [],
+  "explorerSourceVerification": false,
+  "limitations": [
+    "Read-only calls and event/state reconciliation; no new transactions were sent.",
+    "Only recorded successful methods are live evidence; unobserved flows remain pending.",
+    "Message commitment/envelope checks apply only to observed OrderMessage events; consult checkedMessageCommitments. Private decryption was not performed.",
+    "Transfer-policy diversion/rejection and five-day timeout execution are not established by this report."
+  ]
+}
