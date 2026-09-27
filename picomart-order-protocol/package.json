@@ -1,0 +1,68 @@
+{
+  "name": "@picomart/order-protocol",
+  "version": "0.1.0-tempo-qr.1",
+  "description": "Picomart protocol with isolated Tempo configuration and message/reference codecs",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./http": {
+      "types": "./dist/http.d.ts",
+      "import": "./dist/http.js"
+    },
+    "./tempo": {
+      "types": "./dist/tempo.d.ts",
+      "import": "./dist/tempo.js",
+      "require": "./dist/tempo.cjs"
+    },
+    "./tempo-protocol": {
+      "types": "./dist/tempoProtocol.d.ts",
+      "import": "./dist/tempoProtocol.js",
+      "require": "./dist/tempoProtocol.cjs"
+    },
+    "./tempo-contract": {
+      "types": "./dist/tempoContract.d.ts",
+      "import": "./dist/tempoContract.js",
+      "require": "./dist/tempoContract.cjs"
+    },
+    "./fixtures/*": "./fixtures/*",
+    "./tempo-agent": {
+      "types": "./dist/tempoAgent.d.ts",
+      "import": "./dist/tempoAgent.js",
+      "require": "./dist/tempoAgent.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "fixtures"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "postbuild": "esbuild src/index.ts --bundle --platform=node --format=cjs --outfile=dist/index.cjs && esbuild src/tempo.ts --bundle --platform=neutral --format=cjs --outfile=dist/tempo.cjs && esbuild src/tempoProtocol.ts --bundle --platform=neutral --format=cjs --outfile=dist/tempoProtocol.cjs && esbuild src/tempoContract.ts --bundle --platform=neutral --format=cjs --outfile=dist/tempoContract.cjs && esbuild src/tempoAgent.ts --bundle --platform=neutral --format=cjs --outfile=dist/tempoAgent.cjs",
+    "test": "vitest run",
+    "verify:tempo": "node scripts/verify-tempo-config.mjs",
+    "prepack": "npm run build"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "dependencies": {
+    "@noble/hashes": "1.8.0",
+    "@x402/core": "2.19.0",
+    "canonicalize": "2.1.0",
+    "jose": "6.2.4",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.15",
+    "esbuild": "^0.25.10",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.0"
+  },
+  "private": true
+}

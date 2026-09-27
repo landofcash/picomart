@@ -1,0 +1,27 @@
+{
+  "verifiedAt": "2026-10-01T17:50:54.648Z",
+  "readOnly": true,
+  "checksPassed": true,
+  "initialReplayMs": 9350,
+  "restartReplayMs": 6981,
+  "status": {
+    "chainId": 42431,
+    "address": "0x3c91183f0454eab6eff6f570ac402be278dbd6f4",
+    "block": 37694566,
+    "ready": true,
+    "latestBlock": 37734723,
+    "throughBlock": 37734723,
+    "lag": 0,
+    "lastRun": "2026-10-01T17:50:54.647Z",
+    "error": null,
+    "replayOnRestart": true
+  },
+  "catalogs": 0,
+  "orders": 0,
+  "deletedOrders": 0,
+  "checkedMessageCommitments": 0,
+  "limitations": [
+    "Only observed events establish live evidence; order/UI acceptance remains deferred.",
+    "No private message decryption, actual batch/sponsorship transaction or TIP-20 policy test performed."
+  ]
+}

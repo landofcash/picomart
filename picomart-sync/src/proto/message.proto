@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package picomart.hcs;
+
+message MessageV1 {
+  uint32 v = 1;              // schema version
+  bytes seed = 2;            // exactly 22 bytes
+  string sender = 3;         // canonical "0.0.12345"
+  bytes prev_hash = 4;       // exactly 32 bytes (zeros for first message)
+  bytes encrypted = 5;       // ciphertext (any length)
+}

@@ -1,0 +1,555 @@
+{
+  "fixture": "picomart-tempo-message-protocol-v1",
+  "testOnly": true,
+  "testPrivateKeys": {
+    "buyer": "0x1111111111111111111111111111111111111111111111111111111111111111",
+    "seller": "0x2222222222222222222222222222222222222222222222222222222222222222"
+  },
+  "messages": {
+    "buyer": "Picomart receiving identity\n{\"account\":\"0x19e7e376e7c213b7e7e7e46cc70a5dd086daff2a\",\"chainId\":42431,\"contractAddress\":\"0x3333333333333333333333333333333333333333\",\"orderSeed\":\"ERITFBUWFxgZGhscHR4fIA\",\"profile\":\"picomart-receiving-v1\",\"role\":\"buyer\",\"version\":1}",
+    "seller": "Picomart receiving identity\n{\"account\":\"0x1563915e194d8cfba1943570603f7606a3115508\",\"catalogSeed\":\"AQIDBAUGBwgJCgsMDQ4PEA\",\"chainId\":42431,\"contractAddress\":\"0x3333333333333333333333333333333333333333\",\"profile\":\"picomart-receiving-v1\",\"role\":\"seller\",\"version\":1}"
+  },
+  "signatures": {
+    "buyer": "0x55bd997ba8ade018fdcecd04a109e17e7325364e8673c3dc8d73107cb5c87cbf553ef255b40880779241a6f788449a963d9a21cbed22bb6b1f7266d3e15c94b31b",
+    "seller": "0x8096d1c290110feefa12c27c1c645152662d2aef5f06941f2414fd7f811ebc9342b0b98f5bff200f0f2fbc3f1a8dfe6605e68ffe1bce83601f15074ee26011c51b"
+  },
+  "order": {
+    "version": 1,
+    "chainId": 42431,
+    "contractAddress": "0x3333333333333333333333333333333333333333",
+    "catalogSeed": "AQIDBAUGBwgJCgsMDQ4PEA",
+    "orderSeed": "ERITFBUWFxgZGhscHR4fIA",
+    "buyerIdentity": {
+      "context": {
+        "version": 1,
+        "profile": "picomart-receiving-v1",
+        "chainId": 42431,
+        "contractAddress": "0x3333333333333333333333333333333333333333",
+        "account": "0x19e7e376e7c213b7e7e7e46cc70a5dd086daff2a",
+        "role": "buyer",
+        "orderSeed": "ERITFBUWFxgZGhscHR4fIA"
+      },
+      "publicKey": "oN45EG+ZIJj4LCpTmSpls2orPCxIVnA4aEDxhaVErzU=",
+      "identityId": "0x53deaec7779e37bbc316256ff7a6ade1d2aea51a8d3d29dfb1420839901f1471"
+    },
+    "sellerIdentity": {
+      "context": {
+        "version": 1,
+        "profile": "picomart-receiving-v1",
+        "chainId": 42431,
+        "contractAddress": "0x3333333333333333333333333333333333333333",
+        "account": "0x1563915e194d8cfba1943570603f7606a3115508",
+        "role": "seller",
+        "catalogSeed": "AQIDBAUGBwgJCgsMDQ4PEA"
+      },
+      "publicKey": "HEx8pXqU23NZL7oHO408eehdEhBJ+ht++Wi9zGB+fmI=",
+      "identityId": "0xe25c5853581a3f9e2becba1230e7b3dc2b127a070876cd09726462261a88a3e3"
+    }
+  },
+  "origins": {
+    "apiOrigin": "https://api.picomart.example",
+    "downloadOrigin": "https://download.picomart.example"
+  },
+  "abiTypes": [
+    "bytes32",
+    "uint8",
+    "bytes32",
+    "uint256",
+    "address",
+    "bytes16",
+    "uint8",
+    "uint32",
+    "address",
+    "bytes32",
+    "bytes32",
+    "bytes32",
+    "bytes32"
+  ],
+  "examples": [
+    {
+      "expected": {
+        "messageType": "buyer-order",
+        "sequence": 1
+      },
+      "binding": {
+        "version": 1,
+        "referenceProfile": "picomart-sealed-reference-v1",
+        "chainId": 42431,
+        "contractAddress": "0x3333333333333333333333333333333333333333",
+        "orderId": "0x1112131415161718191a1b1c1d1e1f20",
+        "messageType": "buyer-order",
+        "sequence": 1,
+        "author": "0x19e7e376e7c213b7e7e7e46cc70a5dd086daff2a",
+        "buyerIdentityId": "0x53deaec7779e37bbc316256ff7a6ade1d2aea51a8d3d29dfb1420839901f1471",
+        "sellerIdentityId": "0xe25c5853581a3f9e2becba1230e7b3dc2b127a070876cd09726462261a88a3e3"
+      },
+      "payload": {
+        "version": 1,
+        "profile": "picomart-message-v1",
+        "binding": {
+          "version": 1,
+          "referenceProfile": "picomart-sealed-reference-v1",
+          "chainId": 42431,
+          "contractAddress": "0x3333333333333333333333333333333333333333",
+          "orderId": "0x1112131415161718191a1b1c1d1e1f20",
+          "messageType": "buyer-order",
+          "sequence": 1,
+          "author": "0x19e7e376e7c213b7e7e7e46cc70a5dd086daff2a",
+          "buyerIdentityId": "0x53deaec7779e37bbc316256ff7a6ade1d2aea51a8d3d29dfb1420839901f1471",
+          "sellerIdentityId": "0xe25c5853581a3f9e2becba1230e7b3dc2b127a070876cd09726462261a88a3e3"
+        },
+        "data": {
+          "catalogSeed": "AQIDBAUGBwgJCgsMDQ4PEA",
+          "orderSeed": "ERITFBUWFxgZGhscHR4fIA",
+          "items": [
+            {
+              "productId": "fixture-product",
+              "name": "Fixture product",
+              "quantity": 2,
+              "unitAmount": "1000000",
+              "lineAmount": "2000000"
+            }
+          ],
+          "delivery": {
+            "fullName": "Test Buyer",
+            "address": "1 Fixture Street",
+            "city": "Lisbon",
+            "postalCode": "1000-001",
+            "country": "PT",
+            "phone": "",
+            "email": "buyer@example.test",
+            "noPhysicalDelivery": false
+          },
+          "deliveryAmount": "0",
+          "payment": {
+            "tokenAddress": "0x20c0000000000000000000000000000000000000",
+            "amount": "2000000"
+          }
+        }
+      },
+      "plaintext": "{\"binding\":{\"author\":\"0x19e7e376e7c213b7e7e7e46cc70a5dd086daff2a\",\"buyerIdentityId\":\"0x53deaec7779e37bbc316256ff7a6ade1d2aea51a8d3d29dfb1420839901f1471\",\"chainId\":42431,\"contractAddress\":\"0x3333333333333333333333333333333333333333\",\"messageType\":\"buyer-order\",\"orderId\":\"0x1112131415161718191a1b1c1d1e1f20\",\"referenceProfile\":\"picomart-sealed-reference-v1\",\"sellerIdentityId\":\"0xe25c5853581a3f9e2becba1230e7b3dc2b127a070876cd09726462261a88a3e3\",\"sequence\":1,\"version\":1},\"data\":{\"catalogSeed\":\"AQIDBAUGBwgJCgsMDQ4PEA\",\"delivery\":{\"address\":\"1 Fixture Street\",\"city\":\"Lisbon\",\"country\":\"PT\",\"email\":\"buyer@example.test\",\"fullName\":\"Test Buyer\",\"noPhysicalDelivery\":false,\"phone\":\"\",\"postalCode\":\"1000-001\"},\"deliveryAmount\":\"0\",\"items\":[{\"lineAmount\":\"2000000\",\"name\":\"Fixture product\",\"productId\":\"fixture-product\",\"quantity\":2,\"unitAmount\":\"1000000\"}],\"orderSeed\":\"ERITFBUWFxgZGhscHR4fIA\",\"payment\":{\"amount\":\"2000000\",\"tokenAddress\":\"0x20c0000000000000000000000000000000000000\"}},\"profile\":\"picomart-message-v1\",\"version\":1}",
+      "item": {
+        "version": 1,
+        "encryptedPayload": "Ld+cz9gCWxh+lmW1:ftX2TgWzTSJxkv6NY/pg2blw5Xe9CNZsTkBNOtOY5klP9Rxq4QZxyBqolXImqKsX4lCxmEjOvpkFRXDbRLSOyaRFlH5KL/dFCGU0DQ432OS4HEP4WaS+W7MosqLK1SLc5JAkR0/uZpi6PrFyaJhCBE1LSJ02Hh7ggh8cONNUj3jOGbfwvF7eN+9E1KmWH3YTwo2HdgojJElTo4fJvTBs44kvCg36phy8AZ7LM1j2aEP0As+WneEAgkY+YdNXWre8Y/x+da5/xL9+A6uFAjgFFwbdlwVmxSSVFJFUrZiTUFEgedDsl/SEQDPlAblB9O7fPqwVxBD0VHEO/YV/YVwTezte1cgIrmc/BXCY2fDAh4wZoKyaOPZ6S4GHAaCXNw+GtrxOKjLvutAyud5mtubOnDWHGG6Bh4VYVxPUkX+j1nuy5BpDxJf1AgwN2Q1U2QhQuLtuKObctLdig/SLxypE6NKV6vFGMOVgF1bod0cMsnSu/5kjVZl/yj/mozA5m2sWu0012JxLmxZjxSi91zRQbIiejgjQptpyVi9/E3dBrGij8Az/vvNw6XxjSY0CzKD2wKHjYZ9FX2/qjS9s1M6r+JlS9ODlQlm8lkw6KARvS8ilYVCO8j4sizRsSQKQ8rDjAjaodpDEV9uY+LXAPdHKnJly1MNN+rIFTNcBN6ft2fw14zs5ZvtBDnojy3wabWtne9HLpH4cu4pgJgDdnY6yJweBmNQG1wlmSfNfK72Yxy4jClMybCZaMntMy16It2wkekEOIDIhtr899dme9q4tnF51qJkPTKs6epNDFvVEp5aR38E/VvHoSWV5MxFBYMI6Iz/VqYOQWRdU0IRg+h5+EtCjdjKg97X4LmAI/jeW+12LnA+xhzni9z/TWH1FHfqttw09dG9ezDICNjwhArRcrww0jT+IDYUBo2auFWTgduv2rb9TiFmNLlxxK9gTGRV+CMKhVCzm/aPffg7fqDZmKTYgX7AP5l6pHQJSTHHf6fubLjBf1aUreygLMgreaXknYN2CXZlcGrsVUJkYrHs+7u5ZfYFtzdyTalZlrYNyWhFMt31Bpb2UJ/BI2c9Uq+SgVk2CqYWfeLuX+xiUoXfyoTc39pbZG1Tz/VjPtvBW2bZuQg2OBeyKUtFXGChRWAeRmHvFVe6UOQIld+cAEnACAephu/Qzl5hT4pP6Vy7LWLVVml7XqRc0L+b5fHEMjkmg6BRsIok3L3o/o08y8opdPuDSPsghsPU+k7tl208WSJlNxySMK8A6/aXgvvy+6AwM/DPYKW1xLk5lqlWBsj+K54GmGuIzm4aPpNLvSK+JM/15boFUlZEfLk0L5w3naEYra74WwPxVBkimvrhBcX6qyPgBfm/fOdEY1ERGPQo3VwGbhw==",
+        "itemSignature": {
+          "value": "i1qrRIMr2jklzBg8ZF6Hxs1MjyVx2ZQCxnu9mA/lzscOnAjNXB+b5jrLaLv2HpxTj6Hw6xTFh92DCd1e5UJMDg=="
+        },
+        "seed": "3q5rnewjsdi2uxuim3onkylxje",
+        "keyDerivationProfile": "zkbytes-wallet-eip191-hkdfsha256-ed25519-x25519-hpke-v1",
+        "encryptedKeys": [
+          {
+            "publicKey": "TWmEoCP2FnMJ5tq/BvAe1RWcMiF6K4oYQBo7BT8P1WE=",
+            "wrappingAlgorithm": "zkbytes-hpke-x25519-hkdfsha256-aes256gcm-v1",
+            "encryptedKey": "8NRqBvTNsKnC3o1zCz7jHrhTFzeuFyD+jw75Bii0vQkWeD66p0+OyuZ4R+CdjBMcWhTpAhjTIMlGcl7flKRIt4kVA+8kHL86rbfLWT29d74="
+          },
+          {
+            "publicKey": "oN45EG+ZIJj4LCpTmSpls2orPCxIVnA4aEDxhaVErzU=",
+            "wrappingAlgorithm": "zkbytes-hpke-x25519-hkdfsha256-aes256gcm-v1",
+            "encryptedKey": "rHeclpDef/9h1uw8hKEn4x3GIBKJ0V6a4Vr5VFl3aHnVpJJR2sbGHnFv0TGDn8TwIfrmRIyra02abqzfGlJfvvii9w/Y/4IJSFzOSu9Mxnc="
+          },
+          {
+            "publicKey": "HEx8pXqU23NZL7oHO408eehdEhBJ+ht++Wi9zGB+fmI=",
+            "wrappingAlgorithm": "zkbytes-hpke-x25519-hkdfsha256-aes256gcm-v1",
+            "encryptedKey": "bQMDrNxIWimOzH8ShjPNAkXJcs0Lu6sYnvB3aa951BcYaRT/lB0iQDZsrpwgbaA8HSDuktQaiMQcDgKhds0DvD+NpV9D6zTbwoMQsYOJXlU="
+          }
+        ],
+        "expiresAt": "2099-01-01T00:00:00Z",
+        "creator": {
+          "publicKey": "V298GufVHKRwMzK20Vhi4hU9cKjgiKj2+iuFHa3YZC4=",
+          "signatureScheme": "zkbytes-ed25519-v1"
+        },
+        "managers": []
+      },
+      "privateReferences": {
+        "buyer": {
+          "header": {
+            "format": "picomart-sealed-reference",
+            "version": 1,
+            "referenceProfile": "picomart-sealed-reference-v1",
+            "context": "fwtc5bieqyzzbubsg7ibmygwiu",
+            "recipientRole": "buyer",
+            "recipientIdentityId": "0x53deaec7779e37bbc316256ff7a6ade1d2aea51a8d3d29dfb1420839901f1471",
+            "recipientPublicKey": "oN45EG+ZIJj4LCpTmSpls2orPCxIVnA4aEDxhaVErzU="
+          },
+          "binding": {
+            "version": 1,
+            "referenceProfile": "picomart-sealed-reference-v1",
+            "chainId": 42431,
+            "contractAddress": "0x3333333333333333333333333333333333333333",
+            "orderId": "0x1112131415161718191a1b1c1d1e1f20",
+            "messageType": "buyer-order",
+            "sequence": 1,
+            "author": "0x19e7e376e7c213b7e7e7e46cc70a5dd086daff2a",
+            "buyerIdentityId": "0x53deaec7779e37bbc316256ff7a6ade1d2aea51a8d3d29dfb1420839901f1471",
+            "sellerIdentityId": "0xe25c5853581a3f9e2becba1230e7b3dc2b127a070876cd09726462261a88a3e3"
+          },
+          "keyDerivationProfile": "zkbytes-wallet-eip191-hkdfsha256-ed25519-x25519-hpke-v1",
+          "reference": {
+            "version": 1,
+            "service": "zkbytes",
+            "apiOrigin": "https://api.picomart.example",
+            "downloadOrigin": "https://download.picomart.example",
+            "seed": "3q5rnewjsdi2uxuim3onkylxje",
+            "expiresAt": "2099-01-01T00:00:00Z",
+            "expectedCreator": {
+              "publicKey": "V298GufVHKRwMzK20Vhi4hU9cKjgiKj2+iuFHa3YZC4=",
+              "signatureScheme": "zkbytes-ed25519-v1"
+            }
+          },
+          "objectDigest": "0x59cccc1b67b884566cd8d9ef29d535264f845259707d5edf1a4a765fed676995"
+        },
+        "seller": {
+          "header": {
+            "format": "picomart-sealed-reference",
+            "version": 1,
+            "referenceProfile": "picomart-sealed-reference-v1",
+            "context": "w2v6zsqbxlzhapfqm5x6leyhba",
+            "recipientRole": "seller",
+            "recipientIdentityId": "0xe25c5853581a3f9e2becba1230e7b3dc2b127a070876cd09726462261a88a3e3",
+            "recipientPublicKey": "HEx8pXqU23NZL7oHO408eehdEhBJ+ht++Wi9zGB+fmI="
+          },
+          "binding": {
+            "version": 1,
+            "referenceProfile": "picomart-sealed-reference-v1",
+            "chainId": 42431,
+            "contractAddress": "0x3333333333333333333333333333333333333333",
+            "orderId": "0x1112131415161718191a1b1c1d1e1f20",
+            "messageType": "buyer-order",
+            "sequence": 1,
+            "author": "0x19e7e376e7c213b7e7e7e46cc70a5dd086daff2a",
+            "buyerIdentityId": "0x53deaec7779e37bbc316256ff7a6ade1d2aea51a8d3d29dfb1420839901f1471",
+            "sellerIdentityId": "0xe25c5853581a3f9e2becba1230e7b3dc2b127a070876cd09726462261a88a3e3"
+          },
+          "keyDerivationProfile": "zkbytes-wallet-eip191-hkdfsha256-ed25519-x25519-hpke-v1",
+          "reference": {
+            "version": 1,
+            "service": "zkbytes",
+            "apiOrigin": "https://api.picomart.example",
+            "downloadOrigin": "https://download.picomart.example",
+            "seed": "3q5rnewjsdi2uxuim3onkylxje",
+            "expiresAt": "2099-01-01T00:00:00Z",
+            "expectedCreator": {
+              "publicKey": "V298GufVHKRwMzK20Vhi4hU9cKjgiKj2+iuFHa3YZC4=",
+              "signatureScheme": "zkbytes-ed25519-v1"
+            }
+          },
+          "objectDigest": "0x59cccc1b67b884566cd8d9ef29d535264f845259707d5edf1a4a765fed676995"
+        }
+      },
+      "envelopes": {
+        "buyer": "{\"context\":\"fwtc5bieqyzzbubsg7ibmygwiu\",\"encryptedKey\":\"TtwBQCQFI60z60iK/DOA52PYzxGdhYUVhRm4ZtXGEG5Z7sTwLPIKJGI48cwC9AU2Utvfu7G39/2LJ8J3r/NASK4ELbEkgZZu/v1ww+ym2V8=\",\"encryptedPayload\":\"0Bf9EMG6jQIOXNYh:V+eLRnJm0rnWbO4+WWXGMgqTdmtf9Se6FZuCHHcQpxYYwkHtExeMxHcTFw66iVhpDs8WYxZ5/GwmqqWhWh9EaeByr7QYmPuVQDlAcR+VbNUaoKJK9kMML3vHk9VADhDPhU6vN/LHCpt+A681n0Ba1OFTN6XJ7VrHWx8lqt/ee/bwIWsvImemJNblvnIlYbnVw/WMyEtOo86LvacJj/In62rO6lU254ObK+qteiUcvbns0pT6KIs295IRvLoZk7OpY6Pp8LjOnqQcZLuZisXLTXgPUSoGGdApUy95OANiyXCTwOztgsj/eyMj7wxU7gqYJPJllbyN+lJ3fooK34Q1Oq53GQYXHSERZsBHVm7jhkOHz/oRgDLzQL0p0zUL6RlVWLi3LagG7pRGetB8Etg7q0WWYDeMdw//ef0b2bAW2z2gd8mEYkkFcGgNrbLnjGEyT4QP0Z+u7wcT20E/MU6ho8YuTCwab1xW3wrrYUDQdDqptYQGT4j0bqyI6+KiptitZLWsAV+bbbDeJHUtLqJqPmaV6XCCBj3bP6OzYPedk8MiP87SuchpHegxlZ/m0LA0xZ15AIXEnpGLnUDhrXjdF99Iu7iIvX2uMQIlAlIsC4ew4qwSewahdI9w+35olrC4x8JtNOmsYQZsYskr5f/KQoIN4rFk/5tnmT2NIgHAFAgjHxfbkPHypYLjoSxFjsqJN42606dCmtvqZTXt03p0Rq/K5PUddRkGIhOyROFijUgfxXpsWn+5IA/1G845/Y41WrVlRUc75uFXgbltdJZh4tG09IBDPBhKhQfxLkYK/fdQA2FBSm9aE18YzTNTHrwZM0LwhWKfondBP4jaAj2/7uEfBKzaqBqM9Mp0iXviYINWtOCi/BrhrIe8OjC+KK5nblNav595N+naKNxdJtNGQVhk8nRcKzOcOYk1gSsUnh/fAtBXZGqHCDI+RzrfcxihECbBXzURMIEI5oKJVLQaadbjztVyeSIX6rysj6PolFQ9Cnf4pOI2PJs7DU92D6eZ4ja7hIRvek6jZOp4Ix0lEOfttzmgl0h4WCIcIMmhTV2KJu12o7NkDsy1znxRj4fvTP7od69pVac/mmS1UsB+azKbXkmVGeMLQRznELKlFXziFJ9R5DF+oqB9RLus/SPjwVeCh74YFxO6Z3p+KUGf9X1USxsRgozH4C63rShMmJAeBXQdUhsGID4TZKSDAosRqM9+bh+ZyCy84WmFKTkEt94gvmUS/iyN7Kyd5vkTCBDwj5ZsI4T/Owf3+dTitfwdIomW4tzuhcB3P52u2KTHOh8ywyKSzgPfiuh2PXPNzDz59ze3bSG5E3kICeXpIYxkDoOF798KjSDPetzaMON/kpGFMwAKwX/+uoZ7kt7p+2fAkl3aY8nywbtKzlvhn1RmGhKvwE1SMZF+IOfVfPyUa4j6mAAxu3R/BEFN3wcoTRq8BZdMoIpNftOGh0y14aBQaEEMKyK2VJ9WLVwOZManJ6n5ybNjI4odVR3Wvx2XaLiPQKehqvrr/3LP0JUckbvDJ2vMEN+9XbpT1Seo+h4Qx90U1bTGqR4ZyKkaWnZktJusso3N5JtFNn1j4IcxA9SeZyyfhrBGNNpQdZyqFcZrt/V1Mmu3qaGdC95Dn4sbhWvlAZ1QHjFECJHwx2DaFzUetVqC09NROfbfP/V+8JywR5RNrq0pKoq8GXB7BncZVOrYXJds8MGy+8Kj/T4ZljgLEprSKWMI3nLkwanPgyTUyN+rkA==\",\"format\":\"picomart-sealed-reference\",\"recipientIdentityId\":\"0x53deaec7779e37bbc316256ff7a6ade1d2aea51a8d3d29dfb1420839901f1471\",\"recipientPublicKey\":\"oN45EG+ZIJj4LCpTmSpls2orPCxIVnA4aEDxhaVErzU=\",\"recipientRole\":\"buyer\",\"referenceProfile\":\"picomart-sealed-reference-v1\",\"version\":1}",
+        "seller": "{\"context\":\"w2v6zsqbxlzhapfqm5x6leyhba\",\"encryptedKey\":\"tl2xdgzr1CAQE+GubxIdYDr8LUL+jluH8W2GJa4EJh56MekqOqaD4SoI/ejly+yoSMpVdLSOK75NsIzayhKEmTZsTPqetdgbWWEu9e3HEPY=\",\"encryptedPayload\":\"YzBF67VPhOxK2ELU:VLo8LI2zG9pO/QdzRQ/1x6gEACIReu+GmkbrbKb6Qj/AKl4kJovfqOZ+TAz2gWBYOVbuPvorFLS6P5b9R/XKtShoizH9rBoGOggk0tBwViBxkxSJxZfyYbUrli0bcuKmE+iHkczvhW0i4Pr25ntZ5rkuLP4Z5guNT038WSi+OrIIYC5hEk3CzPcPzf/L5rnqScL4PHV0fF0NojKeTBuVaQogU94Mj1CwBdgBgVuA1TtrneFVdVzv1P8WdcsJ86C2hrv70u0ZJ41lx6EsrMLCFS8vz6vqJAVDqux3XQ6qCYNKEOUQMWhxbmA5y9fVDPkJ2ECHm7WBERv1+IkeFfjRXy/KdqZ+yECRTxzLLX4a7GfdlJrFEWaLNt2GbWuB9saSFKvJWFc1L/CcdurTiDowO9kbamWMuKm2boFOdHDTqPdNNKkfk/3mhUIS/nFbWLWByF4zj9JeY5uHR+h9i3ixHZFitIOuw3rMT4dn0GFfxUChzrXqw2lTrbgzMh6k/vZvqYIz/R+4O20rhtHSWIvkOj7vkzWKRyU6bmSN4zANRkuA/j458FaeCIyAqT3yc9PWYyvEyIV4ajg4AVYdTO+okgCouzY9iV9fx3NNCuAXCyPlrW+CdOrwlPFmPz9N6BsmQfpOAI0iILvtit9AeLlCB5MiUzxFIjiHDBzIPu2hXmHE/Tr7on1n2lVDEhwbEOpPHRuGzi/b78ikVWcpVZGV8Ssqrs+Kxm64Pdm5gQFIrkacPCjnUmg/7ZXHLvyrW42udkZUo4PKGjrGwmP1gVlQ3lNwTH1X+KRWpGSOtZz0Fsd8l3EQxi0rEJMRu7RFnXGLk/mvM2V8cjmMerH1khM+TZDkgcJTAA1GucKA0b/0rGqxLZP1Thrt7i3isg97klYqkbBAiBob58qnAEuJ5Egw8sGiVz89OWv4vahi6MAFt/Zp33c+sa6I+wuaFF5jem066ieo2J/+8v6WvgMNc0MUcCMTfKGZ+WPGofyLG3pXmB9KKyYueHQEZjbpuQqzc8YZ/QViGUwpo3iass25KJ905lBdgoTELvoSb2/db28tfu6EWbifMHWy6WSrRipWXe3Y+kA/vgEslxLj2ZF7RHmUJfbxZ7aHBSbAC5Mw4Ro6eKH/lQSdrZTBjzas3ihvwvNFlkN1UgmlKKkUDHGhCgCA6f+Eda2hRVkrg6tEkWYxRAq1mqcnEQqXy++Yfy9XaV1bHUCycoCobkg0BC8gNARvv3jrh7oL5FPu/Lyt8fgIBEiofYkRhY4jwdk+0oZcXv1IKy8XDCkCZyDdnjaQdaOw5347jIMMgl910mkfQNl+wVFOMEkre1o70Fg8bPezkX1jYhnmLeVHyeyI9xkH21fIyYEal3GLpKYVz6XZ8I8fY5AStoJHLlEUoI+Ur7hvCGLPWcLcmweKlaQguOWNSL9UNPJBaf4f2ihh/2GWy3n13GfCXjCqwxPZh1LhF2ylYQbfJCgo1tWOfXFrhB1ygU64sFjjSVRXvVZh36Y0CAGrGAcjuHfxguCDMkCyRGIYJNpcjMuRs+DYC4+iH7z+wUhiiyeTwt3dcv+Gt7Qx454iV6GGECvMovKDnG68NAd8AefyyjfZeBNNcCCtO7PCc+AC8GZh9EjaTLljWQ+/TmSaQV2ZDet9bdZw1OjsN/M5HGPiQTTmuwtB0ZfDMI9+SGtkKrqkTekInqdAIQuILtTd+FzIIMb4VmpIp7BQL8kTtZcgWQAQdLnDqC0QWu7Uzn4ia7oXAXU=\",\"format\":\"picomart-sealed-reference\",\"recipientIdentityId\":\"0xe25c5853581a3f9e2becba1230e7b3dc2b127a070876cd09726462261a88a3e3\",\"recipientPublicKey\":\"HEx8pXqU23NZL7oHO408eehdEhBJ+ht++Wi9zGB+fmI=\",\"recipientRole\":\"seller\",\"referenceProfile\":\"picomart-sealed-reference-v1\",\"version\":1}"
+      },
+      "objectDigest": "0x59cccc1b67b884566cd8d9ef29d535264f845259707d5edf1a4a765fed676995",
+      "abiEncoded": "0xf8d25dc2164603befee2f65732962abe572c53c23dd71cb67be1df4724d52d6b0000000000000000000000000000000000000000000000000000000000000001ff027bff876dfdcdb9edfc200a7dd73de05be0aabba5f48abb945b8890b856b5000000000000000000000000000000000000000000000000000000000000a5bf00000000000000000000000033333333333333333333333333333333333333331112131415161718191a1b1c1d1e1f20000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000100000000000000000000000019e7e376e7c213b7e7e7e46cc70a5dd086daff2a53deaec7779e37bbc316256ff7a6ade1d2aea51a8d3d29dfb1420839901f1471e25c5853581a3f9e2becba1230e7b3dc2b127a070876cd09726462261a88a3e3887cc22b7ab1809bf920b2febeef602defdeb9d0edc2238804cc911dc9bd9fd82c2c69bd043e9a1a2a6302f1a77ae5a214c6d45f04b20d41f561740674081e61",
+      "commitment": "0xe7f4853d695b741ab90a8b2bc09ad489ecc1b5b0128cca3c1eb6bd5acc50daea"
+    },
+    {
+      "expected": {
+        "messageType": "seller-delivery",
+        "sequence": 2
+      },
+      "binding": {
+        "version": 1,
+        "referenceProfile": "picomart-sealed-reference-v1",
+        "chainId": 42431,
+        "contractAddress": "0x3333333333333333333333333333333333333333",
+        "orderId": "0x1112131415161718191a1b1c1d1e1f20",
+        "messageType": "seller-delivery",
+        "sequence": 2,
+        "author": "0x1563915e194d8cfba1943570603f7606a3115508",
+        "buyerIdentityId": "0x53deaec7779e37bbc316256ff7a6ade1d2aea51a8d3d29dfb1420839901f1471",
+        "sellerIdentityId": "0xe25c5853581a3f9e2becba1230e7b3dc2b127a070876cd09726462261a88a3e3"
+      },
+      "payload": {
+        "version": 1,
+        "profile": "picomart-message-v1",
+        "binding": {
+          "version": 1,
+          "referenceProfile": "picomart-sealed-reference-v1",
+          "chainId": 42431,
+          "contractAddress": "0x3333333333333333333333333333333333333333",
+          "orderId": "0x1112131415161718191a1b1c1d1e1f20",
+          "messageType": "seller-delivery",
+          "sequence": 2,
+          "author": "0x1563915e194d8cfba1943570603f7606a3115508",
+          "buyerIdentityId": "0x53deaec7779e37bbc316256ff7a6ade1d2aea51a8d3d29dfb1420839901f1471",
+          "sellerIdentityId": "0xe25c5853581a3f9e2becba1230e7b3dc2b127a070876cd09726462261a88a3e3"
+        },
+        "data": {
+          "shipmentCode": "FIXTURE-TRACKING",
+          "customInfo": "Test delivery only"
+        }
+      },
+      "plaintext": "{\"binding\":{\"author\":\"0x1563915e194d8cfba1943570603f7606a3115508\",\"buyerIdentityId\":\"0x53deaec7779e37bbc316256ff7a6ade1d2aea51a8d3d29dfb1420839901f1471\",\"chainId\":42431,\"contractAddress\":\"0x3333333333333333333333333333333333333333\",\"messageType\":\"seller-delivery\",\"orderId\":\"0x1112131415161718191a1b1c1d1e1f20\",\"referenceProfile\":\"picomart-sealed-reference-v1\",\"sellerIdentityId\":\"0xe25c5853581a3f9e2becba1230e7b3dc2b127a070876cd09726462261a88a3e3\",\"sequence\":2,\"version\":1},\"data\":{\"customInfo\":\"Test delivery only\",\"shipmentCode\":\"FIXTURE-TRACKING\"},\"profile\":\"picomart-message-v1\",\"version\":1}",
+      "item": {
+        "version": 1,
+        "encryptedPayload": "HF9EYGH5fIoGE8BL:eG7jTCY3S/WKdW2XI/yGxqjtovE2b2h9HHRNvrPCFFhRkIvegGAfPzV3PPurcJ/ae2YvANz9aD3VtPxLJUZzjceAEO2D1XS1sGVaa3uNnCaFeKyl2JSbrK/VIshgpPE9Lfg+doGRhSdzLVWTdabb9Fr47vfT/p+bY3DoWV9j/z/jYDiVN5pJNiDNb2EKrlxg68Bj56XftnJSaH9bO+EP23A4R7reDCgI0/LrKXzinauUT5lWjy+INxTqXXx2DXLlK3ubEz8g5ehhbd8qCuyJJ9wpvpOBncKSIpsOYaMNjohiDfsJPmOoD/3ckfINt6W098dsk/bD0vjoyef1Evlu9zVSjlJVMKrlLVzom2WNKJGVBK6P3unpywlj2Bnuv1yrH645HQucsAzHtfhSF98i0wbL/heLAsPYig17d5x5UnXdcB3oP1DKZmnsMmmDNg+85IuiCmNUpfoX5OB7a0IfGVzIsm9qQVeHlLA0vNTSoQDCYxQxgZQyhuI2fXM4qdfvuJbTu7oEEhawPjNZaCiCqtlOmoFUnSeesok5naBbAh54IEwFkKL/5ZKKzx59BIMNJRNBVqJg3fl8TBODGNanajxCfSDdG3yRQGawPvwr5WV57qx24DZKidhHx8U7I1jfYp488aSgrwP94NYQkBH2nGrzRu4XNLbn7soEo7bo9ltQGO4iWvF/rQhrPRNVo6nw64HmLmwRnHY/0isKVQkBSqGxyRYqTGttLUaFa8X/CyiKrvG3uWVaujUoZNIMcB7njVUutVlbd/EfjsayBHIGkpZka6pe5vAuG9GLKvsEuAVa1/LT",
+        "itemSignature": {
+          "value": "773yMsNo8A14d1SMUhMthZhakXL/g+CGBgGgbYvow/vosN3ndm6LcZYQRsao+J/j+ia16dRMsvbjKpUtdiJDBA=="
+        },
+        "seed": "hmpiz7xi2moxhrnsu2hgyqejp4",
+        "keyDerivationProfile": "zkbytes-wallet-eip191-hkdfsha256-ed25519-x25519-hpke-v1",
+        "encryptedKeys": [
+          {
+            "publicKey": "MLRTOhe9gMkbt6YSD2acqbtA7nKeEi6EwEHtq4rteAI=",
+            "wrappingAlgorithm": "zkbytes-hpke-x25519-hkdfsha256-aes256gcm-v1",
+            "encryptedKey": "h6z7FZmf0+USYCKEypvWhWSDyR2CrEWxQLIbyodx3CW6AfAe79ZqdUhjmJXgIG4ANy4+2X3l9CaKOO7HQtJ3dJnLoLIPK+sAmmee8gtFkqw="
+          },
+          {
+            "publicKey": "oN45EG+ZIJj4LCpTmSpls2orPCxIVnA4aEDxhaVErzU=",
+            "wrappingAlgorithm": "zkbytes-hpke-x25519-hkdfsha256-aes256gcm-v1",
+            "encryptedKey": "vXtvWeJslFVr6yFlh+12yMQkjGwsPwjFF+Z0qdPTXU03axGbr2ztOKoKJ5n1y/lFkIsp33gpqKubXK2ldNkxliprj9yInm12hudDLSKvuK0="
+          },
+          {
+            "publicKey": "HEx8pXqU23NZL7oHO408eehdEhBJ+ht++Wi9zGB+fmI=",
+            "wrappingAlgorithm": "zkbytes-hpke-x25519-hkdfsha256-aes256gcm-v1",
+            "encryptedKey": "8uSrIcTF26+WVYwrLjhRT5R9oMVF1nN79mFlEskdviimP1oPP5PbzwFuQeoy+1ILGNOHSItN3QYU+aGbbYw5rtd6OO/SPWW/Q853Oj7vSzA="
+          }
+        ],
+        "expiresAt": "2099-01-01T00:00:00Z",
+        "creator": {
+          "publicKey": "+kE1tJ+16YC35J0/pQO56oyYfakEmeytfKn50uGhw+M=",
+          "signatureScheme": "zkbytes-ed25519-v1"
+        },
+        "managers": []
+      },
+      "privateReferences": {
+        "buyer": {
+          "header": {
+            "format": "picomart-sealed-reference",
+            "version": 1,
+            "referenceProfile": "picomart-sealed-reference-v1",
+            "context": "jmhwo63i52glsanx24j3vrut5m",
+            "recipientRole": "buyer",
+            "recipientIdentityId": "0x53deaec7779e37bbc316256ff7a6ade1d2aea51a8d3d29dfb1420839901f1471",
+            "recipientPublicKey": "oN45EG+ZIJj4LCpTmSpls2orPCxIVnA4aEDxhaVErzU="
+          },
+          "binding": {
+            "version": 1,
+            "referenceProfile": "picomart-sealed-reference-v1",
+            "chainId": 42431,
+            "contractAddress": "0x3333333333333333333333333333333333333333",
+            "orderId": "0x1112131415161718191a1b1c1d1e1f20",
+            "messageType": "seller-delivery",
+            "sequence": 2,
+            "author": "0x1563915e194d8cfba1943570603f7606a3115508",
+            "buyerIdentityId": "0x53deaec7779e37bbc316256ff7a6ade1d2aea51a8d3d29dfb1420839901f1471",
+            "sellerIdentityId": "0xe25c5853581a3f9e2becba1230e7b3dc2b127a070876cd09726462261a88a3e3"
+          },
+          "keyDerivationProfile": "zkbytes-wallet-eip191-hkdfsha256-ed25519-x25519-hpke-v1",
+          "reference": {
+            "version": 1,
+            "service": "zkbytes",
+            "apiOrigin": "https://api.picomart.example",
+            "downloadOrigin": "https://download.picomart.example",
+            "seed": "hmpiz7xi2moxhrnsu2hgyqejp4",
+            "expiresAt": "2099-01-01T00:00:00Z",
+            "expectedCreator": {
+              "publicKey": "+kE1tJ+16YC35J0/pQO56oyYfakEmeytfKn50uGhw+M=",
+              "signatureScheme": "zkbytes-ed25519-v1"
+            }
+          },
+          "objectDigest": "0x0b641035c757ba69d5535845d5b2e49b7bbbff1a1da8d84781a2babc4e547406"
+        },
+        "seller": {
+          "header": {
+            "format": "picomart-sealed-reference",
+            "version": 1,
+            "referenceProfile": "picomart-sealed-reference-v1",
+            "context": "zjq33f7m6lvkdcnpfmh4fhtywy",
+            "recipientRole": "seller",
+            "recipientIdentityId": "0xe25c5853581a3f9e2becba1230e7b3dc2b127a070876cd09726462261a88a3e3",
+            "recipientPublicKey": "HEx8pXqU23NZL7oHO408eehdEhBJ+ht++Wi9zGB+fmI="
+          },
+          "binding": {
+            "version": 1,
+            "referenceProfile": "picomart-sealed-reference-v1",
+            "chainId": 42431,
+            "contractAddress": "0x3333333333333333333333333333333333333333",
+            "orderId": "0x1112131415161718191a1b1c1d1e1f20",
+            "messageType": "seller-delivery",
+            "sequence": 2,
+            "author": "0x1563915e194d8cfba1943570603f7606a3115508",
+            "buyerIdentityId": "0x53deaec7779e37bbc316256ff7a6ade1d2aea51a8d3d29dfb1420839901f1471",
+            "sellerIdentityId": "0xe25c5853581a3f9e2becba1230e7b3dc2b127a070876cd09726462261a88a3e3"
+          },
+          "keyDerivationProfile": "zkbytes-wallet-eip191-hkdfsha256-ed25519-x25519-hpke-v1",
+          "reference": {
+            "version": 1,
+            "service": "zkbytes",
+            "apiOrigin": "https://api.picomart.example",
+            "downloadOrigin": "https://download.picomart.example",
+            "seed": "hmpiz7xi2moxhrnsu2hgyqejp4",
+            "expiresAt": "2099-01-01T00:00:00Z",
+            "expectedCreator": {
+              "publicKey": "+kE1tJ+16YC35J0/pQO56oyYfakEmeytfKn50uGhw+M=",
+              "signatureScheme": "zkbytes-ed25519-v1"
+            }
+          },
+          "objectDigest": "0x0b641035c757ba69d5535845d5b2e49b7bbbff1a1da8d84781a2babc4e547406"
+        }
+      },
+      "envelopes": {
+        "buyer": "{\"context\":\"jmhwo63i52glsanx24j3vrut5m\",\"encryptedKey\":\"QgQ5P+m9yX6wFQt7jlAxrKGg9vKF7R1tgv2LVx5U32i+6RVuRMuA2UMjur8kMyz1sOGKvYzRuEokvUdJS2DAhIPhHh9wJ/CGu6hFejL7skk=\",\"encryptedPayload\":\"KLiX+ZWKCQXU6SfW:P7E1kClL+wzXSWxo3xvr2yOOzE8Vsk3rxcszkspI+B+JEryRhFLRjl+Fs1SASOze/ogkAzhRbItAr8VfPPu+Ara25XeASr0n7svTdQ+8w5/Z1j5PPc6CX5jIIA91NtTcIO6LjPuzN4I9QCnTUJypkI7cK0v7Eir5llZ91Se/ydjFvZiVM66tCtlLbV8EzDpQaAGGigCYZ8XMjd5piNAhyNbcAnCDFzOA7zZUaW3XMqb9l/FMibU+dQ2CkUqzIkqNo4O4m4ftJvnf4zD2GtUshxn4BWjSKAbdnEdaF8vN4lyyvFH8gKgar23zW62LVQ8ITSj6PIzj+Nr55Hl5ChN+kLCdVnWjzeefLdALNqfLwBezIp9i1lQOo6vrFkBz1kOo2+UqCAKc3V9FMQZ2P8N2mBua1Yf+5vS1ADEYWM9OnAOXfCJAs2s37MVaKrfI8oA4qfVUtLbk2VjYKHYMGKroi7gE7HS21ZcaONoBcFn7AnRzeHznvy7nXAL05/BGLBIMt90+D8LbbYbalepIdjMkQCU/JVKGj5fZoVD/raF5pMj961JekLyRkDbAXB5qguVwKPputCaPusLG5yv7cW90VBS/aEQMxg0+83oA5osXwNqeItC9elJACIgqap+d2whMKykIF+lstB9OcBF/enWQvLx6Iq/XJaGvjAXiSxJyUWcX62y+IeRPUYsv2N8H/8kqLysxx4o+hPCFIUy6P9T847EQFTIp9uwuEZVKnlS4e4PPpC6BoEmAXCfjxidErwRgabGo+dloDWTiy6Kk42+O28n6TSLb8z3ijsjJA6dpWC4IUOHhdQrzB8vHBjHYbqWz8mDxxKkwFoSQESxUMCMJvSP19SGTrIXfnVMq+4yE4NO52BLceWigdcD8ky+8N3egu1fdPvMXfv8yVKIbQoan5V7HIJhYD4gNR4xc0Z4shAUH8Y9ckaq+HPzYqFbfRSC72CxlpwPu+mYkHWi6C6biZgyj0kuUzlWr2bnCVUBvyjrefSnPMp8sjcIni1KLgd5Qr8Ypc7wOuAyGNdRfi6ZJO7LGGz60RAMKA0J+iGdlEmfByi9iuUThKXrd92F2gLLEgQAkp59iaIKTcBEynJjmzBK1hYGCmeBGriQ0u8pMR1NKSSCOwXQeODoWt7U8xN2nqx90/6P6TlG/sV/cN21YeHjjtIjLI/xzPPUyt2uU1MfyG4xLThVOZfKFXnKmsPW+QSxv13OMa+ZsWY0f9JEvrE7dlag9WX9ojmmmGqr6Bueb+Shvn7zAaw3hFbzA9HumZqrkus9a1s30nlVomN1YuvsGfkrBAtCW0DtRtgXI4OCWjHrjwnNdaZSCnbCGlUC/2K9eh6Qc3oDnumdjoihmYamZrjfn+dlPXjOEgNVC4Tkn0kupkzQTjfZMvGpwA/sI+dUqKvufIdyrTybpwzxiJwZwDRo4Q5aoNJMZzdGrgmcEjzL42puRY+ovskMoGsvFwddHfCBHYCvaibkPd/ID9fRiUHY7tOu9NP9UpQcvOes1ntaZFpWKMT39JPuPEYor+ockMKo+22Lvk9LuznmfzXvuxc4RXzVPPqpmoAlULV5L91QDT7Cgk1030i+OWsU9ImodhjpqCnCNjHnhZP0Ps5jJY0EfADoy4smM1DBXs8uhXwDnuegQY07zgzwb0zrSN5rpEqUVfVmo7iXATE/iQa/Kq6wob3N6A8AzxE+q7hELza1C8YQccBSVEaqe/tfFO77PqyD/xFJeowKaVyQl1/UVU8aQQZU=\",\"format\":\"picomart-sealed-reference\",\"recipientIdentityId\":\"0x53deaec7779e37bbc316256ff7a6ade1d2aea51a8d3d29dfb1420839901f1471\",\"recipientPublicKey\":\"oN45EG+ZIJj4LCpTmSpls2orPCxIVnA4aEDxhaVErzU=\",\"recipientRole\":\"buyer\",\"referenceProfile\":\"picomart-sealed-reference-v1\",\"version\":1}",
+        "seller": "{\"context\":\"zjq33f7m6lvkdcnpfmh4fhtywy\",\"encryptedKey\":\"q4GJcJE0V0jt7QmvPGJZg7Fpf4ZZhzkQV3gJKzHAZydepz+AF/u+E27j/N2RlPKlMHBEOdAc64RBNg5TdLs6AL/CBIn2bTio/iz9Me1gsBc=\",\"encryptedPayload\":\"RM1kvnykh3Jjdl++:lmNQlpmZ9ItUMVRS3hn/fNjg3am5PCDJ44+DPWRI0mnyWQDquslwsWhFAUWSnpeR7MhZ844aP5pMHjuqw5aFrYwqL/pO0arnaJmFeNKlF34ifDKwXXTVwQhzy9Gh6Droc6JKmsuPSk6Y9GNEz7rFjQPUjTLRPDNF0BHnf871sa1rm1M1czxcDvNeX9mW38UmeQ8YzbhAfPZq5U6jK1zd5a1GQjagEfdNQnMORyosuEbJHaQ4QVyiD/cKRJfpV28yQhPsre6NRkiZSWjNk2SuD4xJcCNGORv84uFvE3zuc+9+rMMEai9uV6aUkaWx4nnx0heoCDHXpWvdE0YIj6oyRF5gPp2QwfxqKLcRFI2fA4dGJS2VqivRjgpTDpS+SHd3w/Y/Hg7nnVJUrrhGXSOgiLuz5QpR5nVZ4ImYzc9nFzRLyYeERfLh4ItSYmgH+tVhsFsfWzBIe1QhP/fK97TnmMODgq+DPuB69CiYcbG2+RL/+ldYrJXesbryaQh2KZ2MyKvD36JKWTo5hu9GTF36EtdZBg3w8bsIkvmWK9L2vLlXPsAzePjthtnEo/6eWLluDaa/4jk7UIUKQ0j+o4W4Yfn8Fkv2xHMFAIz8m1NDrH7twa5wr2IxDClCxIiIXYxNmsJFe/xJJkN4FnLERc9qsPVm4Qr+7zqD2UVO4CKexXwjr90jU9jTtb1dJvivauogv/cQp6Bv085vamDF6ewNa9l/As3qPCnuPBiQxzuA+lCh/fAE/nhFYUnzc6mo+Tex6zToO2SuQkthG7rC8sIz2kcuunTnYpBaocugesHsNPVS/lM+KdU7bUTrdHd6+basugztxVuto96pckKJkZU9ZEk1BPAmD+oVRrG3vsNWNL2e9yj6W0TNzAkMaWd14Oy+K46LhLj6zqe9BJBHzsPnqPqO12rn2MHaI5T8615qW6Cwjfhl5ikPvkX9MO2YJ/+Nf0nTCjKOktubY1NRyH+ICFFo8MnCOHk7cG8uC11QJHRLWeyn0XPuDfIiBaL44j8XE4jY+dk7sxFQsCt30JhiDp6tl05SY6uxNe1swsvUqoGGB5qGYcRS9JMRSQ/y8glpwWkwDONLgy9x0XZ1eOb98jpo4vzVUQO42aUentzTD9LuCcheMGdsdBWnING/3sGMcqcxKOPvfjXTVYZlRwrh2ZYugXsRRjXEgW38Mc2KcSb0b16PPkXoenjQJt1RsSzt+w3Dw8FdoIQHLW89yLaflKA1qzK+QE7p1hGPcbZfZENOpvm1Sgf6UUEhpHiucFs3qFFZgw6zt4b1hGbG24IxudZrdY/FTZdv5lllq6FDcgn32neW24YhqfcWl/lN/ba4hgrITmyQYc8gtXsmlFTwC+aqPz1E7g/FFXuJDK04iTk0uZyOoeL/UtmGkDdxgLEds9jbPTogIeShRLJkaiSGI7sfVIeCbhRX+V8Bv07woGSz8GijM9fn00iOn3+b0gXCPcMRQf+Tb78Vt9vMSICT+w5njPcnyqR7OJlWvbYueoZisAhYdd0SgFdcGXasiOLc9ygErzwtOTDD1y8PqAMctgoeFD+B4yxQYeM+ND2g0LWQ/nrrHqyr0SjxEUeNPp7fulFuz7xHsXYc9CjTHaMqg0rYNdAm7kQwkBqput1DvpVHBEXFHvNveW1uLWsnIAJlha14zya4+8bkKsvUwqEifDZDuzV/SH3wIzIXa7N8jEOp7dgR5R2Fh4J9YhqKaCSwe+uofTw8k0nps4BHKtG2bU1Bajh6J013\",\"format\":\"picomart-sealed-reference\",\"recipientIdentityId\":\"0xe25c5853581a3f9e2becba1230e7b3dc2b127a070876cd09726462261a88a3e3\",\"recipientPublicKey\":\"HEx8pXqU23NZL7oHO408eehdEhBJ+ht++Wi9zGB+fmI=\",\"recipientRole\":\"seller\",\"referenceProfile\":\"picomart-sealed-reference-v1\",\"version\":1}"
+      },
+      "objectDigest": "0x0b641035c757ba69d5535845d5b2e49b7bbbff1a1da8d84781a2babc4e547406",
+      "abiEncoded": "0xf8d25dc2164603befee2f65732962abe572c53c23dd71cb67be1df4724d52d6b0000000000000000000000000000000000000000000000000000000000000001ff027bff876dfdcdb9edfc200a7dd73de05be0aabba5f48abb945b8890b856b5000000000000000000000000000000000000000000000000000000000000a5bf00000000000000000000000033333333333333333333333333333333333333331112131415161718191a1b1c1d1e1f2000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000020000000000000000000000001563915e194d8cfba1943570603f7606a311550853deaec7779e37bbc316256ff7a6ade1d2aea51a8d3d29dfb1420839901f1471e25c5853581a3f9e2becba1230e7b3dc2b127a070876cd09726462261a88a3e30f51862dd2c7761212a8cbfeadf0194e7972dcf6715191cb3c40d5969f1dd21c2d12a2b90ef4a4769a21094b54b3b3fa47f98140ec4896dcf4199af87078e047",
+      "commitment": "0xab583e4c4202abedde3840000465a79d5039bef5ce7bb7fa8200898a988ff379"
+    },
+    {
+      "expected": {
+        "messageType": "seller-refusal",
+        "sequence": 2
+      },
+      "binding": {
+        "version": 1,
+        "referenceProfile": "picomart-sealed-reference-v1",
+        "chainId": 42431,
+        "contractAddress": "0x3333333333333333333333333333333333333333",
+        "orderId": "0x1112131415161718191a1b1c1d1e1f20",
+        "messageType": "seller-refusal",
+        "sequence": 2,
+        "author": "0x1563915e194d8cfba1943570603f7606a3115508",
+        "buyerIdentityId": "0x53deaec7779e37bbc316256ff7a6ade1d2aea51a8d3d29dfb1420839901f1471",
+        "sellerIdentityId": "0xe25c5853581a3f9e2becba1230e7b3dc2b127a070876cd09726462261a88a3e3"
+      },
+      "payload": {
+        "version": 1,
+        "profile": "picomart-message-v1",
+        "binding": {
+          "version": 1,
+          "referenceProfile": "picomart-sealed-reference-v1",
+          "chainId": 42431,
+          "contractAddress": "0x3333333333333333333333333333333333333333",
+          "orderId": "0x1112131415161718191a1b1c1d1e1f20",
+          "messageType": "seller-refusal",
+          "sequence": 2,
+          "author": "0x1563915e194d8cfba1943570603f7606a3115508",
+          "buyerIdentityId": "0x53deaec7779e37bbc316256ff7a6ade1d2aea51a8d3d29dfb1420839901f1471",
+          "sellerIdentityId": "0xe25c5853581a3f9e2becba1230e7b3dc2b127a070876cd09726462261a88a3e3"
+        },
+        "data": {
+          "customInfo": "Test refusal only"
+        }
+      },
+      "plaintext": "{\"binding\":{\"author\":\"0x1563915e194d8cfba1943570603f7606a3115508\",\"buyerIdentityId\":\"0x53deaec7779e37bbc316256ff7a6ade1d2aea51a8d3d29dfb1420839901f1471\",\"chainId\":42431,\"contractAddress\":\"0x3333333333333333333333333333333333333333\",\"messageType\":\"seller-refusal\",\"orderId\":\"0x1112131415161718191a1b1c1d1e1f20\",\"referenceProfile\":\"picomart-sealed-reference-v1\",\"sellerIdentityId\":\"0xe25c5853581a3f9e2becba1230e7b3dc2b127a070876cd09726462261a88a3e3\",\"sequence\":2,\"version\":1},\"data\":{\"customInfo\":\"Test refusal only\"},\"profile\":\"picomart-message-v1\",\"version\":1}",
+      "item": {
+        "version": 1,
+        "encryptedPayload": "ynnvy0IlnWKvWlgA:5qM3rNd9LirDsrFVuAHgVoJFapZf5caDC3dH9ovawN7gPJWaLv7e960yWpaiiGi7G9d2JuXYtSmep2Dv+tC4V++m1q1Cl8vF6yOqeRCPeNJ9hoDWYDpsQK5+XxyiQUBGg3U1H/JHHhnytGPGK6BwzXpWE2+L+wXuWE+pIoFCNSQZspAjjSiFSXeJwkWqLGDixMYAa1bTYubut74xI8OD9f1v7+YETtSTo1YuvHdmVLorazwXcJOKk95AgpwZt9o8zOmcmRj8DUbnngyR5R+b42v7MqR+4OOPeVVVZjqDNjTL5EAd1ZfHOvU2AouCHlQzPC2QXOkWzS2X4s3oYzfiEJI3inHRnKYx5F0Kn9FnkwZZ2F8deXQQSRs7eNrDWUYaKoqzyCUWXcuDdMaQ0ODLAzbqKWLsGoUYY8GQC8tSX6tJ83uCgX6aiwSVIzhwgho/bT4iaUsPWaiZWzQshobVnrdTybiEfMxsmOZ16cvoG0scRUTvzRFx1pM/kwKMHZwH5KqYUFH58sqN3HBOqtiLkZNHColdCAFXlkPevzwgpUJjR+DZEpcWkjuItk1e+Rlxq/MrDu7gMt3D/ER696SGjANCuPrQGHiy4j9lVBOMdZhKgN0TN9VMC5KiPcZN8FPGgZMI2o6tbA4aIB2yOMN7ckgkrHgndE/dduVePAO1OwxIKSeTvzamIf/r0IE8KiImIgUt6jAOcZJxcCEVfUXs2xCbBgaln6zOjbGoEw3Tb+FdVoEwYCoA80gRTv/7nlfL",
+        "itemSignature": {
+          "value": "NpjNpOcvHrRaO5CJW+H/Ow9FyWWdRj10lEE0Ot8LCeDdILRGBWYWBFZbbrGZ1QKE0pD0cSZlbtXNH34ogGSAAA=="
+        },
+        "seed": "vuqfut6s2lnpy4s64ctxpj7khq",
+        "keyDerivationProfile": "zkbytes-wallet-eip191-hkdfsha256-ed25519-x25519-hpke-v1",
+        "encryptedKeys": [
+          {
+            "publicKey": "NHGvQG8r34QB7s9zi/7om+Y24TuWbo6xXxvQzHoBCXg=",
+            "wrappingAlgorithm": "zkbytes-hpke-x25519-hkdfsha256-aes256gcm-v1",
+            "encryptedKey": "0AXN7FFYQJuGQ2265EgapMmcLEaNyntONQlFHTJcwQTBlZQWpMjcYfJZAeEtwaOt39WuJGgFJ2n8j0GubuF9apsfn7fCvOcPoYKmx5XJU04="
+          },
+          {
+            "publicKey": "oN45EG+ZIJj4LCpTmSpls2orPCxIVnA4aEDxhaVErzU=",
+            "wrappingAlgorithm": "zkbytes-hpke-x25519-hkdfsha256-aes256gcm-v1",
+            "encryptedKey": "YL+Wn661YcNtfcz5BaSARscPe9oPTMncYGbYdWOTrQYRyaMPzHkAbMbfSKDgiZCI1aw7l+wq0aLxRbEZT8Sb33WI5Vr1xl9ViKGirHgqZHM="
+          },
+          {
+            "publicKey": "HEx8pXqU23NZL7oHO408eehdEhBJ+ht++Wi9zGB+fmI=",
+            "wrappingAlgorithm": "zkbytes-hpke-x25519-hkdfsha256-aes256gcm-v1",
+            "encryptedKey": "Vi8w9FEdUbWPx/rAK4nAq/tzU9VjXeTr6Uog66ESQWkA6OkyLbys11aVBNa+FBI5P09hX9SgPjpk8mBIjuOEe4jcVgMYLyyXLFYjFsUEGrg="
+          }
+        ],
+        "expiresAt": "2099-01-01T00:00:00Z",
+        "creator": {
+          "publicKey": "464llNF49LDB2iBb0TLYCMdqh/5d1fW6xOA+EVEVYsI=",
+          "signatureScheme": "zkbytes-ed25519-v1"
+        },
+        "managers": []
+      },
+      "privateReferences": {
+        "buyer": {
+          "header": {
+            "format": "picomart-sealed-reference",
+            "version": 1,
+            "referenceProfile": "picomart-sealed-reference-v1",
+            "context": "bfcmt6fnzilmzdpcux52nraaku",
+            "recipientRole": "buyer",
+            "recipientIdentityId": "0x53deaec7779e37bbc316256ff7a6ade1d2aea51a8d3d29dfb1420839901f1471",
+            "recipientPublicKey": "oN45EG+ZIJj4LCpTmSpls2orPCxIVnA4aEDxhaVErzU="
+          },
+          "binding": {
+            "version": 1,
+            "referenceProfile": "picomart-sealed-reference-v1",
+            "chainId": 42431,
+            "contractAddress": "0x3333333333333333333333333333333333333333",
+            "orderId": "0x1112131415161718191a1b1c1d1e1f20",
+            "messageType": "seller-refusal",
+            "sequence": 2,
+            "author": "0x1563915e194d8cfba1943570603f7606a3115508",
+            "buyerIdentityId": "0x53deaec7779e37bbc316256ff7a6ade1d2aea51a8d3d29dfb1420839901f1471",
+            "sellerIdentityId": "0xe25c5853581a3f9e2becba1230e7b3dc2b127a070876cd09726462261a88a3e3"
+          },
+          "keyDerivationProfile": "zkbytes-wallet-eip191-hkdfsha256-ed25519-x25519-hpke-v1",
+          "reference": {
+            "version": 1,
+            "service": "zkbytes",
+            "apiOrigin": "https://api.picomart.example",
+            "downloadOrigin": "https://download.picomart.example",
+            "seed": "vuqfut6s2lnpy4s64ctxpj7khq",
+            "expiresAt": "2099-01-01T00:00:00Z",
+            "expectedCreator": {
+              "publicKey": "464llNF49LDB2iBb0TLYCMdqh/5d1fW6xOA+EVEVYsI=",
+              "signatureScheme": "zkbytes-ed25519-v1"
+            }
+          },
+          "objectDigest": "0x2b320e1c3ea166ef310a948fa2280c0a5ee8b0f4526b0706fbc53d3f91ca8b32"
+        },
+        "seller": {
+          "header": {
+            "format": "picomart-sealed-reference",
+            "version": 1,
+            "referenceProfile": "picomart-sealed-reference-v1",
+            "context": "6ewadzigtpufthxfkojtrauq6q",
+            "recipientRole": "seller",
+            "recipientIdentityId": "0xe25c5853581a3f9e2becba1230e7b3dc2b127a070876cd09726462261a88a3e3",
+            "recipientPublicKey": "HEx8pXqU23NZL7oHO408eehdEhBJ+ht++Wi9zGB+fmI="
+          },
+          "binding": {
+            "version": 1,
+            "referenceProfile": "picomart-sealed-reference-v1",
+            "chainId": 42431,
+            "contractAddress": "0x3333333333333333333333333333333333333333",
+            "orderId": "0x1112131415161718191a1b1c1d1e1f20",
+            "messageType": "seller-refusal",
+            "sequence": 2,
+            "author": "0x1563915e194d8cfba1943570603f7606a3115508",
+            "buyerIdentityId": "0x53deaec7779e37bbc316256ff7a6ade1d2aea51a8d3d29dfb1420839901f1471",
+            "sellerIdentityId": "0xe25c5853581a3f9e2becba1230e7b3dc2b127a070876cd09726462261a88a3e3"
+          },
+          "keyDerivationProfile": "zkbytes-wallet-eip191-hkdfsha256-ed25519-x25519-hpke-v1",
+          "reference": {
+            "version": 1,
+            "service": "zkbytes",
+            "apiOrigin": "https://api.picomart.example",
+            "downloadOrigin": "https://download.picomart.example",
+            "seed": "vuqfut6s2lnpy4s64ctxpj7khq",
+            "expiresAt": "2099-01-01T00:00:00Z",
+            "expectedCreator": {
+              "publicKey": "464llNF49LDB2iBb0TLYCMdqh/5d1fW6xOA+EVEVYsI=",
+              "signatureScheme": "zkbytes-ed25519-v1"
+            }
+          },
+          "objectDigest": "0x2b320e1c3ea166ef310a948fa2280c0a5ee8b0f4526b0706fbc53d3f91ca8b32"
+        }
+      },
+      "envelopes": {
+        "buyer": "{\"context\":\"bfcmt6fnzilmzdpcux52nraaku\",\"encryptedKey\":\"0F/gTIhd5QLtJFpeq2oh4bH6vKf62nZC5PS/mQWgfVlX/JBM+R/Ja7Fh7Ly0xxrh4aePvfmuIyFtV709u83P18g8yg9c3ZCTlGyLrCOyfuQ=\",\"encryptedPayload\":\"s4QBpayzSlvEWKdc:Vp6618ZJEXfkv4pIOt7ER/gb2SGBx4ofCjoI6KdMhbb7s4BDo0RRCKO+SnVRdU4R/wK4KlgFeBqDKkSzspuCcg789xp85bLtg1iE1QzSVHYaSulSNUFESgB/7pumEGbliMOc/tMaA39aFH6485pZBBctkY/59bRItvje9VIt++xeVsf+tl7W33naUIIBex830vUhtujU1mFbsDphD6Knz5hXXDM3kzxCz+SzPn9LWgtyeDkuWMeFqVTR3ZtbKcptrBrtbTtbBRTJp4tlUV7Cpp+PStBeagxxDo/MLjWzqB3JuaAoO7YvWePYnHayeutIK9ZF77m+yY8MV3r7WakPcGDvwvdPBsRZXn8W8m9IxrEZcFMO8ODuuVwmSIDHXTM+hICmr7tnnthCEeeVTXmshM9UNfG8WuO8YOZvmS8pU4sTpSsVGh9KFKqq3/QnkfiIEZWH1f70CNG0WJLf/eaMns9PXYsiCQuf8TLCMZGqLjdpRXEaJNtOjiivamM82T8MLPTlHsOC2OrmYfMm1hJBVl59a6s7tr/EAr5P3Gv1B2iTH5BY+Y1bh1SQVf1mxRhPUbXm8iknVDFusmuNZHz08SPGDAX0hjNjESZNm3xfwOd/+ye5WQNJomoSGHOA7Qehzpr8jrrMOS+2a9ryyG74Wee7txYh8YDl+CdxD10qP+qJrx1Wht92D8FH4nVhoN6YyZtJP+pmeAC7y/JiefSwiTHzqdhUL4lhmkQ6do4HtLsG9rnB1wv+TYVhndnTkWOOdZXluGc9pySyJnO/Lx3Y6+Z2+62lQ5u4xrP5usEW6tKprOyqiWZp8FrwoD9MDuscCf4tomqkue8wL59BjM0R8Y02uXYj+ZabnaI9uDpvx59qvOFKkMsZ461bKkRszJBw9NPdE/UVmdkF/ZrSwbFkhIYwpi4DlOqh3uNSL/RtL1ZWOJMfFoknRUWBw8ywO/MhhyOT+ZXSVg1ILjbn5dqlMwdKyhjnG3K5wCvE7pRjYpzyu/KBKBx1EJyCxTNWLRD4iIcNY6a5hZUAHvbtnF2YET9slVopqO9hSeY/hf0Ezt2qTkqKFu7JbNcM7UmWbGHPpBcLP9KN1pShKu8s37bFWfvzYvuJ831uCEo/6YQmVfc9fOA8Xnm5rTnQWCxEK+sCi/SsWhjYFlmZlArEIY/kCYLa/wJx6IWtRKh5UHHiKEB0EeFL36WVuYFxcpnfE3632jFZPMX9qvlz8PWGYaJCAU9YWbmuzwdc6bXKv90ui1S7dqYtg52TgwzW1yPPFDyRJ5bLKTYEcC58563xQlgD2H1G8Imdp9rWyXgT8P2A+yFH7LT9MGb/xlNIsU8WPRWzvMguwmlFzlzJ4PwTK0YKcBqNFIJR7m2eoBvtTnXsWifrbiqgHMkoc9TxXb6XFLDV8Srd5LrDp6A3edMRFsdpYYBc0HGSHuPutnLDhxbtpytMqkABoa6iIrQFa4WWApV0BVyIfBkJsXgskbk/21RbBD/+slMrx2NJjTqJLPfFMwhlJ3d2ham1NKkoPJunmzKZfKAodT07ZoIHNoD4M3P9Sbs4KFy8ehRk5i9gX254QSM0IwDgOHmXgrLwiBhtN6KyX2K6G+Zw5Agczt1rFRkxm6rjDoTgrq/+N5kJLMn6FXPDLocRQjITKaSrdUBeyDqqCG68xc1rWVjvvLvzpHyXG8YMyJlLHdWtcaX7UgTYgab4xFDiSbW8O8wJOnpNRgVue4RRLNoAIpW6bLEBXw0HgEgndVWCLA==\",\"format\":\"picomart-sealed-reference\",\"recipientIdentityId\":\"0x53deaec7779e37bbc316256ff7a6ade1d2aea51a8d3d29dfb1420839901f1471\",\"recipientPublicKey\":\"oN45EG+ZIJj4LCpTmSpls2orPCxIVnA4aEDxhaVErzU=\",\"recipientRole\":\"buyer\",\"referenceProfile\":\"picomart-sealed-reference-v1\",\"version\":1}",
+        "seller": "{\"context\":\"6ewadzigtpufthxfkojtrauq6q\",\"encryptedKey\":\"/VKAF+jvDA5sN0IclE2eP/HnP8Ru2rGxqrlzjLpSlngE1Quw/tX4OuV/UrHUKyLpEVGBO+f2ndRaJEgkDLPKNb+TnN5wpIc0pa+eKXwbnio=\",\"encryptedPayload\":\"mJyhmbh1GJFJRMCo:vUwKlFziK56Qd5VneE55ocxdGEK8zJdPrf9SVqCe947L+KHv0saryeH2+5fYEv4DOMIw9ZVRR6IE2h8z+JvqJZfE0fVW4eot25QYtkyrj5tL6lMPtXAzKj0LGwmyfBuxEE+YEuKh2YyGfeSzTjY3thNCRiaTvAc51Ak0z/ossC7ww2CZ9RlOhew98p6sgjxs6AkxBAo8KF3ZhwmliLTuLnrxdbxRVR1QrNTPJB75kaTz561dEWVwxHZ3zyvucrqf0qkZ9ImdNxvrBgmthR88pEpYT/ghpQOd+l67Q5b9m5t9dMLhKx4l2Hp0zzkj/tsNccnb+Tyv4oaQ7uMiK2if911uen1BQQ6b7kQTwF/Y2q5dinbtdgBe2OTTucDc5fFLuXaWmpBQil8PX5YvUQAJVu5SgZ7vZYrkmTIjEk02H621x375rXrkr9WAJgnI0MXhYhiXy3SLoju+CZpesLRHLJxEoe4OW+5QQvyIcKeQNln8HhhHoyDqsLmeYKsiSUX/CqKkTNbSPk10EOrKFV70HSEO9e8l6aTMceMtuxDhWSzhvT7FPKInhcG2ZyXrRnhkoYy6jKta+Sgl3y4dGslo8bZlptDPejYrsHfMYF2TTI/0U75Ga4K4M2+EmmS+oabngjCVz/EsIz5NflhwJaWdOxBbqCFRuuRCO2FAIYQqKqXKalV1uzRCVDtCqmNI/fGj0PLbZR7sNXYtllNylhWqU7qI0Lr7SES6AjtC3PULnxauX9hQQRQjMGLkMpKAjQNYp3+deSyuEkO6Hl+/LmfTwy8NmvYpqjX5VRHy8AowwPUZtgx04LP1ZF5cma7nX5a0YshVULGvDlFwWzFP1ynOkP+bOZRvlXe0wF8SV0Rq7TTUhDQcQQUW+Ag/H4z86JpFtb4NbqdRomvz6jJNEAYerDGtr+CuXt7BH2IJboOzRQQNBETk0YbHBSpTAgonLPLqWdfllRECqI5azGYL++16z3udZHafChH9bpNqqt83/XDQpVgmC6Y2Mca5Z20pK88yDrwmBc2NSBqoTenw9miCAgBVaM88RfVMXLjwkbJA1hSa4igPZA2fIOYMjTjaF3pmDdYWYHMbepL+n7XdyEX9y53+GphGyr3O9JFZTSHXdGu5xb3ro1xu6jKjj/D0IBS8xIdzK5vYO+DugrIIKCZiPYS80JF+U50qICR/opuXzAp0QGzdjWiwMF8BIN0xSkJ/3l2U2LKE4shyVoIlqM8yBKL5ZoRE/hbr4HP8XdOUNcLlapSQXf26u4ybky5og5rM2t/g5x8vWHomEiWVu26sli8eIuKz2meZzeb9egaxafH2/escnZmEaJ4FqIK3l+jwDeL+XDb+pq6cVQ4CBsBQOdJ9w6hCflomCICrojwySoZ66N3tBcJUfWVAKvry+LB6J3S4EUhyOA2vFTljPQPYBgZFWMd1dbeCXo2xL0e3Q+H6i41ONHMn8kdGXNDYQcorc6BMLhpIInzUi4raawFD5bTD8VifGgPyiFhjEhMAWU5r8Xl8Gigokr+UKBXzO+C6TsL9phFeTi5LFzSXsOC5lDHjtY/Ew9elxYUiFNWazvoErLsMW74Y4jMJxL7yMrbNxoAsVnSbLDQ6ztDwo8qSAddh8CUqpszhvWNIUUm5LPUE7tBHPTXcV853QEgsxe3f3W2pmCBX3U49yJEtr4n7ih3a0CKBu39IG8U9b8D+WFGArZCjUj5Vq85ZGoiNUMXnrJF56+LiuvpjDJgar3PNnfiUNULbW5g=\",\"format\":\"picomart-sealed-reference\",\"recipientIdentityId\":\"0xe25c5853581a3f9e2becba1230e7b3dc2b127a070876cd09726462261a88a3e3\",\"recipientPublicKey\":\"HEx8pXqU23NZL7oHO408eehdEhBJ+ht++Wi9zGB+fmI=\",\"recipientRole\":\"seller\",\"referenceProfile\":\"picomart-sealed-reference-v1\",\"version\":1}"
+      },
+      "objectDigest": "0x2b320e1c3ea166ef310a948fa2280c0a5ee8b0f4526b0706fbc53d3f91ca8b32",
+      "abiEncoded": "0xf8d25dc2164603befee2f65732962abe572c53c23dd71cb67be1df4724d52d6b0000000000000000000000000000000000000000000000000000000000000001ff027bff876dfdcdb9edfc200a7dd73de05be0aabba5f48abb945b8890b856b5000000000000000000000000000000000000000000000000000000000000a5bf00000000000000000000000033333333333333333333333333333333333333331112131415161718191a1b1c1d1e1f2000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000300000000000000000000000000000000000000000000000000000000000000020000000000000000000000001563915e194d8cfba1943570603f7606a311550853deaec7779e37bbc316256ff7a6ade1d2aea51a8d3d29dfb1420839901f1471e25c5853581a3f9e2becba1230e7b3dc2b127a070876cd09726462261a88a3e3c551f2102c2f0d934f6c5633a4afed9827d31aa8618a782706b218cf56275d9bc870253f3a4082be2d05dfc7c925e4fac80f6f592ab2f90dbd042e59640881a3",
+      "commitment": "0xf0dc5d16b08ba7a13c9358c4c6fd0c228e3929ac2c06f2b92dd8d9b0637b394f"
+    }
+  ]
+}

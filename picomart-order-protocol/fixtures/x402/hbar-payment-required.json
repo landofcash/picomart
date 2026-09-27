@@ -1,0 +1,26 @@
+{
+  "x402Version": 2,
+  "error": "PAYMENT-SIGNATURE header is required",
+  "resource": {
+    "url": "https://api.example.test/api/v1/testnet/orders/AAAAAAAAAAAAAAAAAAAAAA/confirm",
+    "description": "Create and pay for a Picomart order",
+    "mimeType": "application/json",
+    "serviceName": "Picomart"
+  },
+  "accepts": [{
+    "scheme": "picomart-order",
+    "network": "hedera:testnet",
+    "amount": "100000000",
+    "asset": "0.0.0",
+    "payTo": "0.0.7565091",
+    "maxTimeoutSeconds": 600,
+    "extra": {
+      "schemeVersion": 1,
+      "orderSeed": "AAAAAAAAAAAAAAAAAAAAAA",
+      "quoteDigest": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "quotePath": "/api/v1/testnet/order-quotes/resolve",
+      "quoteJws": "eyJhbGciOiJFZERTQSIsImtpZCI6InRlc3QiLCJ0eXAiOiJtZXJ4ZXQtb3JkZXItcXVvdGUrandzIn0..AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    }
+  }],
+  "extensions": {}
+}

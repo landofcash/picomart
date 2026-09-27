@@ -1,0 +1,12 @@
+export const X402_PROTOCOL_VERSION = 2 as const;
+export const PICOMART_ORDER_SCHEME = "picomart-order" as const;
+export const PICOMART_ORDER_SCHEME_VERSION = 1 as const;
+export const PICOMART_NETWORK = "hedera:testnet" as const;
+export const HBAR_ASSET = "0.0.0" as const;
+export const QUOTE_MAX_LIFETIME_SECONDS = 600;
+export const QUOTE_RECOVERY_SECONDS = 86_400;
+export const QUOTE_NORMAL_TTL_SECONDS = 87_000;
+export const QUOTE_RESOLUTION_PATH = "/api/v1/testnet/order-quotes/resolve" as const;
+export const ORDER_SEED_PATTERN = /^[A-Za-z0-9_-]{22}$/;
+export const MAX_QUOTE_REQUEST_BYTES = 131_072;
+export const MAX_DELIVERY_CIPHERTEXT_BYTES = 65_536;

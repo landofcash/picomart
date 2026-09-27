@@ -1,0 +1,62 @@
+import {createHash} from 'crypto';
+import {verifyMessage} from 'ethers';
+import {tempoAddress} from './tempoIdentity';
+
+export const CATALOG_CDN = 'https://cdn.picomart.zkbytes.com';
+export const IMAGE_LIMIT = 10 * 1024 * 1024;
+export const CATALOG_LIMIT = 1_000_000;
+export const PATH_USD = '0x20c0000000000000000000000000000000000000';
+const deployment = '0x3c91183f0454eab6eff6f570ac402be278dbd6f4';
+const storageHosts = new Set(['storage.bunnycdn.com', ...['uk','ny','la','sg','se','br','jh','syd'].map(r=>`${r}.storage.bunnycdn.com`)]);
+export class CatalogInputError extends Error {}
+export function storageConfig(env: NodeJS.ProcessEnv = process.env) {
+  if (env.BUNNY_UPLOAD_ENABLED !== 'true') throw new CatalogInputError('Catalog uploads are disabled.');
+  const endpoint = new URL(env.BUNNY_STORAGE_ENDPOINT || 'https://storage.bunnycdn.com');
+  const zone = env.BUNNY_STORAGE_ZONE || '', key = env.BUNNY_STORAGE_ACCESS_KEY || '';
+  if(endpoint.protocol !== 'https:' || !storageHosts.has(endpoint.hostname) || endpoint.port || endpoint.username || endpoint.password ||
+    !['','/'].includes(endpoint.pathname) || endpoint.search || endpoint.hash || !/^[a-zA-Z0-9][a-zA-Z0-9-]{0,99}$/.test(zone) || !key)
+    throw new CatalogInputError('Catalog storage configuration is incomplete or invalid.');
+  if((env.BUNNY_PUBLIC_BASE_URL || CATALOG_CDN).replace(/\/$/, '') !== CATALOG_CDN)
+    throw new CatalogInputError('Use the configured Picomart catalog CDN.');
+  return {baseUrl:`${endpoint.origin}/${zone}`,key,publicBase:CATALOG_CDN};
+}
+export const sha256 = (bytes: Uint8Array|string) => createHash('sha256').update(bytes).digest('hex');
+export function uploadMessage(account:string,kind:'image'|'json',hash:string,expiresAt:number) {
+  return `Picomart public catalog upload\nVersion: 1\nChain ID: 42431\nContract: ${deployment}\nCDN: ${CATALOG_CDN}\nAccount: ${account}\nKind: ${kind}\nSHA256: ${hash}\nExpires at: ${expiresAt}`;
+}
+export function authorizeUpload(auth: Record<string,unknown>,kind:'image'|'json',hash:string,now=Date.now()) {
+  try {
+    const account=tempoAddress(String(auth.account)),expiry=Number(auth.expiresAt);
+    if(!Number.isSafeInteger(expiry)||expiry<=now||expiry>now+300_000||!/^0x[0-9a-f]{130}$/i.test(String(auth.signature)))throw new Error();
+    if(verifyMessage(uploadMessage(account,kind,hash,expiry),String(auth.signature)).toLowerCase()!==account)throw new Error();
+    return account;
+  } catch {throw new CatalogInputError('Invalid or expired wallet upload signature.');}
+}
+export function imageType(bytes:Buffer) {
+  if(bytes.length===0||bytes.length>IMAGE_LIMIT)throw new CatalogInputError('Images must be between 1 byte and 10 MiB.');
+  if(bytes.subarray(0,8).equals(Buffer.from('89504e470d0a1a0a','hex')))return {extension:'png',mime:'image/png'};
+  if(bytes.length>=3&&bytes[0]===255&&bytes[1]===216&&bytes[2]===255)return {extension:'jpg',mime:'image/jpeg'};
+  if(['GIF87a','GIF89a'].includes(bytes.subarray(0,6).toString('ascii')))return {extension:'gif',mime:'image/gif'};
+  if(bytes.length>=12&&bytes.subarray(0,4).toString('ascii')==='RIFF'&&bytes.subarray(8,12).toString('ascii')==='WEBP')return {extension:'webp',mime:'image/webp'};
+  throw new CatalogInputError('Use a PNG, JPEG, GIF or WebP image.');
+}
+export function catalogBytes(content:unknown,account:string):Buffer {
+  if(typeof content!=='string'||Buffer.byteLength(content)>CATALOG_LIMIT)throw new CatalogInputError('Catalog JSON exceeds its limit or is missing.');
+  let products:unknown;try{products=JSON.parse(content);}catch{throw new CatalogInputError('Invalid catalog JSON.');}
+  if(!Array.isArray(products)||products.length===0||products.length>1000)throw new CatalogInputError('Catalog must contain 1–1000 products.');
+  const ids=new Set<string>();
+  for(const p of products) {
+    if(!p||typeof p!=='object'||Object.keys(p).sort().join(',')!=='Description,Image,Name,Price,PriceToken,ProductId'||
+      typeof p.ProductId!=='string'||!p.ProductId||p.ProductId.length>100||ids.has(p.ProductId)||
+      typeof p.Name!=='string'||!p.Name.trim()||p.Name.length>60||typeof p.Description!=='string'||p.Description.length>320||
+      typeof p.Price!=='string'||!/^[1-9][0-9]{0,77}$/.test(p.Price)||BigInt(p.Price)>2n**256n-1n||p.PriceToken!==PATH_USD||typeof p.Image!=='string')
+      throw new CatalogInputError('Invalid PathUSD product terms.');
+    ids.add(p.ProductId);
+    const imagePattern=new RegExp(`^${CATALOG_CDN.replaceAll('.','\\.')}/moderato/v1/${account}/images/[0-9a-f]{64}\\.(png|jpg|gif|webp)$`);
+    if(!imagePattern.test(p.Image))throw new CatalogInputError('Product images must use this wallet’s published Picomart images.');
+  }
+  return Buffer.from(content,'utf8');
+}
+export function storagePath(account:string,kind:'image'|'json',hash:string,extension:string) {
+  return `moderato/v1/${account}/${kind==='image'?'images':'catalogs'}/${hash}.${extension}`;
+}

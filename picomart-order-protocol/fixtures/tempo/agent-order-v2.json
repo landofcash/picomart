@@ -1,0 +1,178 @@
+{
+  "notice": "Synthetic test data only. The published test delivery key is not a real credential.",
+  "request": {
+    "version": 2,
+    "orderSeed": "AgICAgICAgICAgICAgICAg",
+    "catalogSeed": "AQEBAQEBAQEBAQEBAQEBAQ",
+    "items": [
+      {
+        "productId": "AwMDAwMDAwMDAwMDAwMDAw",
+        "quantity": 2
+      }
+    ],
+    "encryptedDelivery": {
+      "algorithm": "A256GCM",
+      "nonce": "AgICAgICAgICAgIC",
+      "ciphertext": "fPSoLS4lpI6g7obqCMKxxoLGpZ2O1PlT8aWDkgyCVkVVK3tEGU_AhjNXcMW9RDMOxAGsroVg_3afYZ-QBlks4xjGq8DSr24cMTI32Y1sBEQlHjVXKsRd4aRRNq0pLL1aPSgpZgJ0I_2TEWkNaburvRt55GUrlsyJLQno3VKlCIAOJ2BStr1m6lXiMDtlr9dxzZpXsaOyWVIrEV_jwFQgtH7DpUDTsLmynuBletBiA3WpN6Pt",
+      "tag": "QCweukdWpAwcAFmRZYfWew",
+      "version": 2
+    },
+    "deliveryDetailsHash": "1B6qXV4p4qfar19Zk-SarG0V9duf_dvq7GPBu_ITQuQ",
+    "physicalDelivery": true
+  },
+  "delivery": {
+    "fullName": "Test recipient",
+    "address": "Test street",
+    "city": "Test city",
+    "postalCode": "Test",
+    "country": "PT",
+    "phone": "Test",
+    "email": "test@example.invalid",
+    "noPhysicalDelivery": false
+  },
+  "deliveryKey": "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE",
+  "resolution": {
+    "quote": {
+      "version": 2,
+      "orderSeed": "AgICAgICAgICAgICAgICAg",
+      "requestHash": "Zr6hHLvsdMVHfRpLZCK6c-Bh6sTJfoBtETmFh9Bb7uU",
+      "network": "eip155:42431",
+      "x402": {
+        "protocolVersion": 2,
+        "scheme": "picomart-order",
+        "schemeVersion": 2,
+        "resourceMethod": "POST",
+        "resourcePath": "/api/v2/moderato/orders/AgICAgICAgICAgICAgICAg/confirm",
+        "maxTimeoutSeconds": 600
+      },
+      "catalog": {
+        "seed": "AQEBAQEBAQEBAQEBAQEBAQ",
+        "sellerEvmAddress": "0x2222222222222222222222222222222222222222",
+        "sellerPublicKey": "0x0404040404040404040404040404040404040404040404040404040404040404",
+        "sellerIdentityId": "0xd46aa5dde914825d550efffb9c18c10e1886339c264d9515c47e1ccd8832eff5",
+        "catalogUrl": "https://cdn.picomart.zkbytes.com/fixture.json"
+      },
+      "items": [
+        {
+          "productId": "AwMDAwMDAwMDAwMDAwMDAw",
+          "quantity": 2,
+          "name": "Test product",
+          "unitAmount": "1250000",
+          "lineAmount": "2500000"
+        }
+      ],
+      "delivery": {
+        "required": true,
+        "optionId": "pilot-seller-arranged",
+        "optionName": "Seller-arranged delivery",
+        "amount": "0",
+        "deliveryDetailsHash": "1B6qXV4p4qfar19Zk-SarG0V9duf_dvq7GPBu_ITQuQ",
+        "encryptedDeliveryHash": "LdnbnojiLv3ekPO6AmHHvh7-Fc2Ni1VEzJfrHYfza2w"
+      },
+      "payment": {
+        "symbol": "PathUSD",
+        "name": "PathUSD",
+        "amount": "2500000",
+        "payTo": "0x3c91183f0454eab6eff6f570ac402be278dbd6f4",
+        "assetType": "tip20",
+        "asset": "0x20c0000000000000000000000000000000000000",
+        "decimals": 6
+      },
+      "picomart": {
+        "chainId": 42431,
+        "contractAddress": "0x3c91183f0454eab6eff6f570ac402be278dbd6f4"
+      },
+      "issuedAt": 1700000000,
+      "expiresAt": 1700000600
+    },
+    "quoteDigest": "23EN3kqjsjSH227vGxa8lan07wcDxfEyfLsO1Ja20ic",
+    "quoteJws": "eyJhbGciOiJFZERTQSIsImtpZCI6InN5bnRoZXRpYy10ZW1wby1hZ2VudC1maXh0dXJlIiwidHlwIjoicGljb21hcnQtb3JkZXItcXVvdGUrandzIn0..yBmF-lhrjiIByp_FP2p5G-0vyFhMlzHoig05SzbLN1VvwVESsPNXUjg-1-8uqQoG1ptTASeQnsKWx8fL-wy0Ag",
+    "encryptedDelivery": {
+      "algorithm": "A256GCM",
+      "nonce": "AgICAgICAgICAgIC",
+      "ciphertext": "fPSoLS4lpI6g7obqCMKxxoLGpZ2O1PlT8aWDkgyCVkVVK3tEGU_AhjNXcMW9RDMOxAGsroVg_3afYZ-QBlks4xjGq8DSr24cMTI32Y1sBEQlHjVXKsRd4aRRNq0pLL1aPSgpZgJ0I_2TEWkNaburvRt55GUrlsyJLQno3VKlCIAOJ2BStr1m6lXiMDtlr9dxzZpXsaOyWVIrEV_jwFQgtH7DpUDTsLmynuBletBiA3WpN6Pt",
+      "tag": "QCweukdWpAwcAFmRZYfWew",
+      "version": 2
+    },
+    "recoverUntil": 1700087000,
+    "paymentRequired": {
+      "x402Version": 2,
+      "error": "approval_required",
+      "resource": {
+        "url": "https://x402.example.test/api/v2/moderato/orders/AgICAgICAgICAgICAgICAg/confirm",
+        "description": "Test",
+        "mimeType": "application/json",
+        "serviceName": "Picomart"
+      },
+      "accepts": [
+        {
+          "scheme": "picomart-order",
+          "network": "eip155:42431",
+          "amount": "2500000",
+          "asset": "0x20c0000000000000000000000000000000000000",
+          "payTo": "0x3c91183f0454eab6eff6f570ac402be278dbd6f4",
+          "maxTimeoutSeconds": 600,
+          "extra": {
+            "schemeVersion": 2,
+            "orderSeed": "AgICAgICAgICAgICAgICAg",
+            "quoteDigest": "23EN3kqjsjSH227vGxa8lan07wcDxfEyfLsO1Ja20ic",
+            "quotePath": "/api/v2/moderato/order-quotes/resolve",
+            "quoteJws": "eyJhbGciOiJFZERTQSIsImtpZCI6InN5bnRoZXRpYy10ZW1wby1hZ2VudC1maXh0dXJlIiwidHlwIjoicGljb21hcnQtb3JkZXItcXVvdGUrandzIn0..yBmF-lhrjiIByp_FP2p5G-0vyFhMlzHoig05SzbLN1VvwVESsPNXUjg-1-8uqQoG1ptTASeQnsKWx8fL-wy0Ag"
+          }
+        }
+      ],
+      "extensions": {}
+    }
+  },
+  "profile": {
+    "version": 2,
+    "profileId": "synthetic-tempo-agent",
+    "quoteOrigin": "https://x402.example.test",
+    "resourceOrigin": "https://x402.example.test",
+    "network": "eip155:42431",
+    "chainId": 42431,
+    "contractAddress": "0x3c91183f0454eab6eff6f570ac402be278dbd6f4",
+    "trustedQuoteKeys": [
+      {
+        "kid": "synthetic-tempo-agent-fixture",
+        "publicKey": "1ddgpg6_ip-urz4juKyVJh3ijLbfni_zYlkuq_enezQ"
+      }
+    ]
+  },
+  "order": {
+    "version": 1,
+    "chainId": 42431,
+    "contractAddress": "0x3c91183f0454eab6eff6f570ac402be278dbd6f4",
+    "catalogSeed": "AQEBAQEBAQEBAQEBAQEBAQ",
+    "orderSeed": "AgICAgICAgICAgICAgICAg",
+    "buyerIdentity": {
+      "context": {
+        "version": 1,
+        "profile": "picomart-receiving-v1",
+        "chainId": 42431,
+        "contractAddress": "0x3c91183f0454eab6eff6f570ac402be278dbd6f4",
+        "account": "0x1111111111111111111111111111111111111111",
+        "role": "buyer",
+        "orderSeed": "AgICAgICAgICAgICAgICAg"
+      },
+      "publicKey": "AwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwM=",
+      "identityId": "0x59b32f81a2094061e89a2d2de62be4d532e5c8f89fafc8856cc10134c5bff98f"
+    },
+    "sellerIdentity": {
+      "context": {
+        "version": 1,
+        "profile": "picomart-receiving-v1",
+        "chainId": 42431,
+        "contractAddress": "0x3c91183f0454eab6eff6f570ac402be278dbd6f4",
+        "account": "0x2222222222222222222222222222222222222222",
+        "role": "seller",
+        "catalogSeed": "AQEBAQEBAQEBAQEBAQEBAQ"
+      },
+      "publicKey": "BAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQ=",
+      "identityId": "0xd46aa5dde914825d550efffb9c18c10e1886339c264d9515c47e1ccd8832eff5"
+    }
+  },
+  "buyerEnvelope": "{\"context\":\"aaaaaaaaaaaaaaaaaaaaaaaaaa\",\"encryptedKey\":\"BQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQU=\",\"encryptedPayload\":\"BgYGBgYGBgYGBgYG:BwcHBwcHBwcHBwcHBwcHBw==\",\"format\":\"picomart-sealed-reference\",\"recipientIdentityId\":\"0x59b32f81a2094061e89a2d2de62be4d532e5c8f89fafc8856cc10134c5bff98f\",\"recipientPublicKey\":\"AwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwM=\",\"recipientRole\":\"buyer\",\"referenceProfile\":\"picomart-sealed-reference-v1\",\"version\":1}",
+  "sellerEnvelope": "{\"context\":\"bbbbbbbbbbbbbbbbbbbbbbbbba\",\"encryptedKey\":\"BQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQU=\",\"encryptedPayload\":\"BgYGBgYGBgYGBgYG:BwcHBwcHBwcHBwcHBwcHBw==\",\"format\":\"picomart-sealed-reference\",\"recipientIdentityId\":\"0xd46aa5dde914825d550efffb9c18c10e1886339c264d9515c47e1ccd8832eff5\",\"recipientPublicKey\":\"BAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQ=\",\"recipientRole\":\"seller\",\"referenceProfile\":\"picomart-sealed-reference-v1\",\"version\":1}",
+  "commitment": "0xc529d8f2eb2f2366e027a92b50cea90e54a78aba32608d823fbf4b8eced58a61"
+}
