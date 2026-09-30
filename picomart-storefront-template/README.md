@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="public/logo-32x32.png" width="88" height="88" alt="Picomart logo" />
+  <img src="../logo.png" width="88" height="88" alt="Picomart logo" />
 
 # Picomart Storefront Template
 
