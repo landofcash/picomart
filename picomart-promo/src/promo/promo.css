@@ -1,0 +1,93 @@
+.promo-root {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%);
+}
+
+/* Container around the flipbook */
+.promo-root .container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.promo-root h1 {
+  font-size: 3.2em;
+  line-height: 1.1;
+}
+
+.promo-root button {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: #1a1a1a;
+  cursor: pointer;
+  transition: border-color 0.25s;
+}
+.promo-root button:hover {
+  border-color: #646cff;
+}
+.promo-root button:focus,
+.promo-root button:focus-visible {
+  outline: 4px auto -webkit-focus-ring-color;
+}
+
+@media (prefers-color-scheme: light) {
+  .promo-root {
+    color: #213547;
+    background-color: #ffffff;
+  }
+
+  .promo-root button {
+    background-color: #f9f9f9;
+  }
+}
+
+/* Flipbook container */
+.promo-root .flipbook {
+  margin: 2rem auto;
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.4), 0 10px 40px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* Flipbook page */
+.promo-root .page {
+  background: linear-gradient(135deg, #fefefe 0%, #f8f8f8 100%);
+  color: #222;
+  padding: 2rem;
+  height: 100%;
+  box-sizing: border-box;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+/* Flipbook page heading */
+.promo-root .page h2 {
+  margin: 0 0 1rem;
+  font-size: 1.5rem;
+  color: #111;
+}
+
+/* Flipbook footer */
+.promo-root .footer {
+  font-size: 0.75rem;
+  color: #999;
+  text-align: right;
+}
+@media (max-width: 600px) {
+  .promo-root .flipbook {
+    width: 90vw !important;
+    height: 70vh !important;
+  }
+}

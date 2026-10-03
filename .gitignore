@@ -1,0 +1,38 @@
+/.playwright-cli/
+/output/playwright/
+build/
+# Local credentials remain private across package renames.
+**/.env
+**/.env.*
+!**/.env.example
+**/node_modules/
+**/.idea/
+**/dist/
+**/dist-storefront/
+**/coverage/
+**/test-results/
+**/playwright-report/
+.tmp-*/
+.tmp-*.cjs
+/test
+/picomart-frontend/stats.html
+/picomart-smartcontract/.env
+/picomart-smartcontract/artifacts
+/picomart-smartcontract/node_modules
+/picomart-sync/dist
+/picomart-order-protocol/node_modules
+/picomart-order-protocol/dist
+/picomart-x402-server/node_modules
+/picomart-x402-server/dist
+/picomart-mcp/node_modules
+/picomart-mcp/dist
+/picomart-frontend/node_modules
+/picomart-frontend/dist
+/picomart-smartcontract/cache
+# Retired service: preserve ignored local credentials, databases and diagnostics.
+/tools/world-selfie-check/
+
+# Private plans and implementation notes; public documentation will be added later.
+/docs/local/
+*.[mM][dD]
+!**/[rR][eE][aA][dD][mM][eE].[mM][dD]

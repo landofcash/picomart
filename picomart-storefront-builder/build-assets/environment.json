@@ -1,0 +1,11 @@
+{
+  "environmentId": null,
+  "checkpointId": null,
+  "checkpointName": null,
+  "sdkVersion": "3.11.0",
+  "templateVersion": "1.4.0-tempo.2",
+  "sourceDigest": "e82baea73a1385ddf042038361e844a8fa0155946f317760a9a54bfe30016ea4",
+  "lockfileSha256": "dee7a79a76b1d8f6065073aa140f22409b7573606aa875cafae52951701144a9",
+  "node": "24.11.0",
+  "npm": "11.17.0"
+}

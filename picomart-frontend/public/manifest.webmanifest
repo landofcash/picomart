@@ -1,0 +1,39 @@
+{
+  "name": "Picomart — Scan, Shop, Pay in a Flash",
+  "short_name": "Picomart",
+  "description": "Shop with QR codes and pay instantly with crypto or card. Powered by Picomart.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#000000",
+  "lang": "en",
+  "icons": [
+		{
+	      "src": "/logo-32x32.png",
+	      "sizes": "32x32",
+	      "type": "image/png"
+	    },
+		{
+	      "src": "/logo-64x64.png",
+	      "sizes": "64x64",
+	      "type": "image/png"
+	    },
+	    {
+	      "src": "/logo-192x192.png",
+	      "sizes": "192x192",
+	      "type": "image/png"
+	    },
+	    {
+	      "src": "/logo-192x192.png",
+	      "sizes": "192x192",
+	      "type": "image/png",
+	      "purpose": "maskable"
+	    },
+		{
+	      "src": "/logo-512x512.png",
+	      "sizes": "512x512",
+	      "type": "image/png"
+	    }
+  ]
+}

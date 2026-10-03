@@ -1,0 +1,29 @@
+{
+  "catalogSeed": "AQEBAQEBAQEBAQEBAQEBAQ",
+  "products": [
+    {
+      "ProductId": "lIZWNPYBR6aCU0P8t0rZNA",
+      "Name": "Extra Virgin Olive Oil",
+      "Description": "Olive oil for the everyday table.",
+      "PriceToken": "0x20c0000000000000000000000000000000000000",
+      "Price": "1250000",
+      "Image": "https://fixtures.picomart.test/oil.svg"
+    },
+    {
+      "ProductId": "mzIElBYKQW2MprZU3iSVTg",
+      "Name": "Cardo Red Wine 2023",
+      "Description": "A bottle from the demo collection.",
+      "PriceToken": "0x20c0000000000000000000000000000000000000",
+      "Price": "150000000",
+      "Image": "https://fixtures.picomart.test/wine.svg"
+    },
+    {
+      "ProductId": "xsuTwqBDRm-z10IuScaJ2g",
+      "Name": "Portuguese Sardines",
+      "Description": "Sardines from the pantry.",
+      "PriceToken": "0x20c0000000000000000000000000000000000000",
+      "Price": "224000000",
+      "Image": "https://fixtures.picomart.test/sardines.svg"
+    }
+  ]
+}

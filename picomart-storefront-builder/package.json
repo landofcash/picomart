@@ -1,0 +1,43 @@
+{
+  "name": "picomart-storefront-builder",
+  "version": "0.1.2",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.11.0"
+  },
+  "scripts": {
+    "dev": "node --env-file-if-exists=.env.local --watch src/main.ts",
+    "start": "node --env-file-if-exists=.env.local src/main.ts",
+    "build": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test tests/*.test.ts",
+    "contracts:sync": "node scripts/sync-contracts.mjs",
+    "contracts:check": "node scripts/sync-contracts.mjs --check",
+    "seller-contracts:sync": "node scripts/sync-seller-contracts.ts",
+    "seller-contracts:check": "node scripts/sync-seller-contracts.ts --check",
+    "storage:smoke": "node --env-file-if-exists=.env.local scripts/storage-smoke.ts",
+    "build-assets:sync": "node scripts/sync-build-assets.ts",
+    "build-assets:check": "node scripts/sync-build-assets.ts --check",
+    "worker:smoke": "node --env-file-if-exists=.env.local scripts/worker-smoke.ts",
+    "worker:env": "node scripts/init-worker-env.mjs"
+  },
+  "dependencies": {
+    "ethers": "6.17.0",
+    "express": "5.1.0",
+    "railway": "3.11.0",
+    "typescript": "5.8.3",
+    "zod": "4.1.11",
+    "@picomart/order-protocol": "file:vendor/picomart-order-protocol.tgz"
+  },
+  "devDependencies": {
+    "@types/express": "5.0.3",
+    "@types/node": "24.0.4",
+    "viem": "2.47.0"
+  },
+  "overrides": {
+    "viem": {
+      "ws": "8.21.0"
+    }
+  }
+}

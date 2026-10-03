@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 2,
+  "shopId": "picomart-demo",
+  "network": "moderato",
+  "catalogSeed": "AQEBAQEBAQEBAQEBAQEBAQ",
+  "branding": {
+    "name": "Picomart Demo Shop",
+    "description": "Explore a small collection of everyday discoveries, straight from our current catalog.",
+    "eyebrow": "Welcome to the shop",
+    "headline": "A little discovery. Every day.",
+    "story": "This demo shop brings a Picomart catalog to life. Browse the collection, take a closer look, and open a product in Picomart to continue your order.",
+    "favicon": "shop-assets/shop-icon.svg"
+  },
+  "collections": [
+    {
+      "id": "pantry",
+      "name": "The pantry",
+      "description": "Explore the pantry selection.",
+      "productIds": [
+        "lIZWNPYBR6aCU0P8t0rZNA",
+        "xsuTwqBDRm-z10IuScaJ2g"
+      ]
+    },
+    {
+      "id": "drinks",
+      "name": "Drinks",
+      "description": "Discover drinks from the catalog.",
+      "productIds": [
+        "mzIElBYKQW2MprZU3iSVTg"
+      ]
+    }
+  ],
+  "featuredProductIds": [
+    "lIZWNPYBR6aCU0P8t0rZNA",
+    "mzIElBYKQW2MprZU3iSVTg",
+    "xsuTwqBDRm-z10IuScaJ2g"
+  ],
+  "links": [],
+  "chainId": 42431,
+  "contractAddress": "0x3c91183f0454eab6eff6f570ac402be278dbd6f4"
+}

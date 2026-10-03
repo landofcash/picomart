@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/logo-32x32.png" />
+    <link rel="icon" type="image/png" sizes="64x64" href="/logo-64x64.png" />
+    <link rel="apple-touch-icon" sizes="128x128" href="/logo-128x128.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Explore Picomart product catalogs, scan QR codes, and shop using PathUSD on Tempo."
+    />
+    <meta
+      name="keywords"
+      content="Picomart, Tempo, PathUSD, QR commerce, product catalogs, mobile checkout"
+    />
+    <link
+      id="picomart-catalog-data"
+      rel="alternate"
+      type="application/json"
+      title="Picomart catalogue data"
+      data-url-template="https://sync.picomart.zkbytes.com/api/v1/moderato/catalogs/{catalogSeed}"
+    />
+    <title>Picomart Promo Catalogue</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <details
+      id="picomart-ai-ordering"
+      hidden
+      style="
+        position: fixed;
+        right: 1rem;
+        bottom: 1rem;
+        z-index: 50;
+        max-width: 24rem;
+        border: 1px solid #cbd5e1;
+        border-radius: 0.5rem;
+        padding: 0.625rem 0.75rem;
+        background: rgba(255, 255, 255, 0.96);
+        color: #334155;
+        box-shadow: 0 4px 16px rgba(15, 23, 42, 0.15);
+        font-family: system-ui, sans-serif;
+        font-size: 0.75rem;
+        line-height: 1.5;
+        text-align: left;
+      "
+    >
+      <summary style="cursor: pointer; font-weight: 600">
+        Order with your AI assistant
+      </summary>
+      <p>
+        AI-assisted ordering requires the official Picomart integration in your
+        AI application. The integration can prepare and track an order, but you
+        always review and approve payment in Picomart.
+      </p>
+      <p>
+        <a href="/setup-codex.html">Set up Picomart for Codex</a>
+      </p>
+      <p>
+        <a
+          id="picomart-catalog-data-link"
+          rel="alternate"
+          type="application/json"
+        >
+          Product data (JSON)
+        </a>
+      </p>
+      <p>
+        Picomart AI-assisted ordering supports Tempo. Package publication and
+        hosted validation are pending.
+      </p>
+    </details>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
