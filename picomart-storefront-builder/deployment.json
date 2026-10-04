@@ -1,0 +1,29 @@
+{
+  "projectId": "83922d85-60c2-4870-af61-ba680bec9290",
+  "environmentId": "ea754397-a17e-43aa-ac46-1d6359097289",
+  "serviceId": "b7d3c716-ee24-4d35-96dd-7126c7ea2e53",
+  "sellerServiceId": "7f10503a-4f59-4625-a28f-e99fc727ee96",
+  "volumeId": "c8308be8-2205-4075-9f15-f6ee8fe50834",
+  "apiOrigin": "https://builder.picomart.zkbytes.com",
+  "sellerOrigin": "https://seller.picomart.zkbytes.com",
+  "variables": {
+    "NODE_ENV": "production",
+    "HOST": "0.0.0.0",
+    "PORT": "4180",
+    "PREVIEW_PORT": "4181",
+    "PUBLIC_PORT": "4184",
+    "BUILDER_STORAGE_PREFIX": "picomart-builder-hosted-v2",
+    "BUILDER_COORDINATOR_COUNT": "1",
+    "BUILDER_REQUIRE_DEPLOYMENT_VOLUME": "true",
+    "RAILWAY_DEPLOYMENT_OVERLAP_SECONDS": "0",
+    "RAILWAY_DEPLOYMENT_DRAINING_SECONDS": "130",
+    "RAILWAY_SANDBOX_ENVIRONMENT_ID": "ea754397-a17e-43aa-ac46-1d6359097289",
+    "RAILWAY_AUTH_TYPE": "project-token",
+    "BUILDER_NETWORKS": "moderato",
+    "BUILDER_TEMPO_RPC_ORIGIN": "https://rpc.moderato.tempo.xyz",
+    "BUILDER_WORKER_ENABLED": "false",
+    "BUILDER_ORIGINS": "https://seller.picomart.zkbytes.com,https://picomart-seller-production.up.railway.app",
+    "BUILDER_PREVIEW_ORIGIN": "https://preview.picomart.zkbytes.com",
+    "BUILDER_PUBLIC_ORIGIN": "https://shops.picomart.zkbytes.com"
+  }
+}

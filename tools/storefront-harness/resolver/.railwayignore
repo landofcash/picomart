@@ -1,0 +1,7 @@
+*
+!Dockerfile
+!package.json
+!railway.toml
+!.dockerignore
+!src/
+!src/**

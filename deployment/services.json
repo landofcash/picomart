@@ -1,0 +1,107 @@
+{
+  "projectId": "83922d85-60c2-4870-af61-ba680bec9290",
+  "environmentId": "ea754397-a17e-43aa-ac46-1d6359097289",
+  "repo": "landofcash/picomart",
+  "branch": "main",
+  "services": [
+    {
+      "name": "picomart-buyer",
+      "id": "69f00592-5503-4015-8d51-6e25c7311581",
+      "rootDirectory": "/picomart-frontend",
+      "dockerfilePath": "Dockerfile",
+      "healthcheckPath": "/healthz",
+      "port": 3000,
+      "domain": "app.picomart.zkbytes.com",
+      "railwayDomain": "picomart-buyer-production.up.railway.app",
+      "autoDeploy": true,
+      "watchPatterns": [
+        "/picomart-frontend/**"
+      ]
+    },
+    {
+      "name": "picomart-seller",
+      "id": "7f10503a-4f59-4625-a28f-e99fc727ee96",
+      "rootDirectory": "/picomart-seller",
+      "dockerfilePath": "Dockerfile",
+      "healthcheckPath": "/healthz",
+      "port": 3000,
+      "domain": "seller.picomart.zkbytes.com",
+      "railwayDomain": "picomart-seller-production.up.railway.app",
+      "autoDeploy": true,
+      "watchPatterns": [
+        "/picomart-seller/**"
+      ]
+    },
+    {
+      "name": "picomart-promo",
+      "id": "7379fd45-e307-40e2-abf3-71bda08ab735",
+      "rootDirectory": "/picomart-promo",
+      "dockerfilePath": "Dockerfile",
+      "healthcheckPath": "/healthz",
+      "port": 3000,
+      "domain": "picomart.zkbytes.com",
+      "railwayDomain": "picomart-promo-production.up.railway.app",
+      "autoDeploy": true,
+      "watchPatterns": [
+        "/picomart-promo/**"
+      ]
+    },
+    {
+      "name": "picomart-sync",
+      "id": "8d1b7cba-54a8-4f58-9b3a-7f2db11607c5",
+      "rootDirectory": "/picomart-sync",
+      "dockerfilePath": "Dockerfile",
+      "healthcheckPath": "/",
+      "port": 3000,
+      "domain": "sync.picomart.zkbytes.com",
+      "railwayDomain": "picomart-sync-production.up.railway.app",
+      "autoDeploy": true,
+      "watchPatterns": [
+        "/picomart-sync/**"
+      ]
+    },
+    {
+      "name": "picomart-x402",
+      "id": "5519120f-c94b-41b1-a9cc-c712186dad52",
+      "rootDirectory": "/picomart-x402-server",
+      "dockerfilePath": "Dockerfile",
+      "healthcheckPath": "/healthz",
+      "port": 3402,
+      "domain": "x402.picomart.zkbytes.com",
+      "railwayDomain": "picomart-x402-production.up.railway.app",
+      "autoDeploy": true,
+      "watchPatterns": [
+        "/picomart-x402-server/**"
+      ]
+    },
+    {
+      "name": "picomart-storefront-builder",
+      "id": "b7d3c716-ee24-4d35-96dd-7126c7ea2e53",
+      "rootDirectory": "/picomart-storefront-builder",
+      "dockerfilePath": "Dockerfile",
+      "healthcheckPath": "/healthz",
+      "port": 4180,
+      "domain": "builder.picomart.zkbytes.com",
+      "railwayDomain": "picomart-storefront-builder-production.up.railway.app",
+      "autoDeploy": false,
+      "watchPatterns": [
+        "/picomart-storefront-builder/**"
+      ]
+    },
+    {
+      "name": "picomart-redis",
+      "id": "eb16e5eb-f61b-409c-bef8-eca7c032491c",
+      "rootDirectory": "/deployment/redis",
+      "dockerfilePath": "Dockerfile",
+      "port": 6379,
+      "autoDeploy": true,
+      "watchPatterns": [
+        "/deployment/redis/**"
+      ],
+      "volume": {
+        "id": "011ee994-f211-4db6-96a1-14420665b939",
+        "mountPath": "/data"
+      }
+    }
+  ]
+}

@@ -1,0 +1,57 @@
+name: Validate Picomart
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        package:
+          - picomart-frontend
+          - picomart-seller
+          - picomart-promo
+          - picomart-sync
+          - picomart-x402-server
+          - picomart-mcp
+          - picomart-order-protocol
+          - picomart-smartcontract
+          - picomart-storefront-template
+          - picomart-storefront-builder
+          - tools/storefront-harness
+    defaults:
+      run:
+        working-directory: ${{ matrix.package }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.11.0'
+          cache: npm
+          cache-dependency-path: ${{ matrix.package }}/package-lock.json
+      - run: npm ci
+      - name: Install shared validation dependencies
+        if: matrix.package == 'picomart-storefront-builder' || matrix.package == 'tools/storefront-harness'
+        run: npm ci --prefix "$GITHUB_WORKSPACE/picomart-storefront-template"
+      - name: Install browser
+        if: matrix.package == 'picomart-promo' || matrix.package == 'picomart-storefront-template'
+        run: npx playwright install --with-deps chromium
+      - name: Build or typecheck
+        run: npm run build --if-present && npm run typecheck --if-present
+      - run: npm test
+      - name: Check packaged storefront assets and contracts
+        if: matrix.package == 'picomart-storefront-builder'
+        run: |
+          npm run contracts:check
+          npm run seller-contracts:check
+          npm run build-assets:check -- --local

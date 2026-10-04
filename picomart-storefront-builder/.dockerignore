@@ -1,0 +1,9 @@
+**
+!package.json
+!package-lock.json
+!vendor/
+!vendor/**
+!src/
+!src/**
+!build-assets/
+!build-assets/**

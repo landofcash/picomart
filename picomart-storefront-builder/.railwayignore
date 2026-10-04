@@ -1,0 +1,10 @@
+**
+!Dockerfile
+!.dockerignore
+!package.json
+!package-lock.json
+!railway.toml
+!src/
+!src/**
+!build-assets/
+!build-assets/**
