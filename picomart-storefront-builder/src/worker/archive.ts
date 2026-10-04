@@ -24,7 +24,11 @@ export function packSource(files: FileSet): Buffer {
     octal(header, 148, 8, header.reduce((sum, byte) => sum + byte, 0));
     chunks.push(header, bytes, Buffer.alloc((512 - bytes.length % 512) % 512));
   }
-  return gzipSync(Buffer.concat([...chunks, Buffer.alloc(1024)]));
+  const archive = gzipSync(Buffer.concat([...chunks, Buffer.alloc(1024)]));
+  // RFC 1952: 255 means unspecified OS. Node otherwise writes a different
+  // header on Windows and Linux, changing the pinned archive checksum.
+  archive[9] = 255;
+  return archive;
 }
 export function unpackSource(archive: Uint8Array): FileSet {
   if (archive.length > limits().sourceBytes) throw new Error('Archive limit');

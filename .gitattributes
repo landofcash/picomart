@@ -1,0 +1,4 @@
+# Keep packaged sources and their checksums identical on Windows and Linux.
+* text=auto eol=lf
+*.tgz binary
+*.tar.gz binary
