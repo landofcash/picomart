@@ -2,7 +2,7 @@
 
 Railway project: [picomart.zkbytes.com](https://railway.com/project/83922d85-60c2-4870-af61-ba680bec9290). The hosted services use the `production` environment. Blockchain network selection is separate from this environment.
 
-The buyer, seller, promo, sync, x402, and private Redis services are prepared to deploy from `landofcash/picomart`, branch `main`. Each service has its own source directory and watch paths. Grant the Railway GitHub App repository access and enable Wait for CI on each connected service so that `Validate Picomart` must pass before deploying a push.
+The buyer, seller, promo, sync, x402, and private Redis services deploy from `landofcash/picomart`, branch `main`. Each service has its own source directory and watch paths. Wait for CI is enabled on all six connected services so that `Validate Picomart` must pass before deploying a push.
 
 `services.json` records the public deployment targets and expected service settings. Credentials live in Railway variables and ignored local environment files. Frontend `VITE_*` settings are public build-time values and require a rebuild after changes. The apps use their vendored order-protocol archive; rebuild and commit those archives when updating the shared package.
 
