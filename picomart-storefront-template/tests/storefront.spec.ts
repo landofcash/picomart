@@ -17,6 +17,8 @@ test('homepage, product browsing, search, collections and direct reload', async 
   await page.getByRole('searchbox').fill('no matching item');
   await expect(page.getByRole('heading', {name: 'No matching products'})).toBeVisible();
   await page.getByRole('button', {name: 'Clear search'}).click();
+  await expect(page.getByRole('searchbox')).toHaveValue('');
+  await expect(page.locator('.shop-product-card')).toHaveCount(3);
   await page.getByRole('combobox', {name: 'Collection', exact: true}).selectOption('drinks');
   await expect(page.getByRole('heading', {name: 'Drinks', exact: true})).toBeVisible();
   await expect(page.locator('.shop-product-card')).toHaveCount(1);
