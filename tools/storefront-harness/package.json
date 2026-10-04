@@ -1,0 +1,29 @@
+{
+  "name": "picomart-storefront-harness",
+  "version": "0.1.2",
+  "private": true,
+  "type": "module",
+  "engines": {"node": ">=24.11.0"},
+  "scripts": {
+    "sandbox:prepare": "node --env-file-if-exists=.env.local src/cli.ts prepare",
+    "sandbox:build": "node --env-file-if-exists=.env.local src/cli.ts build",
+    "sandbox:generate": "node --env-file-if-exists=.env.local src/cli.ts generate",
+    "sandbox:cleanup": "node --env-file-if-exists=.env.local src/cli.ts cleanup",
+    "sandbox:status": "node --env-file-if-exists=.env.local src/cli.ts status",
+    "preview": "node --env-file-if-exists=.env.local src/cli.ts preview",
+    "preview:check": "node validation/check-collected.mjs",
+    "hosting:browser-check": "node --env-file-if-exists=.env.local validation/check-collected.mjs",
+    "storage:probe": "node --env-file-if-exists=.env.local src/cli.ts storage-probe",
+    "storage:interrupt": "node --env-file-if-exists=.env.local validation/check-storage-interruption.mjs",
+    "publish": "node --env-file-if-exists=.env.local src/cli.ts publish",
+    "hosting:serve": "node --env-file-if-exists=.env.local src/cli.ts hosting-serve",
+    "hosting:select": "node --env-file-if-exists=.env.local src/cli.ts hosting-select",
+    "hosting:probe": "node --env-file-if-exists=.env.local src/cli.ts hosting-probe",
+    "hosting:cdn-check": "node --env-file-if-exists=.env.local validation/check-cdn.mjs",
+    "hosting:switch-check": "node --env-file-if-exists=.env.local validation/check-hosting-switch.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test tests/*.test.ts"
+  },
+  "dependencies": {"railway": "3.11.0", "zod": "4.1.11"},
+  "devDependencies": {"@types/node": "24.0.4", "typescript": "5.8.3"}
+}
