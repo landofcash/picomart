@@ -3,7 +3,8 @@
 !.dockerignore
 !package.json
 !package-lock.json
-!railway.toml
+!vendor/
+!vendor/**
 !src/
 !src/**
 !build-assets/
