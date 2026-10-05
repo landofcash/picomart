@@ -20,11 +20,11 @@ concurrency:
 
 jobs:
   deploy:
-    # Enable only after the builder credentials and checkpoint workflow are ready.
-    if: ${{ vars.STOREFRONT_DEPLOY_ENABLED == 'true' }}
+    # Manual preparation is available before automatic deployment is enabled.
+    if: ${{ github.event_name == 'workflow_dispatch' || vars.STOREFRONT_DEPLOY_ENABLED == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 100
-    environment: Picomart / Storefronts / production
+    environment: picomart.zkbytes.com / production
     defaults:
       run:
         shell: bash
@@ -41,7 +41,7 @@ jobs:
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
-          test -n "$RAILWAY_TOKEN" || { echo 'Set RAILWAY_TOKEN in the GitHub environment Picomart / Storefronts / production.'; exit 1; }
+          test -n "$RAILWAY_TOKEN" || { echo 'Set RAILWAY_TOKEN in the GitHub environment picomart.zkbytes.com / production.'; exit 1; }
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
           const target = JSON.parse(fs.readFileSync('picomart-storefront-builder/deployment.json', 'utf8'));
