@@ -7,6 +7,9 @@ import pkg from './package.json' with { type: 'json' }
 import {storefrontPlugin} from './tooling/storefrontPlugin';
 
 export default defineConfig(({command}) => ({
+  optimizeDeps: {
+    include: ['@picomart/config'],
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),

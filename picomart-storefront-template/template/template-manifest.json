@@ -42,7 +42,7 @@
     "node": "24.11.0",
     "npm": "11.17.0",
     "lockfile": "package-lock.json",
-    "lockfileSha256": "d9efafcc1acf601e74522e0adc1aab4499478c96ec9d54110b96fbd07800c942",
+    "lockfileSha256": "05a7276a59ab76973eed5ce6554763ea3e071f0e38ffffb7f4840502e55b05c2",
     "lockfileHashNormalization": "UTF-8 with LF line endings",
     "playwright": "1.63.0",
     "browser": "chromium",

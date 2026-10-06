@@ -6,6 +6,9 @@ import autoprefixer from "autoprefixer";
 import pkg from './package.json' with { type: 'json' }
 
 export default defineConfig({
+  optimizeDeps: {
+    include: ['@picomart/config'],
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),
