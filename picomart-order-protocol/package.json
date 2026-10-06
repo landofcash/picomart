@@ -45,7 +45,7 @@
     "build": "tsc -p tsconfig.json",
     "postbuild": "esbuild src/index.ts --bundle --platform=node --format=cjs --outfile=dist/index.cjs && esbuild src/tempo.ts --bundle --platform=neutral --format=cjs --outfile=dist/tempo.cjs && esbuild src/tempoProtocol.ts --bundle --platform=neutral --format=cjs --outfile=dist/tempoProtocol.cjs && esbuild src/tempoContract.ts --bundle --platform=neutral --format=cjs --outfile=dist/tempoContract.cjs && esbuild src/tempoAgent.ts --bundle --platform=neutral --format=cjs --outfile=dist/tempoAgent.cjs",
     "test": "vitest run",
-    "verify:tempo": "node scripts/verify-tempo-config.mjs",
+    "verify:tempo": "node scripts/verify-tempo-config.mjs ../config/index.mjs",
     "prepack": "npm run build"
   },
   "engines": {

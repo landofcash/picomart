@@ -2,7 +2,7 @@
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const { JsonRpcProvider } = require('ethers');
-const { PICOMART_TEMPO_CONFIG } = require('@picomart/order-protocol/tempo');
+const { PICOMART_TEMPO_CONFIG } = require('@picomart/config');
 const { TempoIndexer, createTempoSource } = require('../dist/tempoSync');
 
 async function main() {
