@@ -1,5 +1,5 @@
 import {describe,expect,it} from 'vitest';
-import {compactCatalogLink,parseCompactCatalogLink} from './tempo.js';
+import {compactCatalogLink,parseCompactCatalogLink} from '../test-support/tempo.js';
 
 const seed='BAQEBAQEBAQEBAQEBAQEBA',product='AwMDAwMDAwMDAwMDAwMDAw';
 describe('compact printed catalog links',()=>{

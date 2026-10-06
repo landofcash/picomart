@@ -2,7 +2,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import { PicomartDeliveryDetailsV1Schema, AgentSeedSchema as OrderSeedSchema } from "@picomart/order-protocol/tempo-agent";
+import { PicomartDeliveryDetailsV1Schema, AgentSeedSchema as OrderSeedSchema } from "./agentProtocol.js";
 import { loadConfig } from "./config.js";
 import { PendingIntentStore } from "./intentStore.js";
 import { PicomartOrderFlow } from "./orderFlow.js";
@@ -22,7 +22,7 @@ const server = new McpServer(
 
 server.registerTool("create_picomart_order", {
   description: [
-    "Create a Tempo Moderato PathUSD quote and return a browser-wallet approval URL plus QR image. Delivery details supplied here are visible to this local agent; only ciphertext is sent to the quote server.",
+    "Create a quote using the configured network and payment currency and return a browser-wallet approval URL plus QR image. Delivery details supplied here are visible to this local agent; only ciphertext is sent to the quote server.",
     "Present the clickable URL and QR; if the image is unavailable, locally render the exact URL without calling this tool again or using an external QR service.",
     "This tool cannot sign or submit transactions.",
   ].join(" "),

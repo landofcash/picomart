@@ -1,14 +1,15 @@
 import {get,set} from "idb-keyval";
 import {Contract, Interface, JsonRpcProvider, getBytes, hexlify, keccak256, toUtf8Bytes, type FunctionFragment, type Log} from "ethers";
-import {PICOMART_TEMPO_CONFIG} from "@picomart/order-protocol/tempo";
+import {PICOMART_TEMPO_CONFIG} from '@picomart/config';
+
 import {PICOMART_TEMPO_ABI, PICOMART_TEMPO_BUILD} from "@picomart/order-protocol/tempo-contract";
 import {createTempoWalletTransactions} from "./providers/tempoInternalWalletProvider";
 import {tempoTransactionError, type TempoTransactionRecord} from "./tempoTransactions";
 
 // Dedicated test deployment. Shared commerce configuration remains inactive.
-export const TEST_CONTRACT = "0x3c91183f0454eAB6eFf6F570AC402bE278Dbd6f4";
+export const TEST_CONTRACT = PICOMART_TEMPO_CONFIG.deployment.address;
 export const TEST_BLOCK = 37694566;
-export const TEST_TOKEN = "0x20C0000000000000000000000000000000000000";
+export const TEST_TOKEN = PICOMART_TEMPO_CONFIG.defaultPaymentToken.tokenId;
 export const testRpc = new JsonRpcProvider(PICOMART_TEMPO_CONFIG.rpcUrl);
 export const contractInterface = new Interface(PICOMART_TEMPO_ABI);
 export const tokenInterface = new Interface([
@@ -37,7 +38,7 @@ export async function testOrderLogs(eventName:"OrderCreated"|"OrderMessage",orde
   return logs;
 }
 export async function assertTestDeployment() {
-  if (Number((await testRpc.getNetwork()).chainId) !== 42431) throw new Error("Test RPC must be Moderato chain 42431.");
+  if (Number((await testRpc.getNetwork()).chainId) !== PICOMART_TEMPO_CONFIG.chainId) throw new Error(`Test RPC must match configured chain ${PICOMART_TEMPO_CONFIG.chainId}.`);
   if (keccak256(await testRpc.getCode(TEST_CONTRACT)) !== PICOMART_TEMPO_BUILD.runtimeBytecodeHash) throw new Error("Test deployment runtime does not match the prepared ABI/build.");
 }
 export const testError=tempoTransactionError;

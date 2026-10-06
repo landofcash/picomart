@@ -1,6 +1,8 @@
+import {isPaymentCurrency, getCurrency} from '@picomart/config';
 import {Contract, Interface, JsonRpcProvider, Transaction, ZeroAddress, keccak256, type TransactionRequest} from "ethers";
 import {get,set} from "idb-keyval";
-import {PICOMART_TEMPO_CONFIG} from "@picomart/order-protocol/tempo";
+import {PICOMART_TEMPO_CONFIG} from '@picomart/config';
+
 import {PICOMART_TEMPO_ABI,PICOMART_TEMPO_BUILD} from "@picomart/order-protocol/tempo-contract";
 
 export interface TempoDeployment {address:string;block:number;}
@@ -15,7 +17,7 @@ export interface TempoTransactionRecord {
   hash:string;account:string;method:string;nonce:number;
   state:"uncertain"|"confirmed"|"reverted"|"not-submitted";
   block?:number;fee?:string;maximumFeeBaseUnits?:string;gasLimit?:string;
-  operationId?:string;deploymentAddress?:string;to?:string;dataHash?:string;chainId?:42431;
+  operationId?:string;deploymentAddress?:string;to?:string;dataHash?:string;chainId?:number;
 }
 export interface TempoTransactionOptions {
   /** Stable across retries of one user operation; use a new ID for a new operation. */
@@ -41,10 +43,10 @@ export const tempoTokenInterface=new Interface([
   "function balanceOf(address account) view returns(uint256)",
   "function allowance(address account,address spender) view returns(uint256)",
 ]);
-const TOKEN=PICOMART_TEMPO_CONFIG.paymentTokens[0].tokenId;
-const chain=42431;
+const TOKEN=PICOMART_TEMPO_CONFIG.defaultPaymentToken.tokenId;
+const chain=PICOMART_TEMPO_CONFIG.chainId;
 // Keep the original test-runner key so unresolved old transactions continue blocking writes.
-const pendingKey=(account:string)=>`picomart_tempo_contract_test_tx_42431_${account.toLowerCase()}`;
+const pendingKey=(account:string)=>`picomart_tempo_contract_test_tx_${chain}_${account.toLowerCase()}`;
 const operationKey=(account:string,deployment:string,id:string)=>`picomart_tempo_transaction_v1_${account.toLowerCase()}_${deployment.toLowerCase()}_${id}`;
 const paymentKey=(account:string,deployment:string,id:string)=>`${operationKey(account,deployment,id)}_payment`;
 let pageRevision=0;
@@ -66,11 +68,10 @@ export function tempoTransactionError(error:unknown):string {
 }
 export function createTempoTransactionService(options:TempoTransactionServiceOptions) {
   const rpc=options.rpc??new JsonRpcProvider(PICOMART_TEMPO_CONFIG.rpcUrl);
-  // Shared configuration remains null until the release gates are accepted.
   const deployment=options.deployment??(()=>PICOMART_TEMPO_CONFIG.deployment as TempoDeployment|null);
   const token=new Contract(TOKEN,tempoTokenInterface,rpc);
   function selectedDeployment(){const d=deployment();if(!d)throw new Error("Tempo commerce deployment is not enabled. Use the isolated contract test runner.");if(!Number.isSafeInteger(d.block)||d.block<0)throw new Error("Invalid deployment start block.");return {address:address(d.address),block:d.block};}
-  async function checkChain(){if(Number((await rpc.getNetwork()).chainId)!==chain)throw new Error("RPC must be Tempo Moderato chain 42431.");}
+  async function checkChain(){if(Number((await rpc.getNetwork()).chainId)!==chain)throw new Error(`RPC must match configured chain ${chain}.`);}
   async function checkDeployment(d:TempoDeployment){await checkChain();if(keccak256(await rpc.getCode(d.address))!==PICOMART_TEMPO_BUILD.runtimeBytecodeHash)throw new Error("Deployment runtime does not match the prepared Tempo contract.");}
   async function pending(account:string){const stored=await get(pendingKey(address(account)));return stored?record(stored,account):null;}
   async function save(r:TempoTransactionRecord,latest=true){
@@ -100,7 +101,7 @@ export function createTempoTransactionService(options:TempoTransactionServiceOpt
     session.address=address(session.address);
     if(session.address!==address(opts.expectedAccount))throw new Error("Selected wallet differs from the reviewed account.");
     const checkpoint=async()=>{opts.signal?.throwIfAborted();if(page!==pageRevision||address(selectedDeployment().address)!==d.address||selectedDeployment().block!==d.block)throw new Error("Page or deployment changed during this action.");await options.wallet.assert(session);opts.signal?.throwIfAborted();if(page!==pageRevision)throw new Error("Page changed during this action.");};
-    return navigator.locks.request(`picomart_tempo_transaction_42431_${session.address}`,async()=>{await checkpoint();await checkDeployment(d);await checkpoint();return work(session,d,checkpoint);});
+    return navigator.locks.request(`picomart_tempo_transaction_${chain}_${session.address}`,async()=>{await checkpoint();await checkDeployment(d);await checkpoint();return work(session,d,checkpoint);});
   }
   function encode(target:'contract'|'token',call:TempoContractCall){const abi=target==='contract'?tempoContractInterface:tempoTokenInterface,f=abi.getFunction(call.method);if(!f||f.constant||f.stateMutability==='payable')throw new Error("Select a supported nonpayable write method.");return {abi,fragment:f,data:abi.encodeFunctionData(f,call.args)};}
   async function requirements(session:TempoWalletSession,d:TempoDeployment,call:TempoContractCall):Promise<TempoPaymentRequirements>{
@@ -109,28 +110,28 @@ export function createTempoTransactionService(options:TempoTransactionServiceOpt
     if(call.method==='createOrderPaid'){paymentToken=decoded[0].priceToken;amount=BigInt(decoded[0].priceAmount);}
     else if(call.method==='buyOrder'){const c=new Contract(d.address,tempoContractInterface,rpc);const order=await c.getOrder(decoded[0]);if(Number(order.version)!==1)throw new Error("Order does not exist.");paymentToken=order.priceToken;amount=BigInt(order.priceAmount);}
     else throw new Error("Payment helpers support createOrderPaid and buyOrder only.");
-    if(address(paymentToken)!==address(TOKEN)||amount<=0n)throw new Error("Only positive PathUSD payments are enabled.");
-    const allowance:bigint=await token.allowance(session.address,d.address);
-    return {token:TOKEN,spender:d.address,amount:amount.toString(),allowance:allowance.toString(),approvalRequired:allowance<amount};
+    if(!isPaymentCurrency(paymentToken)||amount<=0n)throw new Error("Only positive supported-currency payments are enabled.");
+    const allowance:bigint=await new Contract(paymentToken,tempoTokenInterface,rpc).allowance(session.address,d.address);
+    return {token:address(paymentToken),spender:d.address,amount:amount.toString(),allowance:allowance.toString(),approvalRequired:allowance<amount};
   }
   async function bindPayment(session:TempoWalletSession,d:TempoDeployment,call:TempoContractCall,id:string){
     const {data}=encode('contract',call),digest=keccak256(data),key=paymentKey(session.address,d.address,id),stored=await get<{dataHash:string}>(key);
     if(stored&&stored.dataHash!==digest)throw new Error("Payment operation ID already belongs to different order terms.");
     if(!stored)await set(key,{dataHash:digest});
   }
-  async function sendLocked(target:'contract'|'token',call:TempoContractCall,opts:TempoTransactionOptions,session:TempoWalletSession,d:TempoDeployment,checkpoint:()=>Promise<void>){
+  async function sendLocked(target:'contract'|'token',call:TempoContractCall,opts:TempoTransactionOptions,session:TempoWalletSession,d:TempoDeployment,checkpoint:()=>Promise<void>,writeToken:string=TOKEN){
     if(target==="contract"&&["createOrderInitial","createOrderPaid","startDelivering","refuseOrder"].includes(call.method)&&!opts.beforeSign)throw new Error("Provide encrypted message/reference validation before signing this method.");
-    const {abi,fragment,data}=encode(target,call),to=target==='contract'?d.address:address(TOKEN),digest=keccak256(data);
+    const {abi,fragment,data}=encode(target,call),to=target==='contract'?d.address:address(writeToken),digest=keccak256(data);
     if(target==="contract"&&["createOrderPaid","buyOrder"].includes(call.method)){const bound=await get<{dataHash:string}>(paymentKey(session.address,d.address,opts.operationId));if(bound?.dataHash!==digest)throw new Error("Payment terms changed after review.");await checkpoint();}
     const existing=await operation(session,d,opts.operationId);await checkpoint();
     if(existing){if(existing.to!==to||existing.dataHash!==digest||existing.deploymentAddress!==d.address)throw new Error("Operation ID already belongs to different transaction terms.");if(existing.state!=='not-submitted'){const recovered=await refresh(existing);await checkpoint();notify(opts.onSaved,recovered);return recovered;}}
     const latest=await pending(session.address);await checkpoint();
     if(latest&&latest.state!=='not-submitted'){const recovered=await refresh(latest);await checkpoint();if(recovered.state==='uncertain')throw new Error("A transaction outcome is unresolved. Check its saved receipt; do not submit another transaction from this wallet.");}
     const preference:string=await new Contract('0xfeec000000000000000000000000000000000000',['function userTokens(address) view returns(address)'],rpc).userTokens(session.address);await checkpoint();
-    if(preference!==ZeroAddress&&address(preference)!==address(TOKEN))throw new Error("The wallet's fee preference must be PathUSD or the default fallback.");
+    if(preference!==ZeroAddress&&address(preference)!==address(PICOMART_TEMPO_CONFIG.feeToken.tokenId))throw new Error(`The wallet's fee preference must be ${PICOMART_TEMPO_CONFIG.feeToken.symbol} or the default fallback.`);
     const decoded=abi.decodeFunctionData(fragment,data);
-    let spend=0n;
-    if(target==='contract'&&(call.method==='createOrderPaid'||call.method==='buyOrder')){const payment=await requirements(session,d,call);await checkpoint();if(payment.approvalRequired)throw new Error("Approve the exact PathUSD payment in a separate transaction first.");spend=BigInt(payment.amount);}
+    let spend=0n,spendToken=writeToken;
+    if(target==='contract'&&(call.method==='createOrderPaid'||call.method==='buyOrder')){const payment=await requirements(session,d,call);await checkpoint();if(payment.approvalRequired)throw new Error("Approve the exact payment in a separate transaction first.");spend=BigInt(payment.amount);spendToken=payment.token;}
     else if(target==='token'&&call.method==='transfer')spend=BigInt(decoded[1]);
     const estimate=await rpc.estimateGas({from:session.address,to,data,value:0});await checkpoint();
     if(estimate<=0n||estimate>30_000_000n)throw new Error("Gas estimate exceeds the supported transaction limit.");
@@ -138,16 +139,17 @@ export function createTempoTransactionService(options:TempoTransactionServiceOpt
     const fees=await rpc.getFeeData();await checkpoint();
     if(!fees.maxFeePerGas||fees.maxPriorityFeePerGas==null||fees.maxPriorityFeePerGas<0n||fees.maxPriorityFeePerGas>fees.maxFeePerGas)throw new Error("RPC returned invalid EIP-1559 fee parameters.");
     const maximumFee=(gasLimit*fees.maxFeePerGas+999_999_999_999n)/1_000_000_000_000n;
-    const balance:bigint=await token.balanceOf(session.address);await checkpoint();
-    if(balance<maximumFee+spend)throw new Error("Insufficient PathUSD for payment and the maximum fee.");
+    const balance:bigint=await new Contract(PICOMART_TEMPO_CONFIG.feeToken.tokenId,tempoTokenInterface,rpc).balanceOf(session.address);await checkpoint();
+    if(spend>0n&&spendToken!==PICOMART_TEMPO_CONFIG.feeToken.tokenId&&BigInt(await new Contract(spendToken,tempoTokenInterface,rpc).balanceOf(session.address))<spend)throw new Error(`Insufficient ${getCurrency(spendToken).symbol} for payment.`);
+    if(balance<maximumFee+(spendToken===PICOMART_TEMPO_CONFIG.feeToken.tokenId?spend:0n))throw new Error(`Insufficient ${PICOMART_TEMPO_CONFIG.feeToken.symbol} for payment and the maximum fee.`);
     await opts.beforeSign?.();await checkpoint();
     if(abi.encodeFunctionData(fragment,call.args)!==data)throw new Error("Transaction arguments changed after review.");
     const nonce=await rpc.getTransactionCount(session.address,'pending');await checkpoint();
     const unsigned:TransactionRequest={to,data,value:0,chainId:chain,nonce,gasLimit,maxFeePerGas:fees.maxFeePerGas,maxPriorityFeePerGas:fees.maxPriorityFeePerGas,type:2};
     const signed=await options.wallet.sign(session,unsigned);await checkpoint();
     const checked=Transaction.from(signed);
-    if(checked.from?.toLowerCase()!==session.address||checked.to?.toLowerCase()!==to||checked.chainId!==42431n||checked.nonce!==nonce||checked.data!==data||checked.value!==0n||checked.gasLimit!==gasLimit||checked.maxFeePerGas!==fees.maxFeePerGas||checked.maxPriorityFeePerGas!==fees.maxPriorityFeePerGas||checked.type!==2)throw new Error("Signed transaction differs from the reviewed request.");
-    const saved:TempoTransactionRecord={hash:keccak256(signed),account:session.address,method:call.method,nonce,state:'uncertain',gasLimit:gasLimit.toString(),maximumFeeBaseUnits:maximumFee.toString(),operationId:opts.operationId,deploymentAddress:d.address,to,dataHash:digest,chainId:42431};
+    if(checked.from?.toLowerCase()!==session.address||checked.to?.toLowerCase()!==to||checked.chainId!==BigInt(PICOMART_TEMPO_CONFIG.chainId)||checked.nonce!==nonce||checked.data!==data||checked.value!==0n||checked.gasLimit!==gasLimit||checked.maxFeePerGas!==fees.maxFeePerGas||checked.maxPriorityFeePerGas!==fees.maxPriorityFeePerGas||checked.type!==2)throw new Error("Signed transaction differs from the reviewed request.");
+    const saved:TempoTransactionRecord={hash:keccak256(signed),account:session.address,method:call.method,nonce,state:'uncertain',gasLimit:gasLimit.toString(),maximumFeeBaseUnits:maximumFee.toString(),operationId:opts.operationId,deploymentAddress:d.address,to,dataHash:digest,chainId:PICOMART_TEMPO_CONFIG.chainId};
     try{await save(saved);}catch(error){saved.state="not-submitted";try{await save(saved);}catch{/* Nothing was broadcast; retain available intent evidence. */}throw error;}
     try{await checkpoint();}catch(error){saved.state='not-submitted';await save(saved);notify(opts.onSaved,saved);throw error;}
     notify(opts.onSaved,saved);
@@ -158,12 +160,12 @@ export function createTempoTransactionService(options:TempoTransactionServiceOpt
     pending,
     async recover(account:string){
       if(typeof navigator==="undefined"||!navigator.locks)throw new Error("Web Locks are required for safe receipt recovery.");
-      return navigator.locks.request(`picomart_tempo_transaction_42431_${address(account)}`,async()=>{const saved=await pending(account);return saved?refresh(saved):null;});
+      return navigator.locks.request(`picomart_tempo_transaction_${chain}_${address(account)}`,async()=>{const saved=await pending(account);return saved?refresh(saved):null;});
     },
-    async recoverOperation(account:string,id:string){const d=selectedDeployment();await checkDeployment(d);if(typeof navigator==="undefined"||!navigator.locks)throw new Error("Web Locks are required for safe receipt recovery.");return navigator.locks.request(`picomart_tempo_transaction_42431_${address(account)}`,async()=>{const stored=await get(operationKey(address(account),d.address,operationId(id,128)));return stored?refresh(record(stored,account)):null;});},
+    async recoverOperation(account:string,id:string){const d=selectedDeployment();await checkDeployment(d);if(typeof navigator==="undefined"||!navigator.locks)throw new Error("Web Locks are required for safe receipt recovery.");return navigator.locks.request(`picomart_tempo_transaction_${chain}_${address(account)}`,async()=>{const stored=await get(operationKey(address(account),d.address,operationId(id,128)));return stored?refresh(record(stored,account)):null;});},
     async paymentRequirements(call:TempoContractCall){const d=selectedDeployment(),session=await options.wallet.capture();await options.wallet.assert(session);await checkDeployment(d);const result=await requirements(session,d,call);await options.wallet.assert(session);return result;},
     async sendContract(call:TempoContractCall,opts:TempoTransactionOptions){return locked(opts,async(session,d,checkpoint)=>{if(call.method==='createOrderPaid'||call.method==='buyOrder')await bindPayment(session,d,call,opts.operationId);await checkpoint();return sendLocked('contract',call,opts,session,d,checkpoint);});},
-    async approvePayment(call:TempoContractCall,opts:TempoTransactionOptions){return locked(opts,async(session,d,checkpoint)=>{await bindPayment(session,d,call,opts.operationId);await checkpoint();const payment=await requirements(session,d,call);await checkpoint();return sendLocked('token',{method:'approve',args:[d.address,payment.amount]},{...opts,operationId:`${opts.operationId}:approval`},session,d,checkpoint);});},
+    async approvePayment(call:TempoContractCall,opts:TempoTransactionOptions){return locked(opts,async(session,d,checkpoint)=>{await bindPayment(session,d,call,opts.operationId);await checkpoint();const payment=await requirements(session,d,call);await checkpoint();return sendLocked('token',{method:'approve',args:[d.address,payment.amount]},{...opts,operationId:`${opts.operationId}:approval`},session,d,checkpoint,payment.token);});},
     async payOrder(call:TempoContractCall,opts:TempoTransactionOptions){if(!['createOrderPaid','buyOrder'].includes(call.method))throw new Error("Select createOrderPaid or buyOrder for payment.");return locked(opts,async(session,d,checkpoint)=>{await bindPayment(session,d,call,opts.operationId);await checkpoint();return sendLocked('contract',call,opts,session,d,checkpoint);});},
     async approve(amount:bigint,opts:TempoTransactionOptions){if(amount<0n)throw new Error("Approval amount cannot be negative.");return locked(opts,(session,d,checkpoint)=>sendLocked('token',{method:'approve',args:[d.address,amount]},opts,session,d,checkpoint));},
     async transfer(to:string,amount:bigint,opts:TempoTransactionOptions){address(to);if(amount<=0n)throw new Error("Transfer amount must be positive.");return locked(opts,(session,d,checkpoint)=>sendLocked('token',{method:'transfer',args:[to,amount]},opts,session,d,checkpoint));},

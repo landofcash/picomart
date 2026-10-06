@@ -1,0 +1,195 @@
+﻿/* Hero effects adapted from PayUnlock and Magic UI (MIT); see licenses/magicui.txt. */
+.picomart-hero .hero-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+  color: var(--primary);
+  mask-image: radial-gradient(ellipse at center, #000 20%, transparent 76%);
+}
+.picomart-hero .hero-backdrop::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.82;
+  background:
+    radial-gradient(
+      circle 260px at 50% 50%,
+      color-mix(in srgb, var(--theme-accent-soft) 12%, transparent),
+      color-mix(in srgb, var(--primary) 8%, transparent) 45%,
+      transparent 100%
+    ),
+    radial-gradient(
+      ellipse 560px 400px at 50% 50%,
+      color-mix(in srgb, var(--primary) 12%, transparent),
+      color-mix(in srgb, var(--primary) 5%, transparent) 50%,
+      transparent 85%
+    );
+}
+.picomart-hero .hero-backdrop::before {
+  content: "";
+  position: absolute;
+  width: 340px;
+  height: 340px;
+  left: calc(50% - 170px);
+  top: calc(50% - 170px);
+  border: 1px solid
+    color-mix(in srgb, var(--theme-accent-soft) 12%, transparent);
+  border-radius: 50%;
+  box-shadow: 0 0 28px color-mix(in srgb, var(--primary) 6%, transparent);
+  filter: blur(6px);
+  mask-image: linear-gradient(
+    135deg,
+    transparent 28%,
+    #000 58%,
+    transparent 90%
+  );
+}
+.picomart-hero .hero-backdrop svg {
+  width: 100%;
+  height: 100%;
+  stroke: currentColor;
+  stroke-width: 1;
+  opacity: 0.1;
+}
+.picomart-hero .hero-headline-gradient {
+  color: var(--foreground);
+}
+@supports (background-clip: text) {
+  .picomart-hero .hero-headline-gradient {
+    background-image: linear-gradient(
+      110deg,
+      var(--foreground) 15%,
+      color-mix(in srgb, var(--foreground) 35%, var(--muted-foreground)) 100%
+    );
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+  }
+}
+.picomart-hero .dia-text-reveal {
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+.picomart-hero .hero-rainbow-button {
+  --hero-rainbow-1: var(--primary);
+  --hero-rainbow-2: #b361d5;
+  --hero-rainbow-3: #638fdb;
+  --hero-rainbow-4: #6ecccc;
+  --hero-rainbow-5: #a998df;
+  --hero-button-fill: var(--card);
+  position: relative;
+  isolation: isolate;
+  border: 1px solid var(--border);
+  border-bottom-color: transparent;
+  border-radius: min(12px, var(--radius));
+  color: var(--foreground);
+  background:
+    linear-gradient(var(--hero-button-fill), var(--hero-button-fill))
+      padding-box,
+    linear-gradient(
+        90deg,
+        var(--hero-rainbow-1),
+        var(--hero-rainbow-5),
+        var(--hero-rainbow-3),
+        var(--hero-rainbow-4),
+        var(--hero-rainbow-2)
+      )
+      border-box;
+  background-size: 200% 100%;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+.picomart-hero .hero-rainbow-button::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  left: 24%;
+  bottom: -8%;
+  width: 52%;
+  height: 12%;
+  opacity: 0.25;
+  background: linear-gradient(
+    90deg,
+    var(--hero-rainbow-1),
+    var(--hero-rainbow-5),
+    var(--hero-rainbow-3),
+    var(--hero-rainbow-4),
+    var(--hero-rainbow-2)
+  );
+  background-size: 200% 100%;
+  filter: blur(0.75rem);
+  pointer-events: none;
+}
+.picomart-hero .hero-rainbow-button:hover {
+  --hero-button-fill: color-mix(in srgb, var(--card) 94%, var(--primary));
+  border-color: color-mix(in srgb, var(--border) 50%, var(--primary));
+  border-bottom-color: transparent;
+}
+[data-theme="terminal"] .picomart-hero .hero-rainbow-button {
+  --hero-rainbow-2: #92ddb5;
+  --hero-rainbow-3: #7bdac4;
+  --hero-rainbow-4: #b5efce;
+  --hero-rainbow-5: #b9e997;
+}
+[data-theme="cyberpunk"] .picomart-hero .hero-rainbow-button {
+  --hero-rainbow-2: var(--theme-accent-soft);
+  --hero-rainbow-3: #7ea8ff;
+  --hero-rainbow-4: #8ff0e8;
+  --hero-rainbow-5: #bd9dff;
+}
+[data-theme="cosmic"] .picomart-hero .hero-rainbow-button {
+  --hero-rainbow-2: #dbacf0;
+  --hero-rainbow-3: #a2b6f6;
+  --hero-rainbow-4: #a3d5e6;
+  --hero-rainbow-5: #bfa7ef;
+}
+@keyframes hero-rainbow {
+  to {
+    background-position: 200% 0;
+  }
+}
+@keyframes hero-light-breathe {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .picomart-hero .hero-backdrop::after {
+    animation: hero-light-breathe 12s ease-in-out infinite;
+  }
+  .picomart-hero .hero-rainbow-button,
+  .picomart-hero .hero-rainbow-button::before {
+    animation: hero-rainbow 4s linear infinite;
+  }
+}
+.picomart-hero .hero-rainbow-button:disabled {
+  animation: none;
+}
+.picomart-hero .hero-rainbow-button:disabled::before {
+  display: none;
+}
+@media (forced-colors: active) {
+  .picomart-hero .hero-backdrop,
+  .picomart-hero .hero-rainbow-button::before,
+  .picomart-hero .rough-annotation {
+    display: none;
+  }
+  .picomart-hero .hero-headline-gradient,
+  .picomart-hero .dia-text-reveal {
+    background-image: none !important;
+    color: CanvasText !important;
+  }
+  .picomart-hero .hero-rainbow-button {
+    background: ButtonFace;
+    color: ButtonText;
+    border: 1px solid ButtonText;
+    animation: none;
+  }
+}

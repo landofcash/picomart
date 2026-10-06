@@ -1,6 +1,8 @@
+import {isPaymentCurrency} from '@picomart/config';
 import { Contract, Interface, JsonRpcProvider, ZeroAddress, hexlify, keccak256, toUtf8Bytes, toUtf8String } from 'ethers';
 import { get, set } from 'idb-keyval';
-import { PICOMART_TEMPO_CONFIG, compactCatalogLink, parseCompactCatalogLink } from '@picomart/order-protocol/tempo';
+import {PICOMART_TEMPO_CONFIG} from '@picomart/config';
+import {compactCatalogLink, parseCompactCatalogLink} from '@/lib/tempoLinks';
 import { PICOMART_TEMPO_ABI, PICOMART_TEMPO_BUILD } from '@picomart/order-protocol/tempo-contract';
 import { TempoOrderContextSchema, TempoMessagePayloadSchema, createTempoReceivingContext, createTempoReceivingIdentity,
   createTempoMessageBinding, canonicalJson, tempoSeedToId, tempoIdToSeed, tempoReferenceCommitment,
@@ -14,9 +16,9 @@ import {TEMPO_UI_DEPLOYMENT,TEMPO_UI_ENABLED} from './tempoDeployment';
 
 export const TEMPO_MARKET_DEPLOYMENT = TEMPO_UI_DEPLOYMENT;
 export const TEMPO_MARKET_ENABLED = TEMPO_UI_ENABLED;
-export const TEMPO_SYNC_URL = `${(import.meta.env.VITE_PICOMART_SYNC_ORIGIN || (import.meta.env.DEV ? 'http://localhost:3000' : 'https://sync.picomart.zkbytes.com')).replace(/\/$/, '')}/api/v1/moderato`;
-export const TEMPO_CDN_ORIGIN = 'https://cdn.picomart.zkbytes.com';
-export const PATH_USD = PICOMART_TEMPO_CONFIG.paymentTokens[0].tokenId;
+export const TEMPO_SYNC_URL = `${(import.meta.env.VITE_PICOMART_SYNC_ORIGIN || (import.meta.env.DEV ? 'http://localhost:3000' : PICOMART_TEMPO_CONFIG.services.syncOrigin)).replace(/\/$/, '')}${PICOMART_TEMPO_CONFIG.services.syncPath}`;
+export const TEMPO_CDN_ORIGIN = PICOMART_TEMPO_CONFIG.services.catalogOrigin;
+export const PATH_USD = PICOMART_TEMPO_CONFIG.defaultPaymentToken.tokenId;
 export const marketRpc = new JsonRpcProvider(PICOMART_TEMPO_CONFIG.rpcUrl);
 export const marketContract = new Contract(TEMPO_MARKET_DEPLOYMENT.address, PICOMART_TEMPO_ABI, marketRpc);
 export const marketInterface = new Interface(PICOMART_TEMPO_ABI);
@@ -35,7 +37,7 @@ export function marketAddress(value:string):string {
   return value.toLowerCase();
 }
 export function receivingContext(role:'buyer'|'seller',account:string,seed:string) {
-  return createTempoReceivingContext({version:1,profile:'picomart-receiving-v1',chainId:42431,
+  return createTempoReceivingContext({version:1,profile:'picomart-receiving-v1',chainId:PICOMART_TEMPO_CONFIG.chainId,
     contractAddress:TEMPO_MARKET_DEPLOYMENT.address,account:marketAddress(account),
     ...(role==='buyer'?{role:'buyer',orderSeed:seed}:{role:'seller',catalogSeed:seed})});
 }
@@ -46,14 +48,14 @@ export function catalogIdentity(catalog:MarketCatalog) {
   return identity;
 }
 export async function verifyMarketDeployment() {
-  if(Number(BigInt(await marketRpc.send('eth_chainId',[])))!==42431 || keccak256(await marketRpc.getCode(TEMPO_MARKET_DEPLOYMENT.address))!==PICOMART_TEMPO_BUILD.runtimeBytecodeHash)throw new Error('Tempo chain or deployment does not match this app.');
+  if(Number(BigInt(await marketRpc.send('eth_chainId',[])))!==PICOMART_TEMPO_CONFIG.chainId || keccak256(await marketRpc.getCode(TEMPO_MARKET_DEPLOYMENT.address))!==PICOMART_TEMPO_BUILD.runtimeBytecodeHash)throw new Error('Tempo chain or deployment does not match this app.');
 }
 export async function marketApi<T>(path:string,signal?:AbortSignal):Promise<T> {
   const response=await fetch(TEMPO_SYNC_URL+path,{signal,redirect:'error'});
   if(response.status===503)throw new Error('Order history is catching up or temporarily unavailable. Refresh shortly.');
   if(!response.ok)throw new Error(`History request failed (${response.status}).`);
   const json=await response.json();
-  if(!json.success||json.data.chainId!==42431||json.data.address?.toLowerCase()!==TEMPO_MARKET_DEPLOYMENT.address||!Number.isSafeInteger(json.data.throughBlock))throw new Error('History belongs to another chain or deployment.');
+  if(!json.success||json.data.chainId!==PICOMART_TEMPO_CONFIG.chainId||json.data.address?.toLowerCase()!==TEMPO_MARKET_DEPLOYMENT.address||!Number.isSafeInteger(json.data.throughBlock))throw new Error('History belongs to another chain or deployment.');
   return json.data as T;
 }
 export async function catalogs(account?:string,signal?:AbortSignal) {
@@ -66,7 +68,7 @@ export async function orders(role:'buyer'|'seller'|'payer',account:string,signal
 }
 export function validateMarketOrder(order:MarketOrder):MarketOrder {
   const context=TempoOrderContextSchema.parse(order.context);
-  if(context.contractAddress!==TEMPO_MARKET_DEPLOYMENT.address||tempoSeedToId(context.orderSeed)!==order.orderId || tempoSeedToId(context.catalogSeed)!==order.catalogId||context.buyerIdentity.context.account!==marketAddress(order.buyer)||context.sellerIdentity.context.account!==marketAddress(order.seller)||!Number.isInteger(order.status)||order.status<1||order.status>8||!/^\d+$/.test(order.priceAmount)||BigInt(order.priceAmount)<=0n||order.priceToken.toLowerCase()!==PATH_USD)throw new Error('Invalid Tempo order binding.');
+  if(context.contractAddress!==TEMPO_MARKET_DEPLOYMENT.address||tempoSeedToId(context.orderSeed)!==order.orderId || tempoSeedToId(context.catalogSeed)!==order.catalogId||context.buyerIdentity.context.account!==marketAddress(order.buyer)||context.sellerIdentity.context.account!==marketAddress(order.seller)||!Number.isInteger(order.status)||order.status<1||order.status>8||!/^\d+$/.test(order.priceAmount)||BigInt(order.priceAmount)<=0n||!isPaymentCurrency(order.priceToken))throw new Error('Invalid Tempo order binding.');
   const seen=new Set<number>();
   for(const message of order.messages) {
     const type=messageType(message.messageType);
@@ -87,8 +89,8 @@ export function validateProducts(input:unknown):MarketProduct[] {
     if(!raw||typeof raw!=='object')throw new Error('Invalid catalog product.');
     const p=raw as MarketProduct;
     const amount=typeof p.Price==='number'&&Number.isSafeInteger(p.Price)?String(p.Price):p.Price;
-    if(typeof p.ProductId!=='string'||!p.ProductId||ids.has(p.ProductId)||typeof p.Name!=='string'||!p.Name||typeof p.Description!=='string'||typeof amount!=='string'||!/^\d+$/.test(amount)||BigInt(amount)<=0n||p.PriceToken?.toLowerCase()!==PATH_USD||new URL(p.Image).protocol!=='https:')throw new Error('Catalog products require unique IDs, positive integer prices and PathUSD.');
-    ids.add(p.ProductId);return {...p,Price:amount,PriceToken:PATH_USD};
+    if(typeof p.ProductId!=='string'||!p.ProductId||ids.has(p.ProductId)||typeof p.Name!=='string'||!p.Name||typeof p.Description!=='string'||typeof amount!=='string'||!/^\d+$/.test(amount)||BigInt(amount)<=0n||!isPaymentCurrency(p.PriceToken)||new URL(p.Image).protocol!=='https:')throw new Error('Catalog products require unique IDs, positive integer prices and a supported payment currency.');
+    ids.add(p.ProductId);return {...p,Price:amount,PriceToken:p.PriceToken.toLowerCase()};
   });
 }
 export async function fetchCatalogProducts(url:string,signal?:AbortSignal) {
@@ -106,7 +108,8 @@ export function validateSelection(selection:CheckoutSelection) {
     if(!Number.isSafeInteger(p.quantity)||p.quantity<=0||p.quantity>1000000)throw new Error('Choose positive whole quantities.');
     return sum+BigInt(p.Price)*BigInt(p.quantity);
   },0n);
-  return {products,amount};
+  if (!products.length || new Set(products.map(p=>p.PriceToken)).size!==1) throw new Error('An order must use one payment currency.');
+  return {products,amount,token:products[0].PriceToken};
 }
 export async function revalidateSelection(selection:CheckoutSelection) {
   const {amount}=validateSelection(selection);await verifyMarketDeployment();
@@ -151,14 +154,14 @@ export async function prepareCheckout(wallet:WalletAdapter,selection:CheckoutSel
   const amount=await revalidateSelection(selection);assertTempoWalletRevision(revision);
   const service=commerceService(),sellerIdentity=catalogIdentity(selection.catalog);
   const buyerIdentity=await service.receivingIdentity(wallet,receivingContext('buyer',account,tempoIdToSeed(id)));
-  const order=TempoOrderContextSchema.parse({version:1,chainId:42431,contractAddress:TEMPO_MARKET_DEPLOYMENT.address,
+  const order=TempoOrderContextSchema.parse({version:1,chainId:PICOMART_TEMPO_CONFIG.chainId,contractAddress:TEMPO_MARKET_DEPLOYMENT.address,
     catalogSeed:selection.catalog.seed,orderSeed:tempoIdToSeed(id),buyerIdentity,sellerIdentity});
   const saved=await get<CheckoutDraft>(draftKey(account,id));
   const expiresAt=saved?.expiresAt??new Date(Date.now()+2592000_000-1000).toISOString().replace(/\.\d{3}Z$/,'Z');
   const payload=TempoMessagePayloadSchema.parse({version:1,profile:'picomart-message-v1',binding:createTempoMessageBinding(order,{messageType:'buyer-order',sequence:1}),data:{catalogSeed:order.catalogSeed,orderSeed:order.orderSeed,
     items:selection.products.map(p=>({productId:p.ProductId,name:p.Name,quantity:p.quantity,unitAmount:p.Price,lineAmount:String(BigInt(p.Price)*BigInt(p.quantity))})),
-    delivery,deliveryAmount:'0',payment:{tokenAddress:PATH_USD,amount:String(amount)}}});
-  const input={orderId:id,catalogId:selection.catalog.catalogId,priceAmount:String(amount),priceToken:PATH_USD,
+    delivery,deliveryAmount:'0',payment:{tokenAddress:validateSelection(selection).token,amount:String(amount)}}});
+  const input={orderId:id,catalogId:selection.catalog.catalogId,priceAmount:String(amount),priceToken:validateSelection(selection).token,
     expectedSeller:selection.catalog.seller,expectedSellerPublicKey:selection.catalog.sellerPublicKey,
     expectedSellerIdentityId:selection.catalog.sellerIdentityId,buyerPublicKey:keyBytes(buyerIdentity.publicKey),buyerIdentityId:buyerIdentity.identityId};
   if(saved&&(canonicalJson(saved.order)!==canonicalJson(order)||canonicalJson(saved.input)!==canonicalJson(input)||saved.method!==method))throw new Error('This saved order has different terms.');
@@ -170,7 +173,7 @@ export async function prepareCheckout(wallet:WalletAdapter,selection:CheckoutSel
 export async function loadCheckout(account:string,id:string) {return get<CheckoutDraft>(draftKey(account,id));}
 export function validateCheckoutDraft(draft:CheckoutDraft,selection:CheckoutSelection) {
   const {amount}=validateSelection(selection),order=TempoOrderContextSchema.parse(draft.order);
-  const expected={orderId:tempoSeedToId(order.orderSeed),catalogId:selection.catalog.catalogId,priceAmount:String(amount),priceToken:PATH_USD,
+  const expected={orderId:tempoSeedToId(order.orderSeed),catalogId:selection.catalog.catalogId,priceAmount:String(amount),priceToken:validateSelection(selection).token,
     expectedSeller:selection.catalog.seller,expectedSellerPublicKey:selection.catalog.sellerPublicKey,expectedSellerIdentityId:selection.catalog.sellerIdentityId,
     buyerPublicKey:keyBytes(order.buyerIdentity.publicKey),buyerIdentityId:order.buyerIdentity.identityId};
   if(draft.version!==1||draft.selectionHash!==selectionHash(selection)||order.contractAddress!==TEMPO_MARKET_DEPLOYMENT.address||

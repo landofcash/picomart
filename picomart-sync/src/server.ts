@@ -1,3 +1,4 @@
+import {PICOMART_TEMPO_CONFIG} from '@picomart/config';
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import { randomUUID } from 'crypto';
@@ -32,7 +33,7 @@ export function createApp() {
   app.use(express.json({ limit: '2mb' }));
   app.use('/', systemRouter);
   app.use('/api/cdn', uploadToBunnyRouter);
-  app.use('/api/v1/moderato', createTempoRouter());
+  app.use((PICOMART_TEMPO_CONFIG.services.syncPath + ''), createTempoRouter());
   app.use(['/api/v1/:network', '/api/:network'], (_req, res) => {
     sendJson(res, { success: false, error: 'Inherited network API disabled; use /api/v1/moderato' }, 410);
   });

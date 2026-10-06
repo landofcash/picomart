@@ -1,6 +1,6 @@
 import {beforeEach,afterEach,describe,it,expect,vi} from 'vitest';
 import fixture from '@picomart/order-protocol/fixtures/tempo/agent-order-v2.json';
-import {AgentProfileSchema,AgentHandoffSchema,AgentQuoteSchema} from '@picomart/order-protocol/tempo-agent';
+import {AgentProfileSchema,AgentHandoffSchema,AgentQuoteSchema} from '../../agentProtocol.js';
 import {resolveTempoAgent,executeTempoAgentOrder} from './tempoAgentClient';
 const mocks=vi.hoisted(()=>({assertProfile:vi.fn(),marketApi:vi.fn(),fetchCatalogProducts:vi.fn(),prepareCheckout:vi.fn(),submitCheckout:vi.fn(),assertRevision:vi.fn()}));
 vi.mock('./tempoAgentProfile',()=>({assertCurrentAgentProfile:mocks.assertProfile,installedAgentProfile:()=>fixture.profile}));

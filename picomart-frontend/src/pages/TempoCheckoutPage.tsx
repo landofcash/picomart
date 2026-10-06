@@ -1,3 +1,4 @@
+import {getCurrency,PICOMART_TEMPO_CONFIG} from '@picomart/config';
 import {useEffect,useRef,useState} from 'react';
 import {Link,Navigate,useNavigate} from 'react-router-dom';
 import {formatUnits} from 'ethers';
@@ -23,6 +24,7 @@ export default function TempoCheckoutPage({stage='review'}:{stage?:'review'|'pay
   const navigate=useNavigate(),wallet=useWallet(),{details,saveDetails}=useTempoCheckoutDetails();
   const [selection]=useState<CheckoutSelection|null>(()=>{try{return JSON.parse(sessionStorage.getItem(tempoSelectionKey)??'null');}catch{return null;}});
   let amount=0n,invalid='',key='';try{if(selection){amount=validateSelection(selection).amount;key=wallet.walletAddress+':'+selectionHash(selection);}}catch(e){invalid=tempoTransactionError(e);}
+  const currency=getCurrency(!invalid && selection ? selection.products[0].PriceToken : PICOMART_TEMPO_CONFIG.defaultPaymentToken.tokenId);
   const delivery=details?.key===key?details.delivery:blank;
   const [id,setId]=useState(''),[draft,setDraft]=useState<CheckoutDraft|null>(null),[preview,setPreview]=useState<TempoMessagePayload|null>(null),[ready,setReady]=useState(false),[approvalRequired,setApprovalRequired]=useState(true);
   const [busy,setBusy]=useState(false),[loading,setLoading]=useState(false),[error,setError]=useState(''),[progress,setProgress]=useState(''),[receipt,setReceipt]=useState<TempoTransactionRecord|null>(null);
@@ -69,7 +71,7 @@ export default function TempoCheckoutPage({stage='review'}:{stage?:'review'|'pay
       const approval=await submitCheckout(wallet.walletAdapter!,draft!,selection!,true,controller.current?.signal);
       assertTempoWalletRevision(revision);accept(approval);
       setApprovalRequired((await marketTransactions.paymentRequirements(await checkoutCall(wallet.walletAdapter!,draft!))).approvalRequired);
-      setProgress('PathUSD approved. Proceed with Payment to complete your order.');
+      setProgress(`${currency.symbol} approved. Proceed with Payment to complete your order.`);
     }else {const payment=await submitCheckout(wallet.walletAdapter!,draft!,selection!,false,controller.current?.signal);assertTempoWalletRevision(revision);accept(payment);}
   }
   const valid=delivery.noPhysicalDelivery||(['fullName','address','city','postalCode','country','phone','email'] as const).every(field=>delivery[field].trim())&&/\S+@\S+\.\S+/.test(delivery.email);
@@ -80,8 +82,8 @@ export default function TempoCheckoutPage({stage='review'}:{stage?:'review'|'pay
   return <TempoMarketShell title={stage==='review'?'Order':'Pay with Crypto'}>
     <Card><CardHeader><CardTitle className="text-lg">Order Summary</CardTitle></CardHeader><CardContent className="space-y-4">
       <CatalogIdentity seed={selection.catalog.seed}/><CopyableField value={selection.catalog.seller} length={20} mdLength={24}/>
-      {selection.products.map(p=><div className="flex justify-between items-center text-sm gap-2" key={p.ProductId}><span className="font-medium">{p.Name}<span className="text-muted-foreground ml-2">? {p.quantity}</span></span><span className="flex items-center gap-2"><TokenIcon assetId={p.PriceToken} size={16}/>{formatUnits(BigInt(p.Price)*BigInt(p.quantity),6)} PathUSD</span></div>)}
-      <div className="pt-4 border-t font-bold">Total: {formatUnits(amount,6)} PathUSD</div>
+      {selection.products.map(p=><div className="flex justify-between items-center text-sm gap-2" key={p.ProductId}><span className="font-medium">{p.Name}<span className="text-muted-foreground ml-2">? {p.quantity}</span></span><span className="flex items-center gap-2"><TokenIcon assetId={p.PriceToken} size={16}/>{formatUnits(BigInt(p.Price)*BigInt(p.quantity),getCurrency(p.PriceToken).decimals)} {getCurrency(p.PriceToken).symbol}</span></div>)}
+      <div className="pt-4 border-t font-bold">Total: {formatUnits(amount,currency.decimals)} {currency.symbol}</div>
     </CardContent></Card>
     {stage==='review'?<>
       <DeliveryInfoForm deliveryInfo={delivery} onDeliveryInfoChange={value=>saveDetails({key,delivery:value})}/>
@@ -91,7 +93,7 @@ export default function TempoCheckoutPage({stage='review'}:{stage?:'review'|'pay
       {loading&&<p role="status" className="flex items-center gap-2"><Loader2 className="h-5 w-5 animate-spin"/>Loading payment...</p>}
       {success?<div className="text-center space-y-4"><CheckCircle2 className="mx-auto h-12 w-12 text-green-600"/><p className="font-semibold">Payment successful!</p><Button className="w-full" size="lg" onClick={()=>navigate('/')}>Return to Home</Button></div>:<div className="space-y-3">
         {!wallet.walletAddress||wallet.walletLocked?<Button className="w-full" size="lg" asChild><Link to="/wallet"><Wallet className="mr-2 h-5 w-5"/>Open Wallet</Link></Button>:<>
-          {!ready?<Button className="w-full" size="lg" disabled={!usable||busy||(!draft&&!valid)} onClick={()=>void run(prepare)}><Wallet className="mr-2 h-5 w-5"/>{busy?'Signing...':error?'Try Again':'Sign Order Seed'}</Button>:<Button className="w-full" size="lg" disabled={!usable||busy} onClick={()=>void run(pay)}><Wallet className="mr-2 h-5 w-5"/>{busy?'Processing...':error?'Try Again':approvalRequired?'Approve PathUSD':'Proceed with Payment'}</Button>}
+          {!ready?<Button className="w-full" size="lg" disabled={!usable||busy||(!draft&&!valid)} onClick={()=>void run(prepare)}><Wallet className="mr-2 h-5 w-5"/>{busy?'Signing...':error?'Try Again':'Sign Order Seed'}</Button>:<Button className="w-full" size="lg" disabled={!usable||busy} onClick={()=>void run(pay)}><Wallet className="mr-2 h-5 w-5"/>{busy?'Processing...':error?'Try Again':approvalRequired?`Approve ${currency.symbol}`:'Proceed with Payment'}</Button>}
           {!ready&&!draft&&!valid&&<Link className="block underline text-sm" to="/order">Complete delivery information</Link>}
           {ready&&approvalRequired&&<p className="text-xs text-muted-foreground">Approve the exact order amount, then complete payment. Each transaction includes a network fee.</p>}
         </>}

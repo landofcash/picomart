@@ -1,11 +1,12 @@
+import {PICOMART_TEMPO_CONFIG} from '@picomart/config';
 import {Interface,keccak256} from 'ethers';
 import {tempoSeedToId,createTempoReceivingContext,createTempoReceivingIdentity} from '@picomart/order-protocol/tempo-protocol';
 import {PICOMART_TEMPO_ABI,PICOMART_TEMPO_BUILD} from '@picomart/order-protocol/tempo-contract';
 import type {Config} from './config.ts';
 import {ApiError} from './domain/errors.ts';
-export const TEMPO_CHAIN_ID=42431;
-export const TEMPO_CONTRACT_ADDRESS='0x3c91183f0454eab6eff6f570ac402be278dbd6f4';
-export const PATH_USD='0x20c0000000000000000000000000000000000000';
+export const TEMPO_CHAIN_ID=PICOMART_TEMPO_CONFIG.chainId;
+export const TEMPO_CONTRACT_ADDRESS=PICOMART_TEMPO_CONFIG.deployment.address;
+export const PATH_USD=PICOMART_TEMPO_CONFIG.defaultPaymentToken.tokenId;
 const abi=new Interface(PICOMART_TEMPO_ABI);
 export function validateCatalog(catalog:any,seed:string,owner?:string) {
   try {

@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from "react";
-import {createPortal} from "react-dom";
+import AccountDialog from "./AccountDialog";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
 
@@ -19,14 +19,14 @@ const InternalWalletCreateModal: React.FC<InternalWalletCreateModalProps> = ({
   onCreate,
 }) => {
   const [label, setLabel] = useState("");
-  const [passphrase, setPassphrase] = useState("");
-  const [confirmPassphrase, setConfirmPassphrase] = useState("");
+  const [passphrase, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   useEffect(() => {
     if (!open) {
       setLabel("");
-      setPassphrase("");
-      setConfirmPassphrase("");
+      setPassword("");
+      setConfirmPassword("");
     }
   }, [open]);
 
@@ -34,62 +34,65 @@ const InternalWalletCreateModal: React.FC<InternalWalletCreateModalProps> = ({
     return null;
   }
 
-  const passphrasesMatch = passphrase.length > 0 && passphrase === confirmPassphrase;
+  const passphrasesMatch = passphrase.length >= 8 && passphrase === confirmPassword;
 
   const modal = (
-    <div role="dialog" aria-modal="true" aria-label="Create built-in wallet" className="fixed inset-0 z-[110] flex items-center justify-center overflow-y-auto bg-black/50 p-4">
-      <div className="w-full max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-xl border bg-background p-6 shadow-xl space-y-5">
+    <AccountDialog open={open} title="Create account" onClose={onClose} busy={busy} className="max-w-lg">
+      <form className="space-y-5" onSubmit={event => {event.preventDefault(); if (!busy && passphrasesMatch) void onCreate({label: label.trim() || undefined, passphrase});}}>
         <div className="space-y-2">
-          <h2 className="text-xl font-semibold">Create built-in wallet</h2>
           <p className="text-sm text-muted-foreground">
-            Your Tempo private key will be generated locally in this browser and encrypted before storage.
+            Your account is saved securely in this browser. Save your recovery words to restore access on another device.
           </p>
         </div>
 
         <div className="space-y-4">
           <div className="space-y-2">
             <label className="text-sm font-medium" htmlFor="wallet-label">
-              Wallet label
+              Account name
             </label>
             <Input
               id="wallet-label"
               value={label}
               onChange={(event) => setLabel(event.target.value)}
-              placeholder="Optional label"
+              placeholder="e.g. My shop"
               disabled={busy}
             />
           </div>
 
           <div className="space-y-2">
             <label className="text-sm font-medium" htmlFor="wallet-passphrase">
-              Passphrase
+              Password
             </label>
             <Input
               id="wallet-passphrase"
               type="password"
+              autoComplete="new-password"
+              minLength={8}
               value={passphrase}
-              onChange={(event) => setPassphrase(event.target.value)}
-              placeholder="Create a passphrase"
+              onChange={(event) => setPassword(event.target.value)}
+              placeholder="At least 8 characters"
               disabled={busy}
             />
           </div>
 
           <div className="space-y-2">
             <label className="text-sm font-medium" htmlFor="wallet-passphrase-confirm">
-              Confirm passphrase
+              Confirm password
             </label>
             <Input
               id="wallet-passphrase-confirm"
               type="password"
-              value={confirmPassphrase}
-              onChange={(event) => setConfirmPassphrase(event.target.value)}
-              placeholder="Repeat passphrase"
+              autoComplete="new-password"
+              minLength={8}
+              value={confirmPassword}
+              onChange={(event) => setConfirmPassword(event.target.value)}
+              placeholder="Repeat password"
               disabled={busy}
             />
           </div>
 
           <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-            Store this passphrase safely. The app cannot recover it for you.
+            Keep your password safe. Picomart cannot reset it. Recovery words let you restore access and choose a new password.
           </div>
 
           {error ? (
@@ -100,21 +103,21 @@ const InternalWalletCreateModal: React.FC<InternalWalletCreateModalProps> = ({
         </div>
 
         <div className="flex items-center justify-end gap-2">
-          <Button variant="outline" onClick={onClose} disabled={busy}>
+          <Button type="button" variant="outline" onClick={onClose} disabled={busy}>
             Cancel
           </Button>
           <Button
-            onClick={() => onCreate({label: label.trim() || undefined, passphrase})}
+            type="submit"
             disabled={busy || !passphrasesMatch}
           >
-            {busy ? "Creating..." : "Create wallet"}
+            {busy ? "Creating..." : "Create account"}
           </Button>
         </div>
-      </div>
-    </div>
+      </form>
+    </AccountDialog>
   );
 
-  return typeof document !== "undefined" ? createPortal(modal, document.body) : modal;
+  return modal;
 };
 
 export default InternalWalletCreateModal;

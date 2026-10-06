@@ -13,6 +13,7 @@
     "start": "node scripts/serve.mjs"
   },
   "dependencies": {
+    "@picomart/config": "file:vendor/picomart-config",
     "@picomart/order-protocol": "file:vendor/picomart-order-protocol.tgz",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

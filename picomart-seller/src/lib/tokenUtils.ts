@@ -1,3 +1,4 @@
+import {PICOMART_TEMPO_CONFIG} from '@picomart/config';
 import {getCurrentConfig, type TokenConfig} from "@/config.ts";
 import {TokenId} from "@hiero-ledger/sdk";
 
@@ -5,7 +6,7 @@ const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 function normalizeTokenType(coinType: string): string {
   const key = coinType.trim();
-  if (getCurrentConfig().name === "moderato") return key.toLowerCase();
+  if (getCurrentConfig().name === PICOMART_TEMPO_CONFIG.network) return key.toLowerCase();
   if (!key) {
     return key;
   }

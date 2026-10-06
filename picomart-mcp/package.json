@@ -25,6 +25,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
+    "@picomart/config": "file:vendor/picomart-config",
     "@picomart/order-protocol": "file:vendor/picomart-order-protocol.tgz",
     "qrcode": "^1.5.4",
     "zod": "^4.3.6"

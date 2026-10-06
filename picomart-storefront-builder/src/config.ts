@@ -1,3 +1,4 @@
+import {PICOMART_TEMPO_CONFIG} from '@picomart/config';
 import {z} from 'zod';
 
 export const NetworkSchema = z.enum(['moderato']);
@@ -40,8 +41,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env) {
     maxAttempts: integer('MAX_BUILD_ATTEMPTS', 2, 1, 2),
     attemptMs: integer('ATTEMPT_TIMEOUT_SECONDS', 1800, 30, 7200) * 1000,
     workerPollMs: integer('WORKER_POLL_MS', 2000, 100, 60000),
-    syncOrigin: origin(env.BUILDER_SYNC_ORIGIN || 'https://sync.picomart.zkbytes.com'),
-    tempoRpcOrigin: origin(env.BUILDER_TEMPO_RPC_ORIGIN || 'https://rpc.moderato.tempo.xyz'),
+    syncOrigin: origin(env.BUILDER_SYNC_ORIGIN || PICOMART_TEMPO_CONFIG.services.syncOrigin),
+    tempoRpcOrigin: origin(env.BUILDER_TEMPO_RPC_ORIGIN || PICOMART_TEMPO_CONFIG.rpcUrl),
     storage: {endpoint: env.BUNNY_PRIVATE_STORAGE_ENDPOINT || 'https://storage.bunnycdn.com', zone: env.BUNNY_PRIVATE_STORAGE_ZONE || '', key: env.BUNNY_PRIVATE_STORAGE_KEY || ''},
   };
 }

@@ -1,7 +1,7 @@
 import {describe,it,expect} from 'vitest';
 import fixture from '../fixtures/tempo/agent-order-v2.json';
 import {AgentProfileSchema,AgentQuoteRequestSchema,AgentQuoteSchema,AgentHandoffSchema,validateAgentResolution,decryptAgentDelivery,encryptAgentDelivery,base64UrlToBytes,parseAgentHandoff,
-  encodeAgentPaymentRequired,decodeAgentPaymentRequired,AGENT_CONTRACT} from './tempoAgent.js';
+  encodeAgentPaymentRequired,decodeAgentPaymentRequired,AGENT_CONTRACT} from '../test-support/agent.js';
 describe('Tempo agent interoperability and private handoff',()=>{
   it('validates the pinned signed cross-package quote and decrypts only with the local key',async()=>{
     const r=await validateAgentResolution(fixture.resolution,AgentProfileSchema.parse(fixture.profile),1700000001);

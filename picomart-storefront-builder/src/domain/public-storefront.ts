@@ -1,4 +1,5 @@
 // Generated from picomart-storefront-template/src/lib/shop/schema.ts. Run npm run contracts:sync.
+import {PICOMART_TEMPO_CONFIG} from '@picomart/config';
 import {z} from 'zod';
 import {tempoSeedToId} from '@picomart/order-protocol/tempo-protocol';
 
@@ -15,8 +16,8 @@ export const StorefrontConfigSchema = z.object({
   schemaVersion: z.literal(2),
   shopId: z.string().regex(/^[a-zA-Z0-9_-]{1,80}$/),
   network: z.literal('moderato'),
-  chainId: z.literal(42431).default(42431),
-  contractAddress: z.literal('0x3c91183f0454eab6eff6f570ac402be278dbd6f4').default('0x3c91183f0454eab6eff6f570ac402be278dbd6f4'),
+  chainId: z.literal(PICOMART_TEMPO_CONFIG.chainId).default(PICOMART_TEMPO_CONFIG.chainId),
+  contractAddress: z.literal(PICOMART_TEMPO_CONFIG.deployment.address).default(PICOMART_TEMPO_CONFIG.deployment.address),
   catalogSeed: CatalogIdSchema,
   branding: z.object({
     name: text,

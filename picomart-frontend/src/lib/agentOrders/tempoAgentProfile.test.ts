@@ -1,6 +1,6 @@
 import {beforeEach,expect,it,vi} from 'vitest';
 import fixture from '@picomart/order-protocol/fixtures/tempo/agent-order-v2.json';
-import {AgentProfileSchema} from '@picomart/order-protocol/tempo-agent';
+import {AgentProfileSchema} from '../../agentProtocol.js';
 import {agentProfileChangedEvent,agentProfileFingerprint,agentProfileStorageKey,assertCurrentAgentProfile,
   installedAgentProfile,resetAgentProfile,saveAgentProfile} from './tempoAgentProfile';
 const profile=AgentProfileSchema.parse(fixture.profile);

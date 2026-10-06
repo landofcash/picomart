@@ -49,7 +49,9 @@ export async function verifyTempoConfig(config, fetchImpl = globalThis.fetch) {
 
 if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) {
   try {
-    const {PICOMART_TEMPO_CONFIG} = await import("../dist/tempo.js");
+    if (!process.argv[2]) throw new Error("Supply a configuration module path exporting PICOMART_TEMPO_CONFIG.");
+    const {resolve} = await import("node:path");
+    const {PICOMART_TEMPO_CONFIG} = await import(pathToFileURL(resolve(process.argv[2])).href);
     console.log(JSON.stringify(await verifyTempoConfig(PICOMART_TEMPO_CONFIG), null, 2));
   } catch (error) {
     console.error(`Tempo configuration verification failed: ${error.message}${error.cause?.code ? ` (${error.cause.code})` : ""}`);

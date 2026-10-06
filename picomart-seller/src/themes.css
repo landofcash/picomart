@@ -1,0 +1,156 @@
+﻿/* PayUnlock's four appearance palettes, mapped to Picomart's component tokens. */
+@font-face {
+  font-family: "Inter Variable";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/fonts/inter-latin-wght-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "JetBrains Mono Variable";
+  font-style: normal;
+  font-weight: 100 800;
+  font-display: swap;
+  src: url("/fonts/jetbrains-mono-latin-wght-normal.woff2") format("woff2");
+}
+
+html[data-theme="light"] {
+  --theme-font: "Inter Variable", Inter, ui-sans-serif, system-ui, sans-serif;
+  --theme-page: #f7f8fc;
+  --theme-surface: #ffffff;
+  --theme-surface-alt: #f0f1f8;
+  --theme-text: #20243a;
+  --theme-muted: #62677b;
+  --theme-accent: #6849bc;
+  --theme-accent-soft: #cbb6ff;
+  --theme-on-accent: #ffffff;
+  --theme-border: #dfe2ee;
+  --theme-danger: #a52637;
+  --theme-on-danger: #ffffff;
+  --radius: 16px;
+}
+html[data-theme="terminal"] {
+  --theme-font: "JetBrains Mono Variable", ui-monospace, monospace;
+  --theme-page: #0b1310;
+  --theme-surface: #111e18;
+  --theme-surface-alt: #17291f;
+  --theme-text: #e0f0e5;
+  --theme-muted: #a5c4af;
+  --theme-accent: #80e4a2;
+  --theme-accent-soft: #245637;
+  --theme-on-accent: #0b2012;
+  --theme-border: #365243;
+  --theme-danger: #ffb0ac;
+  --theme-on-danger: #0b1310;
+  --radius: 4px;
+}
+html[data-theme="cyberpunk"] {
+  --theme-font: "Inter Variable", Inter, ui-sans-serif, system-ui, sans-serif;
+  --theme-page: #0c101b;
+  --theme-surface: #141c2b;
+  --theme-surface-alt: #1b2637;
+  --theme-text: #eef7ff;
+  --theme-muted: #afc0d5;
+  --theme-accent: #64e7f0;
+  --theme-accent-soft: #da6afa;
+  --theme-on-accent: #082127;
+  --theme-border: #35465d;
+  --theme-danger: #ffadc9;
+  --theme-on-danger: #0c101b;
+  --radius: 9px;
+}
+html[data-theme="cosmic"] {
+  --theme-font: "Inter Variable", Inter, ui-sans-serif, system-ui, sans-serif;
+  --theme-page: #111126;
+  --theme-surface: #1c1b36;
+  --theme-surface-alt: #292644;
+  --theme-text: #f2efff;
+  --theme-muted: #bcb5d2;
+  --theme-accent: #c7afff;
+  --theme-accent-soft: #7568c9;
+  --theme-on-accent: #23173d;
+  --theme-border: #443e65;
+  --theme-danger: #ffb1c3;
+  --theme-on-danger: #111126;
+  --radius: 20px;
+}
+html[data-theme] {
+  --font-sans: var(--theme-font);
+  --background: var(--theme-page);
+  --foreground: var(--theme-text);
+  --card: var(--theme-surface);
+  --card-foreground: var(--theme-text);
+  --popover: var(--theme-surface);
+  --popover-foreground: var(--theme-text);
+  --primary: var(--theme-accent);
+  --primary-foreground: var(--theme-on-accent);
+  --secondary: var(--theme-surface-alt);
+  --secondary-foreground: var(--theme-text);
+  --muted: var(--theme-surface-alt);
+  --muted-foreground: var(--theme-muted);
+  --accent: var(--theme-surface-alt);
+  --accent-foreground: var(--theme-accent);
+  --destructive: var(--theme-danger);
+  --destructive-foreground: var(--theme-on-danger);
+  --border: var(--theme-border);
+  --input: var(--theme-border);
+  --ring: var(--theme-accent);
+  --form-label: var(--theme-text);
+  --color-background-body: var(--theme-page);
+  --color-background: var(--theme-page);
+  --color-foreground: var(--theme-text);
+  --color-border: var(--theme-border);
+}
+html[data-theme] body {
+  font-family: var(--theme-font);
+}
+html[data-theme] ::selection {
+  background: var(--theme-accent);
+  color: var(--theme-on-accent);
+}
+html.dark .portal-logo {
+  filter: invert(1);
+}
+html[data-theme="cosmic"] .seller-app-shell {
+  background-image: radial-gradient(
+    ellipse at 80% 0,
+    #5c40932b,
+    transparent 55%
+  );
+}
+html[data-theme="cyberpunk"] .portal-logo {
+  filter: invert(1) drop-shadow(2px 2px 0 var(--theme-accent-soft));
+}
+html[data-theme="terminal"] .shadow-sm,
+html[data-theme="terminal"] .shadow-md,
+html[data-theme="terminal"] .shadow-lg,
+html[data-theme="terminal"] .shadow-xl {
+  box-shadow: none;
+}
+
+/* Printed product tags keep their original high-contrast colors in every theme. */
+@media print {
+  html[data-theme] {
+    color-scheme: light !important;
+    --background: #fff;
+    --foreground: #000;
+    --card: #fff;
+    --card-foreground: #000;
+    --muted-foreground: #000;
+    --border: #000;
+    --color-background: #fff;
+    --color-foreground: #000;
+    --color-border: #000;
+  }
+  html[data-theme] .seller-app-shell {
+    background: #fff !important;
+    color: #000 !important;
+  }
+  .product-qr-card {
+    background: #fff !important;
+    color: #000 !important;
+  }
+  .product-qr-card span {
+    color: #000 !important;
+  }
+}

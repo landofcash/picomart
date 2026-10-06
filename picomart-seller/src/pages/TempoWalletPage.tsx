@@ -1,3 +1,4 @@
+import {PICOMART_TEMPO_CONFIG} from '@picomart/config';
 import {useEffect, useState} from "react";
 import {get, set} from "idb-keyval";
 import {Link} from "react-router-dom";
@@ -88,7 +89,7 @@ export default function TempoWalletPage() {
   return <main className="max-w-3xl mx-auto p-6 space-y-6">
     <Link to="/settings" className="underline">Back to settings</Link>
     <h1 className="text-2xl font-bold">Tempo built-in wallet</h1>
-    <p>Moderato testnet · chain 42431. Create, back up and restore a local wallet, then check zkbytes recovery. Commerce writes remain controlled by the testnet migration switch.</p>
+    <p>Moderato testnet · chain {PICOMART_TEMPO_CONFIG.chainId}. Create, back up and restore a local wallet, then check zkbytes recovery. Commerce writes remain controlled by the testnet migration switch.</p>
     <section className="space-y-3 border rounded p-4">
       <h2 className="text-xl font-semibold">Create or restore a wallet</h2>
       <label>Wallet label<input className={fieldClass} value={label} onChange={e => setLabel(e.target.value)} disabled={busy}/></label>

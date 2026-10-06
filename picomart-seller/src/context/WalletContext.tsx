@@ -1,3 +1,4 @@
+import {PICOMART_TEMPO_CONFIG} from '@picomart/config';
 import {
   createContext,
   useCallback,
@@ -45,7 +46,8 @@ export interface WalletContextType {
   walletCanTransact: boolean;
   walletBootstrapTitle: string | null;
   walletBootstrapMessage: string | null;
-  walletBalances: InternalWalletBalance[];
+  walletBalances: InternalWalletBalance[];
+
 
   walletActionPending: boolean;
   walletActionLabel: string | null;
@@ -98,7 +100,7 @@ export function WalletProvider({children}: { children: ReactNode }) {
   });
   const [chain] = useState<ChainId>("tempo");
   const [network, setNetwork] = useState<NetworkId>(() => {
-    return "moderato";
+    return PICOMART_TEMPO_CONFIG.network;
   });
   const [externalProviderId, setExternalProviderIdState] = useState<string | null>(() => {
     return localStorage.getItem(`${APP_KEY_PREFIX}-externalProviderId`);
@@ -221,8 +223,9 @@ export function WalletProvider({children}: { children: ReactNode }) {
 
     return wrapWalletAdapterWithWalletAction(activeAdapter, {
       onStart: startWalletAction,
+      getLabel: () => walletKind === 'internal' ? 'Processing your request…' : 'Waiting for approval in your connected app…',
     });
-  }, [activeAdapter, startWalletAction]);
+  }, [activeAdapter, startWalletAction, walletKind]);
 
   const availableExternalProviders = useMemo(() => {
     return adapters
@@ -529,6 +532,7 @@ export function WalletProvider({children}: { children: ReactNode }) {
       } else if (walletKind === "internal" && internalProvider) {
         await internalProvider.disconnect(network);
         setInternalActiveWallet(null);
+        await syncInternalWalletState();
       }
 
       setWalletKind(null);
@@ -537,7 +541,7 @@ export function WalletProvider({children}: { children: ReactNode }) {
     } catch (error) {
       console.error("Failed to disconnect wallet:", error);
     }
-  }, [activeAdapter, internalProvider, network, walletKind]);
+  }, [activeAdapter, internalProvider, network, walletKind, syncInternalWalletState]);
 
   const setExternalProviderId = useCallback((id: string | null) => {
     setExternalProviderIdState(id);
@@ -581,7 +585,8 @@ export function WalletProvider({children}: { children: ReactNode }) {
       unlockDialogState.resolve(passphrase);
       setUnlockDialogState(null);
     } catch (error) {
-      setUnlockDialogError(error instanceof Error ? error.message : "Failed to unlock wallet.");
+      setUnlockDialogError(error instanceof Error && error.message === 'Incorrect passphrase.'
+        ? 'Incorrect password. Please try again.' : 'Could not unlock this account. Please try again.');
     } finally {
       setUnlockDialogBusy(false);
     }
@@ -603,7 +608,8 @@ export function WalletProvider({children}: { children: ReactNode }) {
     walletCanTransact: walletKind === "internal" ? (internalActiveWallet?.canTransact ?? false) : walletAddress != null,
     walletBootstrapTitle: walletKind === "internal" ? (internalActiveWallet?.bootstrapTitle ?? null) : null,
     walletBootstrapMessage: walletKind === "internal" ? (internalActiveWallet?.bootstrapMessage ?? null) : null,
-    walletBalances: walletKind === "internal" ? (internalActiveWallet?.balances ?? []) : [],
+    walletBalances: walletKind === "internal" ? (internalActiveWallet?.balances ?? []) : [],
+
     walletActionPending,
     walletActionLabel,
     externalProviderId,

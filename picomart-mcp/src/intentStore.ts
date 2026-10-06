@@ -1,3 +1,4 @@
+import {PICOMART_TEMPO_CONFIG} from '@picomart/config';
 import fs from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
@@ -6,7 +7,7 @@ import {
   AgentSeedSchema as OrderSeedSchema,
   AgentRequirementsSchema as PaymentRequirementsSchema,
   AgentResourceSchema as ResourceInfoSchema,
-} from "@picomart/order-protocol/tempo-agent";
+} from "./agentProtocol.js";
 
 export const PendingIntentSchema = z.object({
   version: z.literal(2),
@@ -30,7 +31,7 @@ export const PendingIntentSchema = z.object({
 }).strict().superRefine((intent, context) => {
   if(intent.intentId!==intent.orderSeed||intent.requirements.extra.orderSeed!==intent.orderSeed||intent.resource.url!==intent.confirmationUrl||
     intent.requirements.extra.quoteDigest!==intent.quoteDigest||intent.requirements.extra.quoteJws!==intent.quoteJws||
-    new URL(intent.confirmationUrl).pathname!==`/api/v2/moderato/orders/${intent.orderSeed}/confirm`){context.addIssue({code:'custom',message:'Intent commitment mismatch'});}
+    new URL(intent.confirmationUrl).pathname!==`${PICOMART_TEMPO_CONFIG.services.agentPath}/orders/${intent.orderSeed}/confirm`){context.addIssue({code:'custom',message:'Intent commitment mismatch'});}
   if (intent.recoverUntil !== undefined && intent.recoverUntil <= intent.expiresAt) {
     context.addIssue({ code: "custom", message: "recovery deadline must be after quote expiry" });
   }

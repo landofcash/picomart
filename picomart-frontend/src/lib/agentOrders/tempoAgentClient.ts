@@ -1,5 +1,5 @@
 import {AGENT_RESOLVE_PATH,AgentProfileSchema,parseAgentHandoff,validateAgentResolution,decryptAgentDelivery,base64UrlToBytes,canonicalHash,
-  type AgentQuote,type AgentHandoff,type AgentProfile,type PicomartDeliveryDetailsV1} from '@picomart/order-protocol/tempo-agent';
+  type AgentQuote,type AgentHandoff,type AgentProfile,type PicomartDeliveryDetailsV1} from '../../agentProtocol.js';
 import {tempoSeedToId} from '@picomart/order-protocol/tempo-protocol';
 import {marketApi,fetchCatalogProducts,prepareCheckout,submitCheckout,PATH_USD,TEMPO_MARKET_ENABLED,type MarketCatalog,type CheckoutSelection} from '@/lib/tempoMarket';
 import {tempoWalletRevision,assertTempoWalletRevision} from '@/lib/internalWallet/providers/tempoInternalWalletProvider';

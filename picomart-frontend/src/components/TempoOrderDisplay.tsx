@@ -1,3 +1,4 @@
+import {getCurrency} from '@picomart/config';
 import {useEffect,useRef,useState} from 'react';
 import {formatUnits} from 'ethers';
 import {Eye,Unlock,Package,Truck,XCircle,CheckCircle2} from 'lucide-react';
@@ -55,7 +56,7 @@ export default function TempoOrderDisplay({order,seller=false,onUpdated}:{order:
   return <section className="space-y-4 rounded-lg border bg-card p-4">
     <div className="flex items-center justify-between gap-3"><div className="flex items-center gap-2"><Package className="h-5 w-5 text-muted-foreground"/><h2 className="font-semibold">{seller?'Order Details':'Order'}</h2></div><OrderStatusBadge status={String(order.status)} label={statusNames[order.status]}/></div>
     <div className="space-y-3">{[["Order ID",order.seed??order.orderId],[seller?'Buyer':'Seller',seller?order.buyer:order.seller]].map(([label,value])=><div key={label}><p className="text-xs text-muted-foreground mb-1">{label}</p><CopyableField value={value} length={24} mdLength={32}/></div>)}</div>
-    <p className="font-semibold">Total: {formatUnits(order.priceAmount,6)} PathUSD</p>
+    <p className="font-semibold">Total: {formatUnits(order.priceAmount, getCurrency(order.priceToken).decimals)} {getCurrency(order.priceToken).symbol}</p>
     {success&&<p role="status" className="rounded border border-green-200 bg-green-50 p-3 text-sm text-green-800">{success}</p>}
     {!action&&error&&<p role="alert" className="rounded border border-destructive bg-destructive/10 p-3 text-sm">{error}</p>}
     <div className="space-y-3 border-t pt-4">

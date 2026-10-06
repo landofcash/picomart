@@ -1,3 +1,4 @@
+import {PICOMART_TEMPO_CONFIG} from '@picomart/config';
 ﻿import {useEffect, useRef, useState} from "react";
 import {Link} from "react-router-dom";
 import {get,set} from "idb-keyval";
@@ -49,7 +50,7 @@ export default function TempoContractPage() {
     return createTempoCommerceService({client,origins:{apiOrigin:client.apiOrigin,downloadOrigin:client.downloadOrigin},deployment:()=>TEST_CONTRACT.toLowerCase(),maxRetentionSeconds:30*86400});
   }
   function context(role:"buyer"|"seller",account:string,id:string) {
-    return createTempoReceivingContext({version:1,profile:"picomart-receiving-v1",chainId:42431,contractAddress:TEST_CONTRACT.toLowerCase(),account,role,...(role === "buyer" ? {orderSeed:tempoIdToSeed(id)} : {catalogSeed:tempoIdToSeed(id)})} as Parameters<typeof createTempoReceivingContext>[0]);
+    return createTempoReceivingContext({version:1,profile:"picomart-receiving-v1",chainId:PICOMART_TEMPO_CONFIG.chainId,contractAddress:TEST_CONTRACT.toLowerCase(),account,role,...(role === "buyer" ? {orderSeed:tempoIdToSeed(id)} : {catalogSeed:tempoIdToSeed(id)})} as Parameters<typeof createTempoReceivingContext>[0]);
   }
   async function selectedAddress() {const current=await wallet.getActiveWallet("moderato");if(!current || current.locked)throw new Error("Select and unlock a built-in wallet.");return current.identity.evmAddress.toLowerCase();}
   function selectMethod(name:string,values:unknown[],nextTarget:"contract"|"token"="contract") {setTarget(nextTarget);setMethod(name);setArgs(json(values));setResult("");}
@@ -65,7 +66,7 @@ export default function TempoContractPage() {
         const sellerIdentity=createTempoReceivingIdentity(context("seller",catalog.seller,catalogId),publicKeyBase64(catalog.sellerPublicKey));
         if(sellerIdentity.identityId !== catalog.sellerIdentityId.toLowerCase())throw new Error("Catalog identity differs from its onchain snapshot.");
         const buyerIdentity=await s.receivingIdentity(adapter,context("buyer",account,orderId));
-        order=TempoOrderContextSchema.parse({version:1,chainId:42431,contractAddress:TEST_CONTRACT.toLowerCase(),catalogSeed:tempoIdToSeed(catalogId),orderSeed:tempoIdToSeed(orderId),buyerIdentity,sellerIdentity});
+        order=TempoOrderContextSchema.parse({version:1,chainId:PICOMART_TEMPO_CONFIG.chainId,contractAddress:TEST_CONTRACT.toLowerCase(),catalogSeed:tempoIdToSeed(catalogId),orderSeed:tempoIdToSeed(orderId),buyerIdentity,sellerIdentity});
         const priceAmount=parseUnits(amount,6);if(priceAmount<=0n || priceAmount>1_000_000n)throw new Error("Use a controlled test price above zero and at most 1 PathUSD.");
         input={orderId,catalogId,priceAmount:priceAmount.toString(),priceToken:TEST_TOKEN,expectedSeller:catalog.seller,expectedSellerPublicKey:catalog.sellerPublicKey,expectedSellerIdentityId:catalog.sellerIdentityId,buyerPublicKey:publicKeyBytes(buyerIdentity.publicKey),buyerIdentityId:buyerIdentity.identityId};
       } else {
@@ -73,7 +74,7 @@ export default function TempoContractPage() {
         const buyerIdentity=createTempoReceivingIdentity(context("buyer",stored.buyer,orderId),publicKeyBase64(stored.buyerPublicKey));
         const sellerIdentity=createTempoReceivingIdentity(context("seller",stored.seller,stored.catalogId),publicKeyBase64(stored.sellerPublicKey));
         if(buyerIdentity.identityId!==stored.buyerIdentityId.toLowerCase() || sellerIdentity.identityId!==stored.sellerIdentityId.toLowerCase())throw new Error("Order identities differ from historical onchain snapshots.");
-        order=TempoOrderContextSchema.parse({version:1,chainId:42431,contractAddress:TEST_CONTRACT.toLowerCase(),catalogSeed:tempoIdToSeed(stored.catalogId),orderSeed:tempoIdToSeed(orderId),buyerIdentity,sellerIdentity});
+        order=TempoOrderContextSchema.parse({version:1,chainId:PICOMART_TEMPO_CONFIG.chainId,contractAddress:TEST_CONTRACT.toLowerCase(),catalogSeed:tempoIdToSeed(stored.catalogId),orderSeed:tempoIdToSeed(orderId),buyerIdentity,sellerIdentity});
       }
       draft={order,expected,input,preparedAt:Date.now(),expiresAt:new Date(Date.now()+30*86400_000-1000).toISOString().replace(/\.\d{3}Z$/,"Z")};await saveDraft(key,draft);
     }
@@ -117,7 +118,7 @@ export default function TempoContractPage() {
     <Link to="/settings" className="underline">Settings</Link><h1 className="text-2xl font-bold">Tempo contract test runner</h1>
     <TempoOrderLookup/>
     <TempoReceiptRecovery/>
-    <p>Moderato only · chain 42431 · deployment block {TEST_BLOCK}. These actions send real testnet transactions. Use disposable test data and controlled PathUSD amounts. Checkout remains disabled.</p>
+    <p>Moderato only · chain {PICOMART_TEMPO_CONFIG.chainId} · deployment block {TEST_BLOCK}. These actions send real testnet transactions. Use disposable test data and controlled PathUSD amounts. Checkout remains disabled.</p>
     <p className="break-all">Contract: {TEST_CONTRACT}</p>
     <section className="border rounded p-4 space-y-3"><h2 className="text-xl">Built-in wallet</h2>
       <Link to="/tempo-wallet" className="underline">Create or restore test wallets</Link>
@@ -141,7 +142,7 @@ export default function TempoContractPage() {
       <p>Publish a catalog as seller. Prepare buyer details as buyer, approve the exact amount, then create an initial or paid order. Switch to seller for delivery/refusal and back to buyer or admin for settlement. Each message expires after 30 days.</p>
       <Button variant="outline" disabled={busy} onClick={()=>selectMethod("approve",[TEST_CONTRACT,parseUnits(amount,6).toString()],"token")}>Fill exact PathUSD approval</Button>{" "}
       <Button variant="outline" disabled={busy} onClick={()=>void run(async()=>inspect())}>Read order, catalog, balances and escrow</Button>
-      <Button variant="outline" disabled={busy} onClick={()=>void run(async()=>{await assertTestDeployment();const logs=await testOrderLogs("OrderMessage",orderId);const stored=await testContract.getOrder(orderId);const role=(await selectedAddress())===stored.buyer.toLowerCase() ? "buyer" : "seller";const buyerIdentity=createTempoReceivingIdentity(context("buyer",stored.buyer,orderId),publicKeyBase64(stored.buyerPublicKey)),sellerIdentity=createTempoReceivingIdentity(context("seller",stored.seller,stored.catalogId),publicKeyBase64(stored.sellerPublicKey));const order=TempoOrderContextSchema.parse({version:1,chainId:42431,contractAddress:TEST_CONTRACT.toLowerCase(),orderSeed:tempoIdToSeed(orderId),catalogSeed:tempoIdToSeed(stored.catalogId),buyerIdentity,sellerIdentity});const decoded=[];for(const log of logs){const event=contractInterface.parseLog(log)!;const messageType=Number(event.args.messageType)===1 ? "buyer-order" : Number(event.args.messageType)===2 ? "seller-delivery" : "seller-refusal";const expected={messageType,sequence:1} as TempoExpectedMessage;const trusted=Number(event.args.messageType)===1 ? stored.buyerCommitment : stored.sellerCommitment;if(trusted.toLowerCase()!==event.args.commitment.toLowerCase())throw new Error("Event commitment differs from authoritative order state.");decoded.push(await service().receive(wallet.getWalletAdapter("moderato"),order,expected,role,toUtf8String(event.args.buyerEnvelope),toUtf8String(event.args.sellerEnvelope),trusted));}setResult(json(decoded));})}>Read and decrypt onchain message references</Button>
+      <Button variant="outline" disabled={busy} onClick={()=>void run(async()=>{await assertTestDeployment();const logs=await testOrderLogs("OrderMessage",orderId);const stored=await testContract.getOrder(orderId);const role=(await selectedAddress())===stored.buyer.toLowerCase() ? "buyer" : "seller";const buyerIdentity=createTempoReceivingIdentity(context("buyer",stored.buyer,orderId),publicKeyBase64(stored.buyerPublicKey)),sellerIdentity=createTempoReceivingIdentity(context("seller",stored.seller,stored.catalogId),publicKeyBase64(stored.sellerPublicKey));const order=TempoOrderContextSchema.parse({version:1,chainId:PICOMART_TEMPO_CONFIG.chainId,contractAddress:TEST_CONTRACT.toLowerCase(),orderSeed:tempoIdToSeed(orderId),catalogSeed:tempoIdToSeed(stored.catalogId),buyerIdentity,sellerIdentity});const decoded=[];for(const log of logs){const event=contractInterface.parseLog(log)!;const messageType=Number(event.args.messageType)===1 ? "buyer-order" : Number(event.args.messageType)===2 ? "seller-delivery" : "seller-refusal";const expected={messageType,sequence:1} as TempoExpectedMessage;const trusted=Number(event.args.messageType)===1 ? stored.buyerCommitment : stored.sellerCommitment;if(trusted.toLowerCase()!==event.args.commitment.toLowerCase())throw new Error("Event commitment differs from authoritative order state.");decoded.push(await service().receive(wallet.getWalletAdapter("moderato"),order,expected,role,toUtf8String(event.args.buyerEnvelope),toUtf8String(event.args.sellerEnvelope),trusted));}setResult(json(decoded));})}>Read and decrypt onchain message references</Button>
     </section>
     <section className="border rounded p-4 space-y-3"><h2 className="text-xl">All contract methods</h2>
       <select aria-label="Method target" className={uiClass} value={target} disabled={busy} onChange={e=>{const t=e.target.value as typeof target;selectMethod(t === "contract" ? "owner" : "balanceOf",t === "contract" ? [] : [active?.identity.evmAddress ?? ""],t);}}><option value="contract">Picomart contract</option><option value="token">PathUSD approval, transfer and balances</option></select>

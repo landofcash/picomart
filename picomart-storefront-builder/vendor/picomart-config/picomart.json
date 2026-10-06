@@ -1,0 +1,91 @@
+{
+  "app": {
+    "name": "Picomart",
+    "buyerUrl": "https://app.picomart.zkbytes.com",
+    "sellerUrl": "https://seller.picomart.zkbytes.com"
+  },
+  "defaultNetwork": "moderato",
+  "networks": {
+    "moderato": {
+      "enabled": true,
+      "label": "Test Network",
+      "modeLabel": "Demo mode",
+      "qrProfile": "2",
+      "chainId": 42431,
+      "rpcUrl": "https://rpc.moderato.tempo.xyz",
+      "explorerUrl": "https://explore.testnet.tempo.xyz",
+      "contract": {
+        "address": "0x3c91183f0454eab6eff6f570ac402be278dbd6f4",
+        "deploymentBlock": 37694566
+      },
+      "adminAddress": "0xa7965ff717af7a9689930bf8b438080e1d7ffaca",
+      "services": {
+        "syncOrigin": "https://sync.picomart.zkbytes.com",
+        "syncPath": "/api/v1/moderato",
+        "agentPath": "/api/v2/moderato",
+        "catalogOrigin": "https://cdn.picomart.zkbytes.com",
+        "x402Origin": "https://x402.picomart.zkbytes.com",
+        "builderOrigin": "https://builder.picomart.zkbytes.com"
+      },
+      "defaultPaymentCurrency": "pathUSD",
+      "defaultFeeCurrency": "pathUSD",
+      "currencies": {
+        "pathUSD": {
+          "id": 0,
+          "name": "PathUSD",
+          "symbol": "PathUSD",
+          "decimals": 6,
+          "address": "0x20c0000000000000000000000000000000000000",
+          "icon": "/tokens/0-icon.png",
+          "accountEnabled": true,
+          "checkoutEnabled": true
+        },
+        "alphaUSD": {
+          "id": 1,
+          "name": "AlphaUSD",
+          "symbol": "AlphaUSD",
+          "decimals": 6,
+          "address": "0x20c0000000000000000000000000000000000001",
+          "icon": "/tokens/1-icon.png",
+          "accountEnabled": true,
+          "checkoutEnabled": false
+        },
+        "betaUSD": {
+          "id": 2,
+          "name": "BetaUSD",
+          "symbol": "BetaUSD",
+          "decimals": 6,
+          "address": "0x20c0000000000000000000000000000000000002",
+          "icon": "/tokens/betausd.svg",
+          "accountEnabled": true,
+          "checkoutEnabled": false
+        },
+        "openUSD": {
+          "id": 3,
+          "name": "OpenUSD",
+          "symbol": "OUSD",
+          "decimals": 6,
+          "address": "0x20c0000000000000000000006a37da5c996874be",
+          "icon": "/tokens/openusd.svg",
+          "accountEnabled": true,
+          "checkoutEnabled": false
+        }
+      }
+    },
+    "mainnet": {
+      "enabled": false,
+      "label": "Main Network",
+      "modeLabel": "Live mode",
+      "qrProfile": "1",
+      "chainId": null,
+      "rpcUrl": null,
+      "explorerUrl": null,
+      "contract": null,
+      "adminAddress": null,
+      "services": null,
+      "defaultPaymentCurrency": null,
+      "defaultFeeCurrency": null,
+      "currencies": {}
+    }
+  }
+}

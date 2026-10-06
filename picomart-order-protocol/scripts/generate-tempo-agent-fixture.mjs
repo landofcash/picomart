@@ -1,7 +1,8 @@
 // Synthetic interoperability fixture. Never reads wallet or deployment credentials.
 import fs from 'node:fs/promises';
 import {generateKeyPair,exportJWK} from 'jose';
-import * as agent from '../dist/tempoAgent.js';
+import * as agentHelpers from '../dist/tempoAgent.js';
+const agent={...agentHelpers,...agentHelpers.createTempoAgentProtocol({chainId:42431,contractAddress:'0x3c91183f0454eab6eff6f570ac402be278dbd6f4',apiPath:'/api/v2/moderato',defaultPaymentToken:'0x20c0000000000000000000000000000000000000',paymentTokens:[{tokenId:'0x20c0000000000000000000000000000000000000',name:'PathUSD',symbol:'PathUSD',decimals:6}]})};
 import * as protocol from '../dist/tempoProtocol.js';
 const orderSeed='AgICAgICAgICAgICAgICAg',catalogSeed='AQEBAQEBAQEBAQEBAQEBAQ',productId='AwMDAwMDAwMDAwMDAwMDAw';
 const receiving=(role,account,seed,key)=>protocol.createTempoReceivingIdentity(protocol.createTempoReceivingContext({version:1,profile:'picomart-receiving-v1',chainId:42431,contractAddress:agent.AGENT_CONTRACT,

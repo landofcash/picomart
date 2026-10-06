@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@hiero-ledger/sdk": "^2.78.0",
+    "@picomart/config": "file:vendor/picomart-config",
     "@picomart/order-protocol": "file:vendor/picomart-order-protocol.tgz",
     "@radix-ui/react-popover": "^1.1.14",
     "@radix-ui/react-slot": "^1.2.4",

@@ -4,7 +4,8 @@ import {createTempoTransactionService, type TempoTransactionServiceOptions} from
 import {createPublicClient, formatUnits, hexToBytes, http, parseAbi, type Hex} from "viem";
 import {english, generateMnemonic, mnemonicToAccount, privateKeyToAccount} from "viem/accounts";
 import {validateMnemonic} from "@scure/bip39";
-import {assertTempoChainId, PICOMART_TEMPO_CONFIG} from "@picomart/order-protocol/tempo";
+import {assertTempoChainId, PICOMART_TEMPO_CONFIG} from '@picomart/config';
+
 import type {InternalWalletProvider} from "../provider";
 import type {InternalWalletRecord, InternalWalletSecretMaterial, InternalWalletStatus} from "../types";
 import {decryptSecretMaterial, encryptSecretMaterial, normalizePrivateKeyHex} from "../crypto";
@@ -13,7 +14,7 @@ import {requestInternalWalletPassphrase} from "../unlockGate";
 
 export const TEMPO_HD_PATH = "m/44'/60'/0'/0/0";
 const PROVIDER_ID = "tempo-internal";
-const NETWORK = "moderato";
+const NETWORK = PICOMART_TEMPO_CONFIG.network;
 // Invalidates work already waiting for decryption, an unlock dialog, or RPC.
 let revision = 0;
 const sessionIds=new Set<string>();

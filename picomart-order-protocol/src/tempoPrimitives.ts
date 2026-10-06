@@ -16,7 +16,7 @@ export const MAX_TEMPO_ENVELOPE_BYTES = 8192;
 export const utf8 = (value: string) => new TextEncoder().encode(value);
 export const bytesHex = (bytes: Uint8Array): `0x${string}` => `0x${Array.from(bytes, b => b.toString(16).padStart(2, "0")).join("")}`;
 export const tempoKeccak = (bytes: Uint8Array) => bytesHex(keccak_256(bytes));
-export const TempoChainIdSchema = z.literal(42431);
+export const TempoChainIdSchema = z.number().int().positive().max(Number.MAX_SAFE_INTEGER);
 export const TempoAddressSchema = z.string().regex(/^0x[0-9a-f]{40}$/).refine(value => value !== `0x${"0".repeat(40)}`, "zero address is not supported");
 export const TempoHashSchema = z.string().regex(/^0x[0-9a-f]{64}$/);
 export const TempoIdSchema = z.string().regex(/^0x[0-9a-f]{32}$/).refine(value => value !== `0x${"0".repeat(32)}`, "zero ID is not supported");

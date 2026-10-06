@@ -23,12 +23,13 @@
     "worker:env": "node scripts/init-worker-env.mjs"
   },
   "dependencies": {
+    "@picomart/config": "file:vendor/picomart-config",
+    "@picomart/order-protocol": "file:vendor/picomart-order-protocol.tgz",
     "ethers": "6.17.0",
     "express": "5.1.0",
     "railway": "3.11.0",
     "typescript": "5.8.3",
-    "zod": "4.1.11",
-    "@picomart/order-protocol": "file:vendor/picomart-order-protocol.tgz"
+    "zod": "4.1.11"
   },
   "devDependencies": {
     "@types/express": "5.0.3",

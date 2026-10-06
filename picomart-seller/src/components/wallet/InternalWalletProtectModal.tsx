@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from "react";
-import {createPortal} from "react-dom";
+import AccountDialog from "./AccountDialog";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
 
@@ -18,15 +18,15 @@ const InternalWalletProtectModal: React.FC<InternalWalletProtectModalProps> = ({
   onClose,
   onSubmit,
 }) => {
-  const [currentPassphrase, setCurrentPassphrase] = useState("");
-  const [nextPassphrase, setNextPassphrase] = useState("");
-  const [confirmPassphrase, setConfirmPassphrase] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [nextPassword, setNextPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   useEffect(() => {
     if (!open) {
-      setCurrentPassphrase("");
-      setNextPassphrase("");
-      setConfirmPassphrase("");
+      setCurrentPassword("");
+      setNextPassword("");
+      setConfirmPassword("");
     }
   }, [open]);
 
@@ -35,51 +35,55 @@ const InternalWalletProtectModal: React.FC<InternalWalletProtectModalProps> = ({
   }
 
   const modal = (
-    <div role="dialog" aria-modal="true" aria-label="Change passphrase" className="fixed inset-0 z-[110] flex items-center justify-center overflow-y-auto bg-black/50 p-4">
-      <div className="w-full max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-xl border bg-background p-6 shadow-xl space-y-5">
+    <AccountDialog open={open} title="Change password" onClose={onClose} busy={busy} className="max-w-lg">
+      <form className="space-y-5" onSubmit={event => {event.preventDefault(); if (!busy && nextPassword.length >= 8 && nextPassword === confirmPassword) void onSubmit({currentPassphrase: currentPassword, nextPassphrase: nextPassword});}}>
         <div className="space-y-2">
-          <h2 className="text-xl font-semibold">Change passphrase</h2>
           <p className="text-sm text-muted-foreground">
-            Update the passphrase used to decrypt this wallet locally.
+            Change the password that protects your account in this browser. Your receiving address and balance stay the same.
           </p>
         </div>
 
         <div className="space-y-4">
           <div className="space-y-2">
             <label className="text-sm font-medium" htmlFor="wallet-current-passphrase">
-              Current passphrase
+              Current password
             </label>
             <Input
               id="wallet-current-passphrase"
               type="password"
-              value={currentPassphrase}
-              onChange={(event) => setCurrentPassphrase(event.target.value)}
+              autoComplete="current-password"
+              value={currentPassword}
+              onChange={(event) => setCurrentPassword(event.target.value)}
               disabled={busy}
             />
           </div>
 
           <div className="space-y-2">
             <label className="text-sm font-medium" htmlFor="wallet-next-passphrase">
-              New passphrase
+              New password
             </label>
             <Input
               id="wallet-next-passphrase"
               type="password"
-              value={nextPassphrase}
-              onChange={(event) => setNextPassphrase(event.target.value)}
+              autoComplete="new-password"
+              minLength={8}
+              placeholder="At least 8 characters"
+              value={nextPassword}
+              onChange={(event) => setNextPassword(event.target.value)}
               disabled={busy}
             />
           </div>
 
           <div className="space-y-2">
             <label className="text-sm font-medium" htmlFor="wallet-confirm-next-passphrase">
-              Confirm new passphrase
+              Confirm new password
             </label>
             <Input
               id="wallet-confirm-next-passphrase"
               type="password"
-              value={confirmPassphrase}
-              onChange={(event) => setConfirmPassphrase(event.target.value)}
+              autoComplete="new-password"
+              value={confirmPassword}
+              onChange={(event) => setConfirmPassword(event.target.value)}
               disabled={busy}
             />
           </div>
@@ -92,24 +96,21 @@ const InternalWalletProtectModal: React.FC<InternalWalletProtectModalProps> = ({
         </div>
 
         <div className="flex items-center justify-end gap-2">
-          <Button variant="outline" onClick={onClose} disabled={busy}>
+          <Button type="button" variant="outline" onClick={onClose} disabled={busy}>
             Cancel
           </Button>
           <Button
-            onClick={() => onSubmit({
-              currentPassphrase,
-              nextPassphrase,
-            })}
-            disabled={busy || nextPassphrase.length === 0 || nextPassphrase !== confirmPassphrase}
+            type="submit"
+            disabled={busy || nextPassword.length < 8 || nextPassword !== confirmPassword}
           >
-            {busy ? "Saving..." : "Update passphrase"}
+            {busy ? "Saving..." : "Update password"}
           </Button>
         </div>
-      </div>
-    </div>
+      </form>
+    </AccountDialog>
   );
 
-  return typeof document !== "undefined" ? createPortal(modal, document.body) : modal;
+  return modal;
 };
 
 export default InternalWalletProtectModal;

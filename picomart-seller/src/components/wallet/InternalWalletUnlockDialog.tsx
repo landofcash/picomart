@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from "react";
-import {createPortal} from "react-dom";
+import AccountDialog from "./AccountDialog";
 import {LockKeyhole} from "lucide-react";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
@@ -22,11 +22,11 @@ const InternalWalletUnlockDialog: React.FC<InternalWalletUnlockDialogProps> = ({
   onCancel,
   onConfirm,
 }) => {
-  const [passphrase, setPassphrase] = useState("");
+  const [passphrase, setPassword] = useState("");
 
   useEffect(() => {
     if (!open) {
-      setPassphrase("");
+      setPassword("");
     }
   }, [open]);
 
@@ -35,29 +35,30 @@ const InternalWalletUnlockDialog: React.FC<InternalWalletUnlockDialogProps> = ({
   }
 
   const modal = (
-    <div className="fixed inset-0 z-120 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-md rounded-xl border bg-background p-6 shadow-xl space-y-5">
+    <AccountDialog open={open} title="Unlock account" onClose={onCancel} busy={busy} className="max-w-md">
+      <form className="space-y-5" onSubmit={event => {event.preventDefault(); if (!busy && passphrase) void onConfirm(passphrase);}}>
         <div className="space-y-2">
           <div className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs text-muted-foreground">
             <LockKeyhole className="h-3.5 w-3.5"/>
-            Unlock wallet
+            Unlock account
           </div>
           <h2 className="text-xl font-semibold">{request.walletLabel}</h2>
           <p className="text-sm text-muted-foreground">
-            Enter your passphrase to {request.reasonLabel.toLowerCase()}.
+            Enter your password to continue with this account.
           </p>
         </div>
 
         <div className="space-y-2">
           <label className="text-sm font-medium" htmlFor="internal-wallet-passphrase">
-            Passphrase
+            Password
           </label>
           <Input
             id="internal-wallet-passphrase"
             type="password"
+            autoComplete="current-password"
             value={passphrase}
-            onChange={(event) => setPassphrase(event.target.value)}
-            placeholder="Enter wallet passphrase"
+            onChange={(event) => setPassword(event.target.value)}
+            placeholder="Enter your password"
             autoFocus
             disabled={busy}
           />
@@ -69,18 +70,18 @@ const InternalWalletUnlockDialog: React.FC<InternalWalletUnlockDialogProps> = ({
         </div>
 
         <div className="flex items-center justify-end gap-2">
-          <Button variant="outline" onClick={onCancel} disabled={busy}>
+          <Button type="button" variant="outline" onClick={onCancel} disabled={busy}>
             Cancel
           </Button>
-          <Button onClick={() => onConfirm(passphrase)} disabled={busy || passphrase.length === 0}>
+          <Button type="submit" disabled={busy || passphrase.length === 0}>
             {busy ? "Unlocking..." : "Unlock"}
           </Button>
         </div>
-      </div>
-    </div>
+      </form>
+    </AccountDialog>
   );
 
-  return typeof document !== "undefined" ? createPortal(modal, document.body) : modal;
+  return modal;
 };
 
 export default InternalWalletUnlockDialog;

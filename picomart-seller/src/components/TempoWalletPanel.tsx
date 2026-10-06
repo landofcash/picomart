@@ -1,34 +1,65 @@
-﻿import {useEffect,useState} from 'react';
-import {useSellerWalletPopup} from '@/context/SellerWalletPopup';
-import {useWallet} from '@/context/WalletContext';
-import {Button} from './ui/button';
-import {formatUnits} from 'ethers';
+import { useEffect, useState } from "react";
+import { useSellerWalletPopup } from "@/context/SellerWalletPopup";
+import { useWallet } from "@/context/WalletContext";
+import { Button } from "./ui/button";
+import AccountUnlockButton from "./wallet/AccountUnlockButton";
 
 export default function TempoWalletPanel() {
-  const openWallet=useSellerWalletPopup();
-  const wallet=useWallet(),[password,setPassword]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState('');
-  const refreshInternalWallets=wallet.refreshInternalWallets;
-  useEffect(()=>{void refreshInternalWallets().catch(()=>setError('Cannot load local wallets.'));},[refreshInternalWallets]);
-  async function run(work:()=>Promise<void>) {
-    if(busy)return;setBusy(true);setError('');
-    try{await work();}catch{setError('Wallet action failed. Check the selected wallet and password.');}
-    finally{setBusy(false);setPassword('');}
+  const openAccount = useSellerWalletPopup(),
+    wallet = useWallet();
+  const [busy, setBusy] = useState(false),
+    [error, setError] = useState("");
+  const refresh = wallet.refreshInternalWallets;
+  useEffect(() => {
+    void refresh().catch(() =>
+      setError("Could not load accounts on this device."),
+    );
+  }, [refresh]);
+  async function select(id: string) {
+    if (!id || busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      await wallet.connectInternalWallet(id);
+    } catch {
+      setError("Could not select this account. Please try again.");
+    } finally {
+      setBusy(false);
+    }
   }
-  return <section className="rounded-xl border p-4 space-y-3">
-    <h2 className="font-semibold">Built-in wallet Â· Tempo</h2>
-    <label className="block">Wallet<select className="w-full rounded border p-2 bg-background" aria-label="Wallet" value={wallet.activeInternalWalletId??''} disabled={busy} onChange={e=>void run(()=>wallet.connectInternalWallet(e.target.value))}>
-      <option value="">Select a wallet</option>{wallet.internalWallets.map(w=><option key={w.id} value={w.id}>{w.label} Â· {w.identity.evmAddress}</option>)}
-    </select></label>
-    {wallet.walletAddress&&<p className="break-all text-sm">{wallet.walletAddress} Â· {wallet.walletLocked?'Locked':'Unlocked'}</p>}
-    {wallet.walletAddress&&wallet.walletLocked&&<label className="block">Wallet password<input type="password" autoComplete="current-password" className="w-full rounded border p-2 bg-background" value={password} onChange={e=>setPassword(e.target.value)}/></label>}
-    {wallet.walletAddress&&<div className="flex flex-wrap gap-2">
-      <Button disabled={busy||wallet.walletLocked&&!password} onClick={()=>void run(()=>wallet.walletLocked?wallet.unlockInternalWallet(password):wallet.lockInternalWallet())}>{wallet.walletLocked?'Unlock':'Lock'}</Button>
-      <Button variant="outline" disabled={busy} onClick={()=>void run(wallet.refreshActiveInternalWallet)}>Refresh balances</Button>
-    </div>}
-    {wallet.walletBalances.map(b=><p key={b.tokenId} className="text-sm">{b.symbol}: {formatUnits(b.raw,b.decimals)}</p>)}
-    <Button variant="link" onClick={openWallet}>Create, restore or back up a wallet</Button>
-    <p className="text-xs text-muted-foreground">MetaMask support is being migrated. Use a built-in wallet for now.</p>
-    {error&&<p role="alert">{error}</p>}
-  </section>;
+  return (
+    <section className="rounded-xl border p-4 space-y-3">
+      <h2 className="font-semibold">Your Picomart account</h2>
+      {!!wallet.internalWallets.length && (
+        <label className="block text-sm">
+          Account
+          <select
+            className="mt-1 w-full rounded border p-2 bg-background"
+            aria-label="Account"
+            value={wallet.activeInternalWalletId ?? ""}
+            disabled={busy || wallet.walletActionPending}
+            onChange={(event) => void select(event.target.value)}
+          >
+            <option value="" disabled>
+              Select an account
+            </option>
+            {wallet.internalWallets.map((account) => (
+              <option key={account.id} value={account.id}>
+                {account.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+      <AccountUnlockButton />
+      <Button variant="outline" className="w-full" onClick={openAccount}>
+        {wallet.walletAddress ? "Manage account" : "Create or restore account"}
+      </Button>
+      {error && (
+        <p role="alert" className="text-sm text-destructive">
+          {error}
+        </p>
+      )}
+    </section>
+  );
 }
-

@@ -67,7 +67,7 @@ try{
     </script><script type="module" src="/src/testFixtures/compactQrHarness.tsx"></script>`});
     if(url.pathname==='/src/context/WalletContext.tsx')return route.fulfill({contentType:'application/javascript',body:`export const useWallet=()=>({network:localStorage.getItem('ui-check-network')??'moderato',walletAddress:'0x'+'11'.repeat(20),walletIdentity:{evmAddress:'0x'+'11'.repeat(20)},walletAdapter:{},walletKind:'internal',walletLocked:false,walletCanTransact:true,walletActionPending:false,internalWallets:[],walletBalances:[],walletLifecycleState:'ready',switchNetwork:async()=>{localStorage.setItem('ui-check-switch-called','true');},unlockInternalWallet:async()=>{}});`});
     if(url.pathname==='/src/lib/tempoMarket.ts')return route.fulfill({contentType:'application/javascript',body:`
-      import {parseCompactCatalogLink,compactCatalogLink} from '/node_modules/@picomart/order-protocol/dist/tempo.js';
+      import {parseCompactCatalogLink,compactCatalogLink} from '/src/lib/tempoLinks.ts';
       export const parseCatalogLink=value=>parseCompactCatalogLink(value);
       export const TEMPO_MARKET_ENABLED=true;
       export const marketContract={owner:async()=>'0x'+'22'.repeat(20)},marketTransactions={recover:async()=>null,recoverOperation:async()=>JSON.parse(sessionStorage.getItem('mock-payment')??'null'),paymentRequirements:async()=>({approvalRequired:!sessionStorage.getItem('mock-approval')})},marketInterface={};

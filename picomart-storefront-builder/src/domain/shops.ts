@@ -1,3 +1,4 @@
+import {PICOMART_TEMPO_CONFIG} from '@picomart/config';
 import {randomUUID} from 'node:crypto';
 import {z} from 'zod';
 import {ApiError} from './errors.ts';
@@ -30,7 +31,7 @@ export class ShopService {
       const id = randomUUID(), now = new Date(this.#auth.now()).toISOString();
       const shop = ShopSchema.parse({schemaVersion: 2, kind: 'shop', id, recordVersion: 1, network: session.network, ownerAccountId: session.ownerAccountId,
         createdAt: now, updatedAt: now, catalogSeed: input.catalogSeed, selectedDraftId: null, publishedRevisionId: null,
-        config: {...input.design, schemaVersion: 2, shopId: id, network: session.network, chainId: 42431, contractAddress: '0x3c91183f0454eab6eff6f570ac402be278dbd6f4', catalogSeed: input.catalogSeed}});
+        config: {...input.design, schemaVersion: 2, shopId: id, network: session.network, chainId: PICOMART_TEMPO_CONFIG.chainId, contractAddress: PICOMART_TEMPO_CONFIG.deployment.address, catalogSeed: input.catalogSeed}});
       return {changes: [shop], result: {status: 201, data: shop}};
     }, () => { this.#auth.current(session); });
   }
@@ -40,7 +41,7 @@ export class ShopService {
       await this.#auth.identity.assertCatalogOwner(session.network, shop.catalogSeed, session.ownerAccountId);
       if (shop.recordVersion !== input.expectedVersion) throw new ApiError(409, 'record_version_conflict');
       const next = ShopSchema.parse({...shop, recordVersion: shop.recordVersion + 1, updatedAt: new Date(this.#auth.now()).toISOString(),
-        config: {...input.design, schemaVersion: 2, shopId, network: shop.network, chainId: 42431, contractAddress: '0x3c91183f0454eab6eff6f570ac402be278dbd6f4', catalogSeed: shop.catalogSeed}});
+        config: {...input.design, schemaVersion: 2, shopId, network: shop.network, chainId: PICOMART_TEMPO_CONFIG.chainId, contractAddress: PICOMART_TEMPO_CONFIG.deployment.address, catalogSeed: shop.catalogSeed}});
       return {changes: [next], result: {status: 200, data: next}};
     }, () => { this.get(session, shopId); });
   }

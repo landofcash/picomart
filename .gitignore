@@ -1,5 +1,5 @@
 /.playwright-cli/
-/output/playwright/
+/output/
 build/
 # Local credentials remain private across package renames.
 **/.env

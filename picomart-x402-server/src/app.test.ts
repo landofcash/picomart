@@ -2,7 +2,7 @@ import {beforeAll,describe,it,expect,vi} from 'vitest';
 import request from 'supertest';
 import {generateKeyPair,exportPKCS8,exportJWK} from 'jose';
 import fs from 'node:fs';
-import {AGENT_CONTRACT,AGENT_TOKEN,encodeAgentPaymentSignature} from '@picomart/order-protocol/tempo-agent';
+import {AGENT_CONTRACT,AGENT_TOKEN,encodeAgentPaymentSignature} from './agentProtocol.js';
 import {createApp} from './app.js';
 import {InMemoryQuoteStore} from './quoteStore.js';
 import {ProofPending,InvalidProof} from './tempoProof.js';

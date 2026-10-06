@@ -1,4 +1,4 @@
-import {AGENT_CHAIN_ID,AGENT_CONTRACT,AGENT_NETWORK,AgentProfileSchema,type AgentProfile} from '@picomart/order-protocol/tempo-agent';
+import {AGENT_CHAIN_ID,AGENT_CONTRACT,AGENT_NETWORK,AgentProfileSchema,type AgentProfile} from '../../agentProtocol.js';
 
 export const agentProfileStorageKey='picomart_tempo_agent_trust_v2';
 export const agentProfileChangedEvent='picomart:tempo-agent-trust-changed';

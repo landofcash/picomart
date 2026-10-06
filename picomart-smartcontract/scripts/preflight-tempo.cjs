@@ -1,5 +1,5 @@
 const hre = require("hardhat");
-const {PICOMART_TEMPO_CONFIG} = require("@picomart/order-protocol/tempo");
+const {PICOMART_TEMPO_CONFIG} = require("@picomart/config");
 const {PICOMART_TEMPO_BUILD} = require("@picomart/order-protocol/tempo-contract");
 
 async function preflight() {
@@ -10,7 +10,7 @@ async function preflight() {
   if (!admin || !hre.ethers.isAddress(admin) || admin === hre.ethers.ZeroAddress) throw new Error("Set the public TEMPO_ADMIN_ADDRESS in the contract .env");
   const artifact = await hre.artifacts.readArtifact("Picomart");
   if (hre.ethers.keccak256(artifact.bytecode) !== PICOMART_TEMPO_BUILD.creationBytecodeHash) throw new Error("Packed Tempo ABI/build differs from the compiled artifact; regenerate and repack");
-  const token = PICOMART_TEMPO_CONFIG.paymentTokens[0];
+  const token = PICOMART_TEMPO_CONFIG.defaultPaymentToken;
   const instance = new hre.ethers.Contract(token.tokenId,["function name() view returns (string)","function symbol() view returns (string)","function decimals() view returns (uint8)","function balanceOf(address) view returns (uint256)"],hre.ethers.provider);
   const [name,symbol,decimals] = await Promise.all([instance.name(),instance.symbol(),instance.decimals()]);
   if (name !== token.name || symbol !== token.symbol || Number(decimals) !== token.decimals) throw new Error("PathUSD metadata differs from shared configuration");

@@ -1,12 +1,13 @@
+import {PICOMART_TEMPO_CONFIG} from '@picomart/config';
 import {hexlify,parseUnits,verifyMessage} from 'ethers';
 import type {WalletAdapter} from '@/context/wallet/types';
 import {tempoWalletRevision,assertTempoWalletRevision} from './internalWallet/providers/tempoInternalWalletProvider';
 
-export const CATALOG_CDN='https://cdn.picomart.zkbytes.com';
+export const CATALOG_CDN=PICOMART_TEMPO_CONFIG.services.catalogOrigin;
 export const IMAGE_LIMIT=10*1024*1024;
 export interface PublicProduct {ProductId:string;Name:string;Description:string;Price:string;PriceToken:string;Image:string;}
 export type DraftProduct=PublicProduct&{LocalFile?:File};
-const token='0x20c0000000000000000000000000000000000000';
+const token=PICOMART_TEMPO_CONFIG.defaultPaymentToken.tokenId;
 export function pathUsdPrice(value:string) {
   if(!/^\d+(\.\d{1,6})?$/.test(value))throw new Error('Use a positive price with up to six decimal places.');
   const amount=parseUnits(value,6);
@@ -22,7 +23,7 @@ export async function sha256(bytes:Uint8Array) {
   return hexlify(new Uint8Array(hash)).slice(2);
 }
 export function uploadMessage(account:string,kind:'image'|'json',hash:string,expiresAt:number) {
-  return `Picomart public catalog upload\nVersion: 1\nChain ID: 42431\nContract: 0x3c91183f0454eab6eff6f570ac402be278dbd6f4\nCDN: ${CATALOG_CDN}\nAccount: ${account}\nKind: ${kind}\nSHA256: ${hash}\nExpires at: ${expiresAt}`;
+  return `Picomart public catalog upload\nVersion: 1\nChain ID: ${PICOMART_TEMPO_CONFIG.chainId}\nContract: 0x3c91183f0454eab6eff6f570ac402be278dbd6f4\nCDN: ${CATALOG_CDN}\nAccount: ${account}\nKind: ${kind}\nSHA256: ${hash}\nExpires at: ${expiresAt}`;
 }
 async function bytesFromResponse(response:Response,limit:number) {
   if(!response.ok||!response.body)throw new Error('Published content could not be read from the CDN.');
@@ -38,7 +39,7 @@ export async function verifyPublishedContent(url:string,hash:string,limit:number
 }
 export async function uploadCatalog(wallet:WalletAdapter,api:string,products:readonly DraftProduct[],signal?:AbortSignal,progress:(message:string)=>void=()=>{}) {
   const revision=tempoWalletRevision(),account=(await wallet.getAddress())?.toLowerCase();
-  if(wallet.chain!=='tempo'||await wallet.getNetwork?.()!=='moderato'||!account||!/^0x[0-9a-f]{40}$/.test(account))throw new Error('Select a built-in Moderato wallet first.');
+  if(wallet.chain!=='tempo'||await wallet.getNetwork?.()!== PICOMART_TEMPO_CONFIG.network||!account||!/^0x[0-9a-f]{40}$/.test(account))throw new Error('Select your Picomart account in Demo mode first.');
   const assertWallet=async()=>{signal?.throwIfAborted();assertTempoWalletRevision(revision);if((await wallet.getAddress())?.toLowerCase()!==account)throw new Error('Wallet changed during catalog upload.');};
   await assertWallet();
   const status=await fetch(`${api}/status`,{signal,redirect:'error',cache:'no-store'});
@@ -70,12 +71,12 @@ export async function uploadCatalog(wallet:WalletAdapter,api:string,products:rea
   }
   const published:PublicProduct[]=[];
   for(const p of products){
-    progress(`Publishing image for ${p.Name}…`);
+    progress(`Uploading image for ${p.Name}…`);
     const Image=p.LocalFile?await publish('image',new Uint8Array(await p.LocalFile.arrayBuffer()),p.LocalFile):p.Image;
     published.push({ProductId:p.ProductId,Name:p.Name,Description:p.Description,Price:p.Price,PriceToken:p.PriceToken,Image});
   }
   const bytes=new TextEncoder().encode(JSON.stringify(published));
   if(bytes.length>1_000_000)throw new Error('Catalog JSON exceeds its size limit.');
-  progress('Publishing and verifying catalog JSON…');const url=await publish('json',bytes);
+  progress('Checking products and images…');const url=await publish('json',bytes);
   return {url,products:published};
 }

@@ -1,3 +1,4 @@
+import {PICOMART_TEMPO_CONFIG} from '@picomart/config';
 import {useEffect,useRef,useState} from 'react';
 import {formatUnits} from 'viem';
 import {Link,useLocation} from 'react-router-dom';
@@ -39,7 +40,7 @@ export default function TempoAgentOrderApprovalPage(){
       {intent.delivery.deliveryComments&&<p>{intent.delivery.deliveryComments}</p>}
       <p className="text-sm text-muted-foreground">Your local agent can see details you supply to it. The quote service receives ciphertext without its decryption key. The seller receives the encrypted order through the private message service.</p>
       {expired&&<p role="alert">This quote is too close to expiry. Request a new quote.</p>}
-      <Button disabled={busy||expired||wallet.walletKind!=='internal'||wallet.walletLocked||!wallet.walletCanTransact||wallet.network!=='moderato'} onClick={()=>void approve()}>{busy?'Preparing and submitting…':'Approve and pay'}</Button>
+      <Button disabled={busy||expired||wallet.walletKind!=='internal'||wallet.walletLocked||!wallet.walletCanTransact||wallet.network!== PICOMART_TEMPO_CONFIG.network} onClick={()=>void approve()}>{busy?'Preparing and submitting…':'Approve and pay'}</Button>
       <p className="text-sm">Network fees and any token allowance are reviewed separately by the wallet.</p></>}
     {hash&&<div role="status"><p>Order submitted. The agent can check public settlement confirmation.</p><a href={`https://explore.moderato.tempo.xyz/tx/${hash}`} target="_blank" rel="noreferrer">View transaction</a><p><Link to="/orders">Open orders and recovery</Link></p></div>}
   </TempoMarketShell>;

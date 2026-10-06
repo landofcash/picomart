@@ -1,10 +1,11 @@
+import {PICOMART_TEMPO_CONFIG} from '@picomart/config';
 import { z } from "zod";
 
 const schema = z.object({
   PORT: z.coerce.number().int().positive().default(3402),
   NODE_ENV: z.string().default("development"),
   PICOMART_SYNC_ORIGIN: z.string().url(),
-  PICOMART_TEMPO_RPC_URL: z.string().url().default('https://rpc.moderato.tempo.xyz'),
+  PICOMART_TEMPO_RPC_URL: z.string().url().default(PICOMART_TEMPO_CONFIG.rpcUrl),
   PICOMART_RESOURCE_ORIGIN: z.string().url(),
   PICOMART_CATALOG_ORIGINS: z.string().min(1),
   PICOMART_QUOTE_SIGNING_KID: z.string().min(1),

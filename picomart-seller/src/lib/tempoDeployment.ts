@@ -1,3 +1,3 @@
-/** Local UI staging only. Shared protocol deployment/mainnet remain disabled. */
-export const TEMPO_UI_DEPLOYMENT = Object.freeze({address:'0x3c91183f0454eab6eff6f570ac402be278dbd6f4',block:37694566});
+import {PICOMART_TEMPO_CONFIG} from '@picomart/config';
+export const TEMPO_UI_DEPLOYMENT = PICOMART_TEMPO_CONFIG.deployment;
 export const TEMPO_UI_ENABLED = import.meta.env.VITE_TEMPO_COMMERCE_ENABLED === 'true';

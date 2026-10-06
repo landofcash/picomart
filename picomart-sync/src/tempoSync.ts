@@ -1,12 +1,13 @@
 import { Contract, Interface, JsonRpcProvider, ZeroAddress, keccak256, toUtf8String } from 'ethers';
-import { PICOMART_TEMPO_CONFIG } from '@picomart/order-protocol/tempo';
+import {PICOMART_TEMPO_CONFIG} from '@picomart/config';
+
 import { PICOMART_TEMPO_ABI, PICOMART_TEMPO_BUILD } from '@picomart/order-protocol/tempo-contract';
 import * as protocol from '@picomart/order-protocol/tempo-protocol';
 import { tempoAddress, tempoEntityId } from './tempoIdentity';
 
 // Independently verified deployment. Does not enable frontend checkout.
 export const TEMPO_SYNC_DEPLOYMENT = Object.freeze({
-  chainId: 42431, address: '0x3c91183f0454eab6eff6f570ac402be278dbd6f4', block: 37694566,
+  chainId: PICOMART_TEMPO_CONFIG.chainId, address: PICOMART_TEMPO_CONFIG.deployment.address, block: PICOMART_TEMPO_CONFIG.deployment.block,
 });
 export const tempoInterface = new Interface(PICOMART_TEMPO_ABI);
 const zeroHash = '0x' + '00'.repeat(32);
@@ -59,7 +60,7 @@ function equal(actual: unknown, expected: unknown, field: string): void {
 }
 function identity(role: 'buyer' | 'seller', account: string, id: string, key: string) {
   return protocol.createTempoReceivingIdentity(protocol.createTempoReceivingContext({
-    version: 1, profile: 'picomart-receiving-v1', chainId: 42431,
+    version: 1, profile: 'picomart-receiving-v1', chainId: PICOMART_TEMPO_CONFIG.chainId,
     contractAddress: TEMPO_SYNC_DEPLOYMENT.address, account: tempoAddress(account),
     ...(role === 'buyer' ? { role: 'buyer', orderSeed: protocol.tempoIdToSeed(id) } : { role: 'seller', catalogSeed: protocol.tempoIdToSeed(id) }),
   }), Buffer.from(key.slice(2), 'hex').toString('base64'));
@@ -108,7 +109,7 @@ export function applyTempoLog(state: TempoProjection, log: TempoLog, timestamp: 
       buyerIdentityId: a.buyerIdentityId, sellerIdentityId: a.sellerIdentityId,
       buyerCommitment: zeroHash, sellerCommitment: zeroHash, createdTs: timestamp, updatedTs: timestamp,
       deadline: Number(a.deadline), deleted: false, messages: [],
-      context: protocol.TempoOrderContextSchema.parse({ version: 1, chainId: 42431,
+      context: protocol.TempoOrderContextSchema.parse({ version: 1, chainId: PICOMART_TEMPO_CONFIG.chainId,
         contractAddress: TEMPO_SYNC_DEPLOYMENT.address, catalogSeed: protocol.tempoIdToSeed(catalogId),
         orderSeed: protocol.tempoIdToSeed(id), buyerIdentity, sellerIdentity }),
     });
@@ -186,7 +187,7 @@ export class TempoIndexer {
   }
   private async run(): Promise<void> {
     try {
-      equal(await this.source.chainId(), 42431, 'RPC chain');
+      equal(await this.source.chainId(), PICOMART_TEMPO_CONFIG.chainId, 'RPC chain');
       const head = await this.source.head(); this.latest = head;
       if (!Number.isSafeInteger(head) || head < TEMPO_SYNC_DEPLOYMENT.block) throw new Error('RPC head before deployment');
       const headBlock = await this.source.block(head);
@@ -248,7 +249,7 @@ export class TempoIndexer {
         equal((await this.source.catalog(id, head)).seller, ZeroAddress, 'deleted catalog');
       }
       const escrows = new Map<string, bigint>();
-      escrows.set(PICOMART_TEMPO_CONFIG.tokens[0].tokenId.toLowerCase(), 0n);
+      for (const token of PICOMART_TEMPO_CONFIG.paymentTokens) escrows.set(token.tokenId.toLowerCase(), 0n);
       for (const [id, order] of state.orders) {
         equal(await this.source.consumed(id, head), true, 'consumed ID');
         const actual = await this.source.order(id, head);

@@ -3,7 +3,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import {generateKeyPair,exportJWK} from 'jose';
-import {canonicalHash,signQuoteDigest,agentRequestCommitment,agentRequirements,agentConfirmPath,encodeAgentPaymentRequired,decodeAgentPaymentSignature,AGENT_CONTRACT,AGENT_TOKEN} from '@picomart/order-protocol/tempo-agent';
+import {canonicalHash,signQuoteDigest,agentRequestCommitment,agentRequirements,agentConfirmPath,encodeAgentPaymentRequired,decodeAgentPaymentSignature,AGENT_CONTRACT,AGENT_TOKEN} from './agentProtocol.js';
 import {PendingIntentStore} from './intentStore.js';
 import {PicomartOrderFlow} from './orderFlow.js';
 import type {McpConfig} from './config.js';

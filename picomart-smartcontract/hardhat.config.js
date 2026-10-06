@@ -4,7 +4,7 @@ const {subtask} = require("hardhat/config");
 const {TASK_COMPILE_SOLIDITY_GET_SOLC_BUILD} = require("hardhat/builtin-tasks/task-names");
 const fs = require("node:fs");
 const crypto = require("node:crypto");
-const {PICOMART_TEMPO_CONFIG} = require("@picomart/order-protocol/tempo");
+const {PICOMART_TEMPO_CONFIG} = require("@picomart/config");
 const key = process.env.PRIVATE_KEY?.trim();
 if (key && !/^(?:0x)?[0-9a-fA-F]{64}$/.test(key)) throw new Error("PRIVATE_KEY must be a valid 32-byte hex deployer key");
 

@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
     paths:
+      - 'config/**'
+      - 'tools/sync-config.mjs'
       - 'picomart-storefront-builder/**'
       - 'picomart-storefront-template/**'
       - 'tools/storefront-harness/**'
@@ -36,6 +38,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24.11.0'
+
+      - name: Check generated configuration
+        run: node tools/sync-config.mjs --check
 
       - name: Check credentials and load deployment target
         env:

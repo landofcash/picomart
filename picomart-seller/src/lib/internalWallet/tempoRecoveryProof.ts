@@ -1,3 +1,4 @@
+import {PICOMART_TEMPO_CONFIG} from '@picomart/config';
 import {clearItemKeys, decryptStorageItem, deriveItemKeys, encodeBase64, normalizeAndVerifyMasterSignature, prepareItem, validateStorageItem, ZkbytesClient, type StorageItem, type ZkbytesReference} from "@zkbytes/sdk";
 import type {WalletAdapter} from "@/context/wallet/types";
 import type {InternalWalletEncryptedSecret} from "./types";
@@ -9,7 +10,7 @@ export const TEMPO_PROOF_PROFILE = "picomart-wallet-recovery-proof-v1";
 export const TEMPO_PROOF_TEXT = "Picomart Tempo wallet recovery proof v1";
 export interface TempoRecoveryProof {
   profile: typeof TEMPO_PROOF_PROFILE;
-  chainId: 42431;
+  chainId: number;
   address: string;
   receivingPublicKey: string;
   item: StorageItem;
@@ -23,7 +24,7 @@ function identityMessage(address: string) {
   return ["Picomart wallet recovery proof", `Profile: ${TEMPO_PROOF_PROFILE}`, "Chain ID: 42431", `Account: ${address.toLowerCase()}`, "Purpose: Restore this test receiving key. No transaction is requested."].join("\n");
 }
 async function current(wallet: WalletAdapter, address: string) {
-  if (wallet.chain !== "tempo" || await wallet.getNetwork?.() !== "moderato" || (await wallet.getAddress())?.toLowerCase() !== address.toLowerCase()) throw new Error("Select the same Tempo Moderato wallet used for this proof.");
+  if (wallet.chain !== "tempo" || await wallet.getNetwork?.() !== PICOMART_TEMPO_CONFIG.network || (await wallet.getAddress())?.toLowerCase() !== address.toLowerCase()) throw new Error("Select the same Tempo Moderato wallet used for this proof.");
 }
 async function protectedCurrent(wallet: WalletAdapter, address: string, before: number) {
   await current(wallet, address);
@@ -68,7 +69,7 @@ export async function prepareTempoProof(wallet: WalletAdapter, client: ZkbytesCl
     });
     try {
       await protectedCurrent(wallet, address, before);
-      return {profile: TEMPO_PROOF_PROFILE, chainId: 42431, address: address.toLowerCase(), receivingPublicKey, item: prepared.item, reference: client?.createReference(prepared.item) ?? null};
+      return {profile: TEMPO_PROOF_PROFILE, chainId: PICOMART_TEMPO_CONFIG.chainId, address: address.toLowerCase(), receivingPublicKey, item: prepared.item, reference: client?.createReference(prepared.item) ?? null};
     } finally { clearItemKeys(prepared.keys); }
   } finally { clearItemKeys(identity); }
 }
@@ -79,7 +80,7 @@ export async function exportTempoProof(proof: TempoRecoveryProof, passphrase: st
 export async function importTempoProof(file: unknown, passphrase: string): Promise<TempoRecoveryProof> {
   if (!file || typeof file !== "object" || !("format" in file) || file.format !== "picomart-tempo-proof-v1" || !("encrypted" in file)) throw new Error("Invalid Tempo recovery file.");
   const proof = await decryptPrivateData<TempoRecoveryProof>(file.encrypted as InternalWalletEncryptedSecret, passphrase);
-  if (!proof || proof.profile !== TEMPO_PROOF_PROFILE || proof.chainId !== 42431 || !/^0x[0-9a-f]{40}$/.test(proof.address)) throw new Error("Unsupported Tempo recovery proof.");
+  if (!proof || proof.profile !== TEMPO_PROOF_PROFILE || proof.chainId !== PICOMART_TEMPO_CONFIG.chainId || !/^0x[0-9a-f]{40}$/.test(proof.address)) throw new Error("Unsupported Tempo recovery proof.");
   const item = validateStorageItem(proof.item);
   if (!item.encryptedKeys.some(key => key.publicKey === proof.receivingPublicKey)) throw new Error("The recovery recipient is missing.");
   if (proof.reference) {

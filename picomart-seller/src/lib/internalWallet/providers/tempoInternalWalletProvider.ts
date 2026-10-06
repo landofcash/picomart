@@ -4,16 +4,18 @@ import {createTempoTransactionService, type TempoTransactionServiceOptions} from
 import {createPublicClient, formatUnits, hexToBytes, http, parseAbi, type Hex} from "viem";
 import {english, generateMnemonic, mnemonicToAccount, privateKeyToAccount} from "viem/accounts";
 import {validateMnemonic} from "@scure/bip39";
-import {assertTempoChainId, PICOMART_TEMPO_CONFIG} from "@picomart/order-protocol/tempo";
+import {assertTempoChainId, PICOMART_TEMPO_CONFIG} from '@picomart/config';
+
 import type {InternalWalletProvider} from "../provider";
 import type {InternalWalletRecord, InternalWalletSecretMaterial, InternalWalletStatus} from "../types";
 import {decryptSecretMaterial, encryptSecretMaterial, normalizePrivateKeyHex} from "../crypto";
 import {cacheUnlockedSecret, getActiveWalletId, getCachedUnlockedSecret, getWalletRecord, isWalletLocked, loadWalletRecords, lockWalletSession, removeWalletRecord, setActiveWalletId, upsertWalletRecord} from "../store";
 import {requestInternalWalletPassphrase} from "../unlockGate";
+import {ACCOUNT_CURRENCIES} from '../currencies';
 
 export const TEMPO_HD_PATH = "m/44'/60'/0'/0/0";
 const PROVIDER_ID = "tempo-internal";
-const NETWORK = "moderato";
+const NETWORK = PICOMART_TEMPO_CONFIG.network;
 // Invalidates work already waiting for decryption, an unlock dialog, or RPC.
 let revision = 0;
 const sessionIds=new Set<string>();
@@ -73,7 +75,7 @@ async function save(network: string, input: {passphrase: string; label?: string}
   if (existing) throw new Error("This Tempo address already exists. Unlock it or remove its local wallet before importing again.");
   const now = new Date().toISOString();
   const record: InternalWalletRecord = {
-    id: crypto.randomUUID(), providerId: PROVIDER_ID, chain: "tempo", label: input.label?.trim() || "Tempo wallet",
+    id: crypto.randomUUID(), providerId: PROVIDER_ID, chain: "tempo", label: input.label?.trim() || "My account",
     createdAt: now, updatedAt: now, lastUsedAt: null,
     baseIdentity: {evmAddress: account.address, publicKey: account.publicKey, alias: null},
     networkStates: {[NETWORK]: {accountId: null, lifecycleState: "local_only"}},
@@ -143,7 +145,7 @@ export const tempoInternalWalletProvider: InternalWalletProvider = {
     const before = revision;
     const record = await recordFor(id);
     assertTempoChainId(await client.getChainId());
-    const balances = await Promise.all(PICOMART_TEMPO_CONFIG.tokens.map(async token => {
+    const balances = await Promise.all(ACCOUNT_CURRENCIES.map(async token => {
       const raw = await client.readContract({address: token.tokenId, abi: tokenAbi, functionName: "balanceOf", args: [record.baseIdentity.evmAddress as Hex]});
       return {tokenId: token.tokenId, symbol: token.symbol, decimals: token.decimals, raw, formatted: formatUnits(raw, token.decimals), associated: true};
     }));

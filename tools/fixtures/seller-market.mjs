@@ -1,7 +1,7 @@
 // Browser-only mocked market shared by the local UI checks.
 export function sellerMarketMock(seed, product) {
   return `
-    import {compactCatalogLink} from '/node_modules/@picomart/order-protocol/dist/tempo.js';
+    import {compactCatalogLink} from '/src/lib/tempoLinks.ts';
     export const TEMPO_MARKET_ENABLED=true,marketContract={owner:async()=>'0x'+'22'.repeat(20)},marketTransactions={recover:async()=>null,sendContract:async(call,options)=>{await options.beforeSign?.();if(call.method==='createCatalog')window.catalogCallArgs=call.args;window.contractCalls=[...(window.contractCalls??[]),call.method];return{method:call.method,state:'confirmed',hash:'mock-'+call.method};}},marketInterface={encodeFunctionData:(method,args)=>JSON.stringify({method,args})},receivingContext=()=>({}),commerceService=()=>({receivingIdentity:async()=>({publicKey:btoa(String.fromCharCode(...new Uint8Array(32))),identityId:'0x'+'55'.repeat(32)})}),verifyMarketDeployment=async()=>{};
     export const statusNames=['None','Awaiting payment','Paid','Delivering','Completed','Refund requested','Refunded to payer','Paid to seller','Canceled'];
     export const catalogLink=(seed,productId)=>compactCatalogLink(seed,productId);

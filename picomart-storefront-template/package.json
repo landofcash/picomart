@@ -13,6 +13,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@picomart/config": "file:vendor/picomart-config",
     "@picomart/order-protocol": "file:vendor/picomart-order-protocol.tgz",
     "clsx": "^2.1.1",
     "lucide-react": "^0.524.0",

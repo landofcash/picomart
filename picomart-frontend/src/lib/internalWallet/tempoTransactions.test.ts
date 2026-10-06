@@ -1,9 +1,13 @@
 import {beforeEach,describe,expect,it,vi} from "vitest";
 import {FeeData,JsonRpcProvider,Network,Transaction,Wallet,keccak256,ZeroAddress} from "ethers";
-const state=vi.hoisted(()=>({db:new Map<string,unknown>(),balance:1_000_000n,allowance:0n,feePreference:"0x0000000000000000000000000000000000000000",chain:42431,code:"0x6000",nonce:7,revision:0,locked:false,receipts:new Map<string,{status:number;blockNumber:number;fee:bigint;from:string;to:string|null}>(),broadcast:"confirmed" as "confirmed"|"uncertain"|"reverted",orderVersion:1}));
+const state=vi.hoisted(()=>({db:new Map<string,unknown>(),balance:1_000_000n,allowance:0n,feePreference:"0x0000000000000000000000000000000000000000",chain:42431,code:"0x6000",nonce:7,revision:0,locked:false,receipts:new Map<string,{status:number;blockNumber:number;fee:bigint;from:string;to:string|null}>(),broadcast:"confirmed" as "confirmed"|"uncertain"|"reverted",orderVersion:1,orderToken:'0x20c0000000000000000000000000000000000000',extraCheckout:false}));
+vi.mock('@picomart/config',async(importOriginal)=>{
+ const actual=await importOriginal<typeof import('@picomart/config')>();
+ return {...actual,isPaymentCurrency:(token:unknown)=>actual.isPaymentCurrency(token)||(state.extraCheckout&&token==='0x20c0000000000000000000000000000000000001')};
+});
 vi.mock("idb-keyval",()=>({get:async(k:string)=>structuredClone(state.db.get(k)),set:async(k:string,v:unknown)=>{state.db.set(k,structuredClone(v));}}));
 vi.mock("@picomart/order-protocol/tempo-contract",async(importOriginal)=>{const actual=await importOriginal<typeof import("@picomart/order-protocol/tempo-contract")>();const {keccak256:hash}=await import("ethers");return {...actual,PICOMART_TEMPO_BUILD:{...actual.PICOMART_TEMPO_BUILD,runtimeBytecodeHash:hash("0x6000")}};});
-vi.mock("ethers",async(importOriginal)=>{const actual=await importOriginal<typeof import("ethers")>();return {...actual,Contract:class {async userTokens(){return state.feePreference;}async balanceOf(){return state.balance;}async allowance(){return state.allowance;}async getOrder(){return {version:state.orderVersion,priceAmount:10000n,priceToken:"0x20c0000000000000000000000000000000000000"};}}};});
+vi.mock("ethers",async(importOriginal)=>{const actual=await importOriginal<typeof import("ethers")>();return {...actual,Contract:class {async userTokens(){return state.feePreference;}async balanceOf(){return state.balance;}async allowance(){return state.allowance;}async getOrder(){return {version:state.orderVersion,priceAmount:10000n,priceToken:state.orderToken};}}};});
 import {createTempoTransactionService,tempoTokenInterface,type TempoTransactionWallet, type TempoTransactionOptions, type TempoWalletSession} from "./tempoTransactions";
 const privateKey="11".repeat(32),signer=new Wallet(`0x${privateKey}`),account=signer.address;
 const deployment={address:"0x3c91183f0454eab6eff6f570ac402be278dbd6f4",block:37694566};
@@ -18,7 +22,7 @@ const service=()=>createTempoTransactionService({wallet:gateway,rpc,deployment:(
 const opts=(id="test-operation"):TempoTransactionOptions=>({operationId:id,expectedAccount:account,signal:new AbortController().signal});
 let s=service();
 beforeEach(()=>{
- vi.restoreAllMocks();state.db.clear();state.receipts.clear();state.balance=1_000_000n;state.allowance=0n;state.feePreference=ZeroAddress;state.chain=42431;state.code="0x6000";state.nonce=7;state.revision=0;state.locked=false;state.broadcast="confirmed";state.orderVersion=1;selected=deployment;s=service();
+ vi.restoreAllMocks();state.db.clear();state.receipts.clear();state.balance=1_000_000n;state.allowance=0n;state.feePreference=ZeroAddress;state.chain=42431;state.code="0x6000";state.nonce=7;state.revision=0;state.locked=false;state.broadcast="confirmed";state.orderVersion=1;state.orderToken='0x20c0000000000000000000000000000000000000';state.extraCheckout=false;selected=deployment;s=service();
  const queues=new Map<string,Promise<unknown>>();vi.stubGlobal("navigator",{locks:{request:<T>(name:string,work:()=>Promise<T>)=>{const next=(queues.get(name)??Promise.resolve()).catch(()=>{}).then(work);queues.set(name,next);return next;}}});
  vi.spyOn(rpc,"getNetwork").mockImplementation(async()=>Network.from(state.chain));vi.spyOn(rpc,"getCode").mockImplementation(async()=>state.code);
  vi.spyOn(rpc,"estimateGas").mockResolvedValue(100000n);vi.spyOn(rpc,"getFeeData").mockResolvedValue(new FeeData(null,1_000_000_000n,0n));
@@ -67,7 +71,7 @@ describe("reusable built-in Tempo transaction service",()=>{
   state.db.set(`picomart_tempo_contract_test_tx_42431_${account.toLowerCase()}`,{hash:"0x"+"12".repeat(32),account,nonce:1,method:"approve",state:"uncertain"});await expect(s.approve(10000n,opts())).rejects.toThrow("unresolved");expect(rpc.broadcastTransaction).not.toHaveBeenCalled();
  });
  it("fails closed for disabled deployment, wrong chain and mismatched runtime",async()=>{
-  selected=null;await expect(s.approve(10000n,opts())).rejects.toThrow("not enabled");selected=deployment;state.chain=1;await expect(s.approve(10000n,opts())).rejects.toThrow("Moderato");state.chain=42431;state.code="0x6001";await expect(s.approve(10000n,opts())).rejects.toThrow("runtime");expect(rpc.broadcastTransaction).not.toHaveBeenCalled();
+  selected=null;await expect(s.approve(10000n,opts())).rejects.toThrow("not enabled");selected=deployment;state.chain=1;await expect(s.approve(10000n,opts())).rejects.toThrow("configured chain");state.chain=42431;state.code="0x6001";await expect(s.approve(10000n,opts())).rejects.toThrow("runtime");expect(rpc.broadcastTransaction).not.toHaveBeenCalled();
  });
  it("guards the reviewed account and wallet changes during RPC",async()=>{
   await expect(s.approve(10000n,{...opts(),expectedAccount:deployment.address})).rejects.toThrow("reviewed account");
@@ -113,11 +117,28 @@ describe("reusable built-in Tempo transaction service",()=>{
 
  describe("message-bearing transaction validation",()=>{
   it("requires reference validation and uses the paid creation amount for fees and allowance",async()=>{
-    const input={orderId:"0x"+"01".repeat(16),catalogId:"0x"+"02".repeat(16),priceAmount:"10000",priceToken:"0x20c0000000000000000000000000000000000000",expectedSeller:"0x"+"33".repeat(20),expectedSellerPublicKey:"0x"+"44".repeat(32),expectedSellerIdentityId:"0x"+"55".repeat(32),buyerPublicKey:"0x"+"66".repeat(32),buyerIdentityId:"0x"+"77".repeat(32)};
+    const input={orderId:"0x"+"01".repeat(16),catalogId:"0x"+"02".repeat(16),priceAmount:"10000",priceToken:state.orderToken,expectedSeller:"0x"+"33".repeat(20),expectedSellerPublicKey:"0x"+"44".repeat(32),expectedSellerIdentityId:"0x"+"55".repeat(32),buyerPublicKey:"0x"+"66".repeat(32),buyerIdentityId:"0x"+"77".repeat(32)};
     const call={method:"createOrderPaid",args:[input,{sequence:1,buyerEnvelope:"0x01",sellerEnvelope:"0x02"}]};
     await expect(s.payOrder(call,opts())).rejects.toThrow("reference validation");state.allowance=10000n;const validation=vi.fn(async()=>{});const receipt=await s.payOrder(call,{...opts(),beforeSign:validation});expect(receipt.state).toBe("confirmed");expect(validation).toHaveBeenCalledOnce();
   });
   it("rejects arguments mutated during asynchronous preparation",async()=>{
     const call={method:"cancelOrder",args:["0x"+"01".repeat(16)]};await expect(s.sendContract(call,{...opts(),beforeSign:async()=>{call.args[0]="0x"+"02".repeat(16);}})).rejects.toThrow("arguments changed");expect(rpc.broadcastTransaction).not.toHaveBeenCalled();
   });
+});
+
+describe('configured checkout currencies',()=>{
+ it('approves the selected token contract and then pays the matching order',async()=>{
+  state.extraCheckout=true;state.orderToken='0x20c0000000000000000000000000000000000001';
+  const call={method:'buyOrder',args:['0x'+'01'.repeat(16)]};
+  expect((await s.paymentRequirements(call)).token).toBe(state.orderToken);
+  const approval=await s.approvePayment(call,opts('alternate'));
+  expect(approval.to).toBe(state.orderToken);
+  state.allowance=10000n;
+  expect((await s.payOrder(call,opts('alternate'))).state).toBe('confirmed');
+ });
+ it('rejects an order currency absent from checkout configuration',async()=>{
+  state.orderToken='0x20c0000000000000000000000000000000000001';
+  await expect(s.paymentRequirements({method:'buyOrder',args:['0x'+'01'.repeat(16)]})).rejects.toThrow('supported');
+  expect(rpc.broadcastTransaction).not.toHaveBeenCalled();
+ });
 });

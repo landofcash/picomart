@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from "react";
-import {createPortal} from "react-dom";
+import AccountDialog from "./AccountDialog";
 import {Eye, EyeOff, Copy} from "lucide-react";
 import {Button} from "@/components/ui/button";
 import type {InternalWalletBackupItem} from "@/lib/internalWallet/types.ts";
@@ -37,19 +37,18 @@ const InternalWalletBackupModal: React.FC<InternalWalletBackupModalProps> = ({
   };
 
   const modal = (
-    <div role="dialog" aria-modal="true" aria-label="Back up wallet" className="fixed inset-0 z-[110] flex items-center justify-center overflow-y-auto bg-black/50 p-4">
-      <div className="w-full max-w-2xl max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-xl border bg-background p-6 shadow-xl space-y-5">
+    <AccountDialog open={open} title={items?.some(item => item.kind === 'privateKey') ? 'Save recovery key' : 'Save recovery words'} onClose={onClose} busy={busy} className="max-w-2xl">
+      <div className="space-y-5">
         <div className="space-y-2">
-          <h2 className="text-xl font-semibold">Back up wallet</h2>
           <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-            Anyone with this recovery phrase can control your wallet. Reveal it only if you understand the risk.
+            Anyone with these recovery details can access your account and funds. Keep them private and never share them.
           </div>
         </div>
 
         {items ? (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Recovery phrase</span>
+              <span className="text-sm text-muted-foreground">Recovery words</span>
               <Button variant="outline" size="sm" onClick={() => setRevealed(value => !value)}>
                 {revealed ? <EyeOff className="mr-2 h-4 w-4"/> : <Eye className="mr-2 h-4 w-4"/>}
                 {revealed ? "Hide" : "Reveal"}
@@ -60,7 +59,7 @@ const InternalWalletBackupModal: React.FC<InternalWalletBackupModalProps> = ({
               items.map((item) => (
                 <div key={item.kind} className="space-y-2 rounded-lg border p-4">
                   <div className="flex items-center justify-between gap-3">
-                    <div className="text-sm font-medium">{item.label}</div>
+                    <div className="text-sm font-medium">{item.kind === 'mnemonic' ? 'Recovery words' : 'Private key (advanced)'}</div>
                     <Button variant="outline" size="sm" onClick={() => handleCopy(item.kind, item.value)}>
                       <Copy className="mr-2 h-4 w-4"/>
                       {copiedKey === item.kind ? "Copied" : "Copy"}
@@ -73,17 +72,17 @@ const InternalWalletBackupModal: React.FC<InternalWalletBackupModalProps> = ({
               ))
             ) : (
               <div className="rounded-lg border px-3 py-2 text-sm text-muted-foreground">
-                This wallet does not have a mnemonic recovery phrase available.
+                This account was restored using a private key and has no recovery words. Keep your original private key safe.
               </div>
             )}
           </div>
         ) : (
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              Reveal the mnemonic recovery phrase after completing the unlock step.
+              Save these words somewhere private. They let you restore access on another device. Picomart cannot recover them for you.
             </p>
             <Button onClick={onReveal} disabled={busy}>
-              {busy ? "Revealing..." : "Reveal recovery phrase"}
+              {busy ? "Opening..." : "Show recovery words"}
             </Button>
           </div>
         )}
@@ -100,10 +99,10 @@ const InternalWalletBackupModal: React.FC<InternalWalletBackupModalProps> = ({
           </Button>
         </div>
       </div>
-    </div>
+    </AccountDialog>
   );
 
-  return typeof document !== "undefined" ? createPortal(modal, document.body) : modal;
+  return modal;
 };
 
 export default InternalWalletBackupModal;

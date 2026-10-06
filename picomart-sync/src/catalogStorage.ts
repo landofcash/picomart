@@ -1,12 +1,14 @@
+import {isPaymentCurrency} from '@picomart/config';
+import {PICOMART_TEMPO_CONFIG} from '@picomart/config';
 import {createHash} from 'crypto';
 import {verifyMessage} from 'ethers';
 import {tempoAddress} from './tempoIdentity';
 
-export const CATALOG_CDN = 'https://cdn.picomart.zkbytes.com';
+export const CATALOG_CDN = PICOMART_TEMPO_CONFIG.services.catalogOrigin;
 export const IMAGE_LIMIT = 10 * 1024 * 1024;
 export const CATALOG_LIMIT = 1_000_000;
-export const PATH_USD = '0x20c0000000000000000000000000000000000000';
-const deployment = '0x3c91183f0454eab6eff6f570ac402be278dbd6f4';
+export const PATH_USD = PICOMART_TEMPO_CONFIG.defaultPaymentToken.tokenId;
+const deployment = PICOMART_TEMPO_CONFIG.deployment.address;
 const storageHosts = new Set(['storage.bunnycdn.com', ...['uk','ny','la','sg','se','br','jh','syd'].map(r=>`${r}.storage.bunnycdn.com`)]);
 export class CatalogInputError extends Error {}
 export function storageConfig(env: NodeJS.ProcessEnv = process.env) {
@@ -22,7 +24,7 @@ export function storageConfig(env: NodeJS.ProcessEnv = process.env) {
 }
 export const sha256 = (bytes: Uint8Array|string) => createHash('sha256').update(bytes).digest('hex');
 export function uploadMessage(account:string,kind:'image'|'json',hash:string,expiresAt:number) {
-  return `Picomart public catalog upload\nVersion: 1\nChain ID: 42431\nContract: ${deployment}\nCDN: ${CATALOG_CDN}\nAccount: ${account}\nKind: ${kind}\nSHA256: ${hash}\nExpires at: ${expiresAt}`;
+  return `Picomart public catalog upload\nVersion: 1\nChain ID: ${PICOMART_TEMPO_CONFIG.chainId}\nContract: ${deployment}\nCDN: ${CATALOG_CDN}\nAccount: ${account}\nKind: ${kind}\nSHA256: ${hash}\nExpires at: ${expiresAt}`;
 }
 export function authorizeUpload(auth: Record<string,unknown>,kind:'image'|'json',hash:string,now=Date.now()) {
   try {
@@ -49,8 +51,8 @@ export function catalogBytes(content:unknown,account:string):Buffer {
     if(!p||typeof p!=='object'||Object.keys(p).sort().join(',')!=='Description,Image,Name,Price,PriceToken,ProductId'||
       typeof p.ProductId!=='string'||!p.ProductId||p.ProductId.length>100||ids.has(p.ProductId)||
       typeof p.Name!=='string'||!p.Name.trim()||p.Name.length>60||typeof p.Description!=='string'||p.Description.length>320||
-      typeof p.Price!=='string'||!/^[1-9][0-9]{0,77}$/.test(p.Price)||BigInt(p.Price)>2n**256n-1n||p.PriceToken!==PATH_USD||typeof p.Image!=='string')
-      throw new CatalogInputError('Invalid PathUSD product terms.');
+      typeof p.Price!=='string'||!/^[1-9][0-9]{0,77}$/.test(p.Price)||BigInt(p.Price)>2n**256n-1n||!isPaymentCurrency(p.PriceToken)||typeof p.Image!=='string')
+      throw new CatalogInputError('Invalid payment currency or product terms.');
     ids.add(p.ProductId);
     const imagePattern=new RegExp(`^${CATALOG_CDN.replaceAll('.','\\.')}/moderato/v1/${account}/images/[0-9a-f]{64}\\.(png|jpg|gif|webp)$`);
     if(!imagePattern.test(p.Image))throw new CatalogInputError('Product images must use this wallet’s published Picomart images.');

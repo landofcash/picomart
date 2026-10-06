@@ -1,25 +1,35 @@
-import React from 'react'
-import Header from './Header'
-import {Toaster} from './ui/sonner'
-import {useWallet} from '@/context/WalletContext'
-import {Loader2} from 'lucide-react'
-import {useLocation} from 'react-router-dom'
+import React from "react";
+import Header from "./Header";
+import { Toaster } from "./ui/sonner";
+import { useWallet } from "@/context/WalletContext";
+import { Loader2 } from "lucide-react";
+import { useLocation } from "react-router-dom";
 
 interface LayoutProps {
-  children: React.ReactNode
+  children: React.ReactNode;
 }
 
-const Layout: React.FC<LayoutProps> = ({children}) => {
-  const {walletActionPending, walletActionLabel} = useWallet()
-  const workspace = /^\/storefronts\/[^/]+\/?$/.test(useLocation().pathname)
+const Layout: React.FC<LayoutProps> = ({ children }) => {
+  const { walletActionPending, walletActionLabel, walletKind } = useWallet();
+  const workspace = /^\/storefronts\/[^/]+\/?$/.test(useLocation().pathname);
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      {!workspace && <Header/>}
-      <main className="flex-1">
+    <div className="seller-app-shell min-h-screen bg-background flex flex-col">
+      <a
+        href="#seller-main-content"
+        className="sr-only z-[60] rounded-lg bg-primary px-4 py-3 text-primary-foreground focus:not-sr-only focus:fixed focus:left-4 focus:top-4 print:hidden"
+      >
+        Skip to content
+      </a>
+      {!workspace && <Header />}
+      <main
+        id="seller-main-content"
+        tabIndex={-1}
+        className="flex-1 outline-none"
+      >
         {children}
       </main>
-      <Toaster richColors position="top-center" className="print:hidden"/>
+      <Toaster richColors position="top-center" className="print:hidden" />
 
       {walletActionPending && (
         <div
@@ -29,19 +39,21 @@ const Layout: React.FC<LayoutProps> = ({children}) => {
         >
           <div className="mx-4 w-full max-w-sm rounded-lg border bg-background p-6 shadow-lg">
             <div className="flex items-center gap-3">
-              <Loader2 className="h-5 w-5 animate-spin"/>
+              <Loader2 className="h-5 w-5 animate-spin" />
               <div className="text-sm font-medium">
-                {walletActionLabel ?? 'Waiting for wallet approval…'}
+                {walletActionLabel ?? "Processing your request…"}
               </div>
             </div>
             <div className="mt-2 text-xs text-muted-foreground">
-              Confirm or reject the request in your wallet app.
+              {walletKind === "internal"
+                ? "Keep this page open while your request is processed."
+                : "Confirm or cancel the request in your connected app."}
             </div>
           </div>
         </div>
       )}
     </div>
-  )
-}
+  );
+};
 
-export default Layout
+export default Layout;

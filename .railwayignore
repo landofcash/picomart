@@ -1,0 +1,15 @@
+**/node_modules/
+**/dist/
+**/.env
+**/.env.*
+**/.git/
+**/.state/
+**/coverage/
+**/test-results/
+**/playwright-report/
+**/artifacts/
+**/cache/
+.tmp-*/
+.playwright-cli/
+output/
+docs/local/

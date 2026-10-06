@@ -15,6 +15,7 @@
     "node": ">=22.0.0"
   },
   "dependencies": {
+    "@picomart/config": "file:vendor/picomart-config",
     "@picomart/order-protocol": "file:vendor/picomart-order-protocol.tgz",
     "cors": "^2.8.5",
     "ethers": "6.17.0",

@@ -16,6 +16,7 @@ RUN npm ci --omit=dev
 FROM node:24.11.0-bookworm-slim
 WORKDIR /app
 ENV NODE_ENV=production PORT=3402
+COPY --chown=node:node vendor ./vendor
 COPY --from=dependencies --chown=node:node /app/node_modules ./node_modules
 COPY --from=build --chown=node:node /app/dist ./dist
 COPY --chown=node:node package.json ./

@@ -1,10 +1,11 @@
+import {PICOMART_TEMPO_CONFIG} from '@picomart/config';
 import os from "node:os";
 import path from "node:path";
 import { z } from "zod";
 
 const schema = z.object({
   PICOMART_X402_ORIGIN: z.string().url().default("https://x402.picomart.zkbytes.com"),
-  PICOMART_SYNC_ORIGIN: z.string().url().default("https://sync.picomart.zkbytes.com"),
+  PICOMART_SYNC_ORIGIN: z.string().url().default(PICOMART_TEMPO_CONFIG.services.syncOrigin),
   PICOMART_FRONTEND_ORIGIN: z.string().url().default("https://app.picomart.zkbytes.com"),
   PICOMART_MCP_DATA_DIR: z.string().optional(),
   PICOMART_QUOTE_PUBLIC_KEYS: z.string().default('{}'),

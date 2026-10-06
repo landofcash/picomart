@@ -1,7 +1,8 @@
 import {get, set} from "idb-keyval";
 import {z} from "zod";
 import {clearItemKeys, decodeBase64, decryptPayload, decryptStorageItem, deriveItemKeys, encodeBase32, encodeBase64, encryptPayload, normalizeAndVerifyMasterSignature, parseStrictJson, prepareItem, randomBytes, signEd25519, unwrapAesKey, validateStorageItem, validateX25519PublicKey, verifyEd25519Base64, wrapAesKey, WRAPPING_ALGORITHM, type ItemKeyPair, type StorageItem, type ZkbytesClient} from "@zkbytes/sdk";
-import {PICOMART_TEMPO_CONFIG} from "@picomart/order-protocol/tempo";
+import {PICOMART_TEMPO_CONFIG} from '@picomart/config';
+
 import {assertTempoIdentitySnapshot, assertTempoMessageBinding, canonicalJson, createTempoMessageBinding, createTempoReceivingIdentity, parseTempoMessage, parseTempoPrivateReference, parseTempoSealedReference, serializeTempoMessage, serializeTempoPrivateReference, serializeTempoSealedReference, TEMPO_SDK_KEY_PROFILE, TempoHashSchema, TempoMessageBindingSchema, TempoOrderContextSchema, TempoReceivingContextSchema, TempoReceivingIdentitySchema, TempoStorageItemSchema, TempoStorageSeedSchema, TempoTimestampSchema, tempoReceivingSigningMessage, tempoReferenceCommitment, tempoStorageObjectDigest, validateTempoObjectMetadata, type TempoExpectedMessage, type TempoMessagePayload, type TempoOrderContext, type TempoPrivateReference, type TempoReceivingContext, type TempoReceivingIdentity, type TempoSupportedOrigins} from "@picomart/order-protocol/tempo-protocol";
 import {APP_KEY_PREFIX} from "@/config";
 import type {WalletAdapter} from "@/context/wallet/types";
@@ -49,14 +50,14 @@ const unsignedJournal = (journal:Journal) => ({...journalHeader(journal),encrypt
 /** Application boundary for built-in wallets. It submits storage requests only, never transactions. */
 export function createTempoCommerceService(options:TempoCommerceOptions) {
   const {client, origins} = options;
-  const deployment = options.deployment ?? (() => PICOMART_TEMPO_CONFIG.deployment);
+  const deployment = options.deployment ?? (() => PICOMART_TEMPO_CONFIG.deployment.address);
   function trustedClient() {
     if (client.apiOrigin !== origins.apiOrigin || client.downloadOrigin !== origins.downloadOrigin) throw new Error("Storage client differs from the locally trusted origins.");
   }
   async function guard(wallet:WalletAdapter, context:TempoReceivingContext, revision:number, page:number, requireUnlocked=true) {
     assertTempoWalletRevision(revision);
     if (page !== pageRevision || deployment()?.toLowerCase() !== context.contractAddress) throw new Error("Page or deployment changed; restart this action.");
-    if (wallet.chain !== "tempo" || wallet.id !== "tempo-internal" || await wallet.getNetwork?.() !== "moderato" || (await wallet.getAddress())?.toLowerCase() !== context.account) throw new Error("Select the matching built-in Tempo Moderato wallet.");
+    if (wallet.chain !== "tempo" || wallet.id !== "tempo-internal" || await wallet.getNetwork?.() !== PICOMART_TEMPO_CONFIG.network || (await wallet.getAddress())?.toLowerCase() !== context.account) throw new Error("Select the matching built-in Tempo Moderato wallet.");
     const active = await provider.getActiveWallet("moderato");
     if (!active || (requireUnlocked && active.locked) || active.identity.evmAddress.toLowerCase() !== context.account) throw new Error("Unlock the matching Tempo wallet first.");
     assertTempoWalletRevision(revision);

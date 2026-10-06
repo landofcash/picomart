@@ -3,7 +3,7 @@ import {
   AgentEncryptedDeliverySchema as PicomartEncryptedDeliveryV1Schema,
   AgentQuoteSchema as PicomartOrderQuoteV1Schema,
   AgentPaymentRequiredSchema as PaymentRequiredSchema,
-} from "@picomart/order-protocol/tempo-agent";
+} from "./agentProtocol.js";
 import { createClient, type RedisClientType } from "redis";
 
 export const QuoteRecordSchema = z.object({

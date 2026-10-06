@@ -1,12 +1,13 @@
 export {TEMPO_NETWORK_PROFILES} from './lib/tempoNetworks';
-import {PICOMART_TEMPO_CONFIG} from "@picomart/order-protocol/tempo";
+import {PICOMART_CONFIG, getTempoConfig} from '@picomart/config';
+
 import type {NetworkId} from "@/context/wallet/types.ts";
 import isMobile from 'ismobilejs';
 import type {TrustedPicomartProfileV1} from '@picomart/order-protocol';
 
 declare const __APP_VERSION__: string;
 export const APP_VERSION = __APP_VERSION__
-export const APP_NAME='Picomart'
+export const APP_NAME=PICOMART_CONFIG.app.name
 export const BASE_URL='https://picomart.zkbytes.com'
 export const CREDIT_CARD_PAYMENTS_ENABLED = false
 
@@ -44,14 +45,16 @@ export interface NetworkConfig {
   trustedPicomartProfile?: TrustedPicomartProfileV1;
 }
 
-const configs: Record<NetworkId, NetworkConfig> = {
-  moderato: { name:'moderato', contractAddress:'0x3c91183f0454eab6eff6f570ac402be278dbd6f4',
-    apiUrl:(import.meta.env.VITE_PICOMART_SYNC_ORIGIN || (import.meta.env.DEV ? 'http://localhost:3000' : 'https://sync.picomart.zkbytes.com'))+'/api/v1/moderato',
-    fileApiUrl:(import.meta.env.VITE_PICOMART_SYNC_ORIGIN || (import.meta.env.DEV ? 'http://localhost:3000' : 'https://sync.picomart.zkbytes.com'))+'/api/cdn',
-    cdnBasePath:'https://cdn.picomart.zkbytes.com',hedera:{rpcUrl:'',mirrorNodeUrl:'',faucetUrl:''},
-    explorerBaseUrl:PICOMART_TEMPO_CONFIG.explorerUrl,approvedShopWallets:[],supportedTokens:[...PICOMART_TEMPO_CONFIG.paymentTokens],
-  },
-};
+const configs: Record<NetworkId, NetworkConfig> = Object.fromEntries(
+  Object.entries(PICOMART_CONFIG.networks).filter(([, entry]) => entry.enabled).map(([id]) => {
+    const network = getTempoConfig(id);
+    const syncOrigin = import.meta.env.VITE_PICOMART_SYNC_ORIGIN || (import.meta.env.DEV ? 'http://localhost:3000' : network.services.syncOrigin);
+    return [id, {name:id, contractAddress:network.deployment.address,
+      apiUrl:syncOrigin+network.services.syncPath, fileApiUrl:syncOrigin+'/api/cdn',
+      cdnBasePath:network.services.catalogOrigin, hedera:{rpcUrl:'',mirrorNodeUrl:'',faucetUrl:''},
+      explorerBaseUrl:network.explorerUrl, approvedShopWallets:[], supportedTokens:[...network.paymentTokens]}];
+  })
+);
 
 export const getConfig = (network: NetworkId): NetworkConfig => {
   if (!Object.prototype.hasOwnProperty.call(configs, network)) {
@@ -63,7 +66,7 @@ export const getConfig = (network: NetworkId): NetworkConfig => {
 // Returns all available network IDs from the configuration
 export const getAvailableNetworkIds = (): NetworkId[] => Object.keys(configs);
 
-export const getCurrentConfig = (): NetworkConfig => getConfig('moderato');
+export const getCurrentConfig = (): NetworkConfig => getConfig(PICOMART_CONFIG.defaultNetwork);
 
 
 // Hedera Explorer helpers

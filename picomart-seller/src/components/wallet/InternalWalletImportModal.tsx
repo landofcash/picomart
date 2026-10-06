@@ -1,5 +1,5 @@
 import React, {useEffect, useMemo, useState} from "react";
-import {createPortal} from "react-dom";
+import AccountDialog from "./AccountDialog";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
 
@@ -25,21 +25,21 @@ const InternalWalletImportModal: React.FC<InternalWalletImportModalProps> = ({
   const [mode, setMode] = useState<ImportMode>("mnemonic");
   const [label, setLabel] = useState("");
   const [material, setMaterial] = useState("");
-  const [passphrase, setPassphrase] = useState("");
-  const [confirmPassphrase, setConfirmPassphrase] = useState("");
+  const [passphrase, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   useEffect(() => {
     if (!open) {
       setMode("mnemonic");
       setLabel("");
       setMaterial("");
-      setPassphrase("");
-      setConfirmPassphrase("");
+      setPassword("");
+      setConfirmPassword("");
     }
   }, [open]);
 
   const canSubmit = useMemo(() => {
-    if (passphrase.length === 0 || passphrase !== confirmPassphrase) {
+    if (passphrase.length < 8 || passphrase !== confirmPassword) {
       return false;
     }
 
@@ -48,58 +48,60 @@ const InternalWalletImportModal: React.FC<InternalWalletImportModalProps> = ({
     }
 
     return material.trim().length >= 64;
-  }, [confirmPassphrase, material, mode, passphrase]);
+  }, [confirmPassword, material, mode, passphrase]);
 
   if (!open) {
     return null;
   }
 
   const modal = (
-    <div role="dialog" aria-modal="true" aria-label="Import built-in wallet" className="fixed inset-0 z-[110] flex items-center justify-center overflow-y-auto bg-black/50 p-4">
-      <div className="w-full max-w-2xl max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-xl border bg-background p-6 shadow-xl space-y-5">
+    <AccountDialog open={open} title="Restore account" onClose={onClose} busy={busy} className="max-w-2xl">
+      <form className="space-y-5" onSubmit={event => {event.preventDefault(); if (!busy && canSubmit) void onImport({label: label.trim() || undefined, passphrase, mnemonic: mode === "mnemonic" ? normalizeMnemonic(material) : undefined, privateKey: mode === "privateKey" ? material.trim() : undefined});}}>
         <div className="space-y-2">
-          <h2 className="text-xl font-semibold">Import built-in wallet</h2>
           <p className="text-sm text-muted-foreground">
-            Import a Tempo wallet from a recovery phrase or raw ECDSA private key. The imported key is encrypted locally before storage.
+            Restore your account using your recovery words, then choose a password for this browser.
           </p>
         </div>
 
         <div className="flex gap-2">
-          <Button
-            type="button"
-            variant={mode === "mnemonic" ? "default" : "outline"}
-            onClick={() => setMode("mnemonic")}
-            disabled={busy}
-          >
-            Recovery phrase
-          </Button>
-          <Button
+          <details className="text-sm">
+          <summary className="cursor-pointer text-muted-foreground">Advanced restore options</summary>
+          <Button className="mt-2"
             type="button"
             variant={mode === "privateKey" ? "default" : "outline"}
             onClick={() => setMode("privateKey")}
             disabled={busy}
           >
-            Private key
+            Use a private key
           </Button>
+          </details>
+          {mode === 'privateKey' && <Button
+            type="button"
+            variant="outline"
+            onClick={() => setMode("mnemonic")}
+            disabled={busy}
+          >
+            Use recovery words
+          </Button>}
         </div>
 
         <div className="space-y-4">
           <div className="space-y-2">
             <label className="text-sm font-medium" htmlFor="wallet-import-label">
-              Wallet label
+              Account name
             </label>
             <Input
               id="wallet-import-label"
               value={label}
               onChange={(event) => setLabel(event.target.value)}
-              placeholder="Optional label"
+              placeholder="e.g. My shop"
               disabled={busy}
             />
           </div>
 
           <div className="space-y-2">
             <label className="text-sm font-medium" htmlFor="wallet-import-material">
-              {mode === "mnemonic" ? "Recovery phrase" : "Private key"}
+              {mode === "mnemonic" ? "Recovery words" : "Private key"}
             </label>
             <textarea
               id="wallet-import-material"
@@ -116,28 +118,32 @@ const InternalWalletImportModal: React.FC<InternalWalletImportModalProps> = ({
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <label className="text-sm font-medium" htmlFor="wallet-import-passphrase">
-                Passphrase
+                Password
               </label>
               <Input
                 id="wallet-import-passphrase"
                 type="password"
+              autoComplete="new-password"
+              minLength={8}
                 value={passphrase}
-                onChange={(event) => setPassphrase(event.target.value)}
-                placeholder="Create a passphrase"
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder="At least 8 characters"
                 disabled={busy}
               />
             </div>
 
             <div className="space-y-2">
               <label className="text-sm font-medium" htmlFor="wallet-import-confirm">
-                Confirm passphrase
+                Confirm password
               </label>
               <Input
                 id="wallet-import-confirm"
                 type="password"
-                value={confirmPassphrase}
-                onChange={(event) => setConfirmPassphrase(event.target.value)}
-                placeholder="Repeat passphrase"
+              autoComplete="new-password"
+              minLength={8}
+                value={confirmPassword}
+                onChange={(event) => setConfirmPassword(event.target.value)}
+                placeholder="Repeat password"
                 disabled={busy}
               />
             </div>
@@ -155,26 +161,21 @@ const InternalWalletImportModal: React.FC<InternalWalletImportModalProps> = ({
         </div>
 
         <div className="flex items-center justify-end gap-2">
-          <Button variant="outline" onClick={onClose} disabled={busy}>
+          <Button type="button" variant="outline" onClick={onClose} disabled={busy}>
             Cancel
           </Button>
           <Button
-            onClick={() => onImport({
-              label: label.trim() || undefined,
-              passphrase,
-              mnemonic: mode === "mnemonic" ? normalizeMnemonic(material) : undefined,
-              privateKey: mode === "privateKey" ? material.trim() : undefined,
-            })}
+            type="submit"
             disabled={busy || !canSubmit}
           >
-            {busy ? "Importing..." : "Import wallet"}
+            {busy ? "Restoring..." : "Restore account"}
           </Button>
         </div>
-      </div>
-    </div>
+      </form>
+    </AccountDialog>
   );
 
-  return typeof document !== "undefined" ? createPortal(modal, document.body) : modal;
+  return modal;
 };
 
 export default InternalWalletImportModal;

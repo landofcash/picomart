@@ -1,5 +1,5 @@
 import {describe, expect, it} from "vitest";
-import {assertTempoChainId, PICOMART_TEMPO_CONFIG, TEMPO_TOKENS} from "./tempo.js";
+import {assertTempoChainId, PICOMART_TEMPO_CONFIG, TEMPO_TOKENS} from "../test-support/tempo.js";
 import {verifyTempoConfig} from "../scripts/verify-tempo-config.mjs";
 
 const encodeString = (value: string) => {

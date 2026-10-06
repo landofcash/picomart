@@ -2,7 +2,7 @@ import {describe,it,expect} from 'vitest';
 import fs from 'node:fs';
 import {Interface,hexlify,toUtf8Bytes} from 'ethers';
 import {PICOMART_TEMPO_ABI} from '@picomart/order-protocol/tempo-contract';
-import {AGENT_CONTRACT,AGENT_TOKEN,AgentQuoteSchema,AgentPaymentPayloadSchema} from '@picomart/order-protocol/tempo-agent';
+import {AGENT_CONTRACT,AGENT_TOKEN,AgentQuoteSchema,AgentPaymentPayloadSchema} from './agentProtocol.js';
 import {tempoSeedToId} from '@picomart/order-protocol/tempo-protocol';
 import {verifyTempoPayment,ProofPending} from './tempoProof.js';
 const f=JSON.parse(fs.readFileSync(new URL(import.meta.resolve('@picomart/order-protocol/fixtures/tempo/agent-order-v2.json')),'utf8'));

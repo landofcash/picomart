@@ -40,7 +40,7 @@ describe("Tempo receiving identities", () => {
   it("keeps wallet label/time out of deterministic contexts and rejects extra fields", () => {
     expect(TempoReceivingContextSchema.safeParse({...order.buyerIdentity.context, label: "new name"}).success).toBe(false);
     expect(TempoReceivingContextSchema.safeParse({...order.sellerIdentity.context, timestamp: 1}).success).toBe(false);
-    expect(TempoReceivingContextSchema.safeParse({...order.buyerIdentity.context, chainId: 1}).success).toBe(false);
+    expect(TempoReceivingContextSchema.safeParse({...order.buyerIdentity.context, chainId: 0}).success).toBe(false);
   });
   it("rejects noncanonical public seeds and cross-role seed substitution", () => {
     const buyer = order.buyerIdentity.context;

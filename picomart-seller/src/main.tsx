@@ -16,8 +16,11 @@ import {StorefrontSession} from './lib/storefront/session';
 import StorefrontsPage from './pages/StorefrontsPage';
 import StorefrontWorkspacePage from './pages/StorefrontWorkspacePage';
 import CatalogueEditPage from './pages/CatalogueEditPage';
+import ThemeProvider from './components/ThemeProvider';
+import {applyTheme, readTheme} from './lib/theme';
 
-createRoot(document.getElementById('root')!).render(<StrictMode><WalletProvider><BrowserRouter><SellerWalletPopupProvider><Layout><Routes>
+applyTheme(readTheme());
+createRoot(document.getElementById('root')!).render(<StrictMode><ThemeProvider><WalletProvider><BrowserRouter><SellerWalletPopupProvider><Layout><Routes>
   <Route path="/" element={<App/>}/>
   <Route path="/add-product-catalogue" element={<TempoCatalogsPage/>}/>
   <Route path="/print-qr-codes" element={<PrintQRCodesPage/>}/>
@@ -30,4 +33,4 @@ createRoot(document.getElementById('root')!).render(<StrictMode><WalletProvider>
   <Route path="/storefronts" element={<StorefrontSession><StorefrontsPage/></StorefrontSession>}/>
   <Route path="/storefronts/:shopId" element={<StorefrontSession><StorefrontWorkspacePage/></StorefrontSession>}/>
   <Route path="*" element={<Navigate to="/" replace/>}/>
-</Routes></Layout></SellerWalletPopupProvider></BrowserRouter></WalletProvider></StrictMode>);
+</Routes></Layout></SellerWalletPopupProvider></BrowserRouter></WalletProvider></ThemeProvider></StrictMode>);

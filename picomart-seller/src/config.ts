@@ -1,15 +1,17 @@
+export { ACCOUNT_CURRENCY_CONFIG, TEMPO_ACCOUNT_CURRENCIES, DEFAULT_PAYMENT_CURRENCY } from "./config/accountCurrencies";
 export {TEMPO_NETWORK_PROFILES} from './lib/tempoNetworks';
-import {PICOMART_TEMPO_CONFIG} from "@picomart/order-protocol/tempo";
+import {PICOMART_CONFIG, getTempoConfig} from '@picomart/config';
+
 import type {NetworkId} from "@/context/wallet/types.ts";
 import isMobile from 'ismobilejs';
 
 declare const __APP_VERSION__: string;
 export const APP_VERSION = __APP_VERSION__
-export const APP_NAME='Picomart'
+export const APP_NAME=PICOMART_CONFIG.app.name
 export const CRYPTO_NAME='Tempo'
 export const CRYPTO_NAME_BLOCKCHAIN='ledger'
-export const BASE_URL='https://seller.picomart.zkbytes.com'
-export const BASE_APP_URL='https://app.picomart.zkbytes.com'
+export const BASE_URL=PICOMART_CONFIG.app.sellerUrl
+export const BASE_APP_URL=PICOMART_CONFIG.app.buyerUrl
 
 // Sign prefix for encryption seed generation
 export const signPrefix = "picomart-legacy-eip191-v1-";
@@ -47,14 +49,16 @@ export interface NetworkConfig {
   maxGasAmount?: number; // in gas units
 }
 
-const configs: Record<NetworkId, NetworkConfig> = {
-  moderato: { name:'moderato', account:'0x3c91183f0454eab6eff6f570ac402be278dbd6f4',adminWalletAddress:'0xa7965ff717af7a9689930bf8b438080e1d7ffaca',
-    apiUrl:(import.meta.env.VITE_PICOMART_SYNC_ORIGIN || (import.meta.env.DEV ? 'http://localhost:3000' : 'https://sync.picomart.zkbytes.com'))+'/api/v1/moderato',
-    fileApiUrl:(import.meta.env.VITE_PICOMART_SYNC_ORIGIN || (import.meta.env.DEV ? 'http://localhost:3000' : 'https://sync.picomart.zkbytes.com'))+'/api/cdn',
-    cdnBasePath:'https://cdn.picomart.zkbytes.com',hedera:{rpcUrl:'',mirrorNodeUrl:'',faucetUrl:''},
-    explorerBaseUrl:PICOMART_TEMPO_CONFIG.explorerUrl,approvedShopWallets:[],supportedTokens:[...PICOMART_TEMPO_CONFIG.paymentTokens],
-  },
-};
+const configs: Record<NetworkId, NetworkConfig> = Object.fromEntries(
+  Object.entries(PICOMART_CONFIG.networks).filter(([, entry]) => entry.enabled).map(([id]) => {
+    const network = getTempoConfig(id);
+    const syncOrigin = import.meta.env.VITE_PICOMART_SYNC_ORIGIN || (import.meta.env.DEV ? 'http://localhost:3000' : network.services.syncOrigin);
+    return [id, {name:id, account:network.deployment.address, adminWalletAddress:network.adminAddress,
+      apiUrl:syncOrigin+network.services.syncPath, fileApiUrl:syncOrigin+'/api/cdn',
+      cdnBasePath:network.services.catalogOrigin, hedera:{rpcUrl:'',mirrorNodeUrl:'',faucetUrl:''},
+      explorerBaseUrl:network.explorerUrl, approvedShopWallets:[], supportedTokens:[...network.paymentTokens]}];
+  })
+);
 
 export function isAdminWalletAddress(walletAddress: string|null, network: NetworkId): boolean {
   if (!walletAddress) return false;
@@ -73,7 +77,7 @@ export const getConfig = (network: NetworkId): NetworkConfig => {
 
 export const getAvailableNetworkIds = (): NetworkId[] => Object.keys(configs);
 
-export const getCurrentConfig = (): NetworkConfig => getConfig('moderato');
+export const getCurrentConfig = (): NetworkConfig => getConfig(PICOMART_CONFIG.defaultNetwork);
 
 
 
