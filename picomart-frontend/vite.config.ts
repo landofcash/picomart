@@ -9,6 +9,9 @@ import {visualizer} from "rollup-plugin-visualizer";
 import pkg from './package.json' with { type: 'json' }
 
 export default defineConfig({
+  optimizeDeps: {
+    include: ['@picomart/config'],
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),
@@ -26,6 +29,9 @@ export default defineConfig({
   },
   build: {
     target: "es2020",
+    commonjsOptions: {
+      include: [/node_modules/, /vendor\/picomart-config/],
+    },
   },
   plugins: [
     react(),
