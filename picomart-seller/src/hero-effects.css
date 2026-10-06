@@ -128,6 +128,15 @@
   border-color: color-mix(in srgb, var(--border) 50%, var(--primary));
   border-bottom-color: transparent;
 }
+[data-theme="light"] .seller-home .picomart-hero .hero-rainbow-button {
+  --hero-button-fill: var(--theme-accent);
+  background: var(--hero-button-fill);
+  color: var(--theme-on-accent);
+  border-color: color-mix(in srgb, var(--theme-accent) 70%, white);
+}
+[data-theme="light"] .seller-home .picomart-hero .hero-rainbow-button:hover {
+  --hero-button-fill: color-mix(in srgb, var(--theme-accent) 90%, black);
+}
 [data-theme="terminal"] .picomart-hero .hero-rainbow-button {
   --hero-rainbow-2: #92ddb5;
   --hero-rainbow-3: #7bdac4;

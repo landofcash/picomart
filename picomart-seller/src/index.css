@@ -143,6 +143,16 @@
     display: flex;
     flex: 1;
   }
+  [data-theme="light"] .seller-home {
+    --background: #151923;
+    --card: #202430;
+    --foreground: #f7f7ff;
+    --muted-foreground: #e0e2eb;
+    --primary: color-mix(in srgb, var(--theme-accent) 45%, white);
+    --ring: var(--primary);
+    --hero-glass-surface-opacity: 65%;
+    --hero-glass-page-opacity: 70%;
+  }
   .seller-home-background {
     position: fixed;
     inset: 0;
@@ -171,8 +181,8 @@
       ),
       linear-gradient(
         110deg,
-        color-mix(in srgb, var(--card) 42%, transparent),
-        color-mix(in srgb, var(--background) 52%, transparent)
+        color-mix(in srgb, var(--card) var(--hero-glass-surface-opacity, 42%), transparent),
+        color-mix(in srgb, var(--background) var(--hero-glass-page-opacity, 52%), transparent)
       );
     backdrop-filter: blur(12px) saturate(140%);
     box-shadow: 0 0 20px color-mix(in srgb, var(--foreground) 12%, transparent);
