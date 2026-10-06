@@ -71,7 +71,6 @@ export default function ThemePicker() {
           className="h-11 w-11 px-0 text-primary sm:w-auto sm:px-3"
         >
           <Icon className="h-4 w-4" />
-          <span className="hidden sm:inline">Theme</span>
           <ChevronDown className="hidden h-3 w-3 sm:block" />
         </Button>
       </PopoverTrigger>

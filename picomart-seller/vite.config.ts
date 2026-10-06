@@ -7,6 +7,9 @@ import { nodePolyfills } from 'vite-plugin-node-polyfills'
 import pkg from './package.json' with { type: 'json' }
 
 export default defineConfig({
+  optimizeDeps: {
+    include: ['@picomart/config'],
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),
@@ -26,6 +29,9 @@ export default defineConfig({
     nodePolyfills()
   ],
   build: {
+    commonjsOptions: {
+      include: [/node_modules/, /vendor\/picomart-config/],
+    },
     chunkSizeWarningLimit: 10240,
   }
 })

@@ -132,6 +132,64 @@
 }
 
 @layer components {
+  #seller-main-content:has(> .seller-home) {
+    display: flex;
+    flex-direction: column;
+  }
+  .seller-home {
+    --hero-panel-width: clamp(860px, 72vw, 1040px);
+    position: relative;
+    isolation: isolate;
+    display: flex;
+    flex: 1;
+  }
+  .seller-home-background {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background-image: url('/slide-1.jpg');
+    background-position: center;
+    background-size: cover;
+    background-repeat: no-repeat;
+  }
+  .seller-home-background::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(100%, var(--hero-panel-width));
+    background:
+      linear-gradient(
+        125deg,
+        color-mix(in srgb, var(--card) 32%, transparent),
+        transparent 38%,
+        transparent 65%,
+        color-mix(in srgb, var(--card) 12%, transparent)
+      ),
+      linear-gradient(
+        110deg,
+        color-mix(in srgb, var(--card) 42%, transparent),
+        color-mix(in srgb, var(--background) 52%, transparent)
+      );
+    backdrop-filter: blur(12px) saturate(140%);
+    box-shadow: 0 0 20px color-mix(in srgb, var(--foreground) 12%, transparent);
+    mask-image: linear-gradient(
+      to right,
+      transparent 4%,
+      #00000026 5%,
+      #00000080 6%,
+      #000000d9 7%,
+      #000 8%,
+      #000 92%,
+      #000000d9 93%,
+      #00000080 94%,
+      #00000026 95%,
+      transparent 96%
+    );
+  }
   .seller-page {
     @apply mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-10;
   }
@@ -222,6 +280,9 @@
 }
 
 @media print {
+  .seller-home-background {
+    display: none;
+  }
   @page {
     size: auto;
     margin: 0;

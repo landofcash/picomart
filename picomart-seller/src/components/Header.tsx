@@ -1,7 +1,6 @@
 ﻿import { Link, useLocation } from "react-router-dom";
 import {
   Home,
-  PackageSearch,
   ShoppingCart,
   Store,
   Settings,
@@ -15,16 +14,6 @@ export default function Header() {
     { pathname } = useLocation();
   const links = [
     { to: "/", label: "Dashboard", Icon: Home, paths: ["/"] },
-    {
-      to: "/edit-product-catalogue",
-      label: "Create catalog",
-      Icon: PackageSearch,
-      paths: [
-        "/edit-product-catalogue",
-        "/add-product-catalogue",
-        "/print-qr-codes",
-      ],
-    },
     {
       to: "/my-orders",
       label: "My orders",
@@ -67,7 +56,7 @@ export default function Header() {
         {walletAddress && (
           <nav
             aria-label="Seller navigation"
-            className="order-3 col-span-2 mt-3 grid min-w-0 grid-cols-4 gap-1 border-t pt-3 lg:order-2 lg:col-span-1 lg:mt-0 lg:border-0 lg:pt-0"
+            className="order-3 col-span-2 mt-3 grid min-w-0 grid-cols-3 gap-1 border-t pt-3 lg:order-2 lg:col-span-1 lg:mt-0 lg:border-0 lg:pt-0"
           >
             {links.map(({ to, label, Icon, paths }) => {
               const selected = paths.includes(pathname);
