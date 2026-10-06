@@ -1,7 +1,8 @@
+import {isPaymentCurrency} from '@picomart/config';
 import {AGENT_RESOLVE_PATH,AgentProfileSchema,parseAgentHandoff,validateAgentResolution,decryptAgentDelivery,base64UrlToBytes,canonicalHash,
   type AgentQuote,type AgentHandoff,type AgentProfile,type PicomartDeliveryDetailsV1} from '../../agentProtocol.js';
 import {tempoSeedToId} from '@picomart/order-protocol/tempo-protocol';
-import {marketApi,fetchCatalogProducts,prepareCheckout,submitCheckout,PATH_USD,TEMPO_MARKET_ENABLED,type MarketCatalog,type CheckoutSelection} from '@/lib/tempoMarket';
+import {marketApi,fetchCatalogProducts,prepareCheckout,submitCheckout,TEMPO_MARKET_ENABLED,type MarketCatalog,type CheckoutSelection} from '@/lib/tempoMarket';
 import {tempoWalletRevision,assertTempoWalletRevision} from '@/lib/internalWallet/providers/tempoInternalWalletProvider';
 import type {WalletAdapter} from '@/context/wallet/types';
 import {assertQuoteExecutable} from './quoteExpiry';
@@ -24,10 +25,11 @@ export async function resolveTempoAgent(handoff:AgentHandoff,profile:AgentProfil
 export async function executeTempoAgentOrder(intent:TempoAgentIntent,wallet:WalletAdapter){
   const guard=()=>{assertCurrentAgentProfile(intent.trustedProfile);assertQuoteExecutable(intent.quote);};
   if(!TEMPO_MARKET_ENABLED)throw new Error('Tempo commerce is not enabled.');guard();
+  if(!isPaymentCurrency(intent.quote.payment.asset))throw new Error('Unsupported quoted payment currency.');
   const revision=tempoWalletRevision(),q=intent.quote,{catalog}=await marketApi<{catalog:MarketCatalog}>('/catalogs/'+q.catalog.seed);
   if(catalog.seller!==q.catalog.sellerEvmAddress||catalog.sellerPublicKey!==q.catalog.sellerPublicKey||catalog.sellerIdentityId!==q.catalog.sellerIdentityId||catalog.catalogUrl!==q.catalog.catalogUrl)throw new Error('The catalog changed; request a new quote.');
   const products=await fetchCatalogProducts(catalog.catalogUrl),selection:CheckoutSelection={catalog,products:q.items.map(i=>{
-    const product=products.find(p=>p.ProductId===i.productId);if(!product||product.Name!==i.name||product.Price!==i.unitAmount||product.PriceToken!==PATH_USD)throw new Error('Product terms changed; request a new quote.');return {...product,quantity:i.quantity};
+    const product=products.find(p=>p.ProductId===i.productId);if(!product||product.Name!==i.name||product.Price!==i.unitAmount||product.PriceToken!==q.payment.asset)throw new Error('Product terms changed; request a new quote.');return {...product,quantity:i.quantity};
   })};assertTempoWalletRevision(revision);guard();
   const draft=await prepareCheckout(wallet,selection,{...intent.delivery},tempoSeedToId(q.orderSeed),'createOrderPaid');
   assertTempoWalletRevision(revision);guard();

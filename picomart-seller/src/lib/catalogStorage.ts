@@ -1,4 +1,4 @@
-import {PICOMART_TEMPO_CONFIG} from '@picomart/config';
+import {PICOMART_TEMPO_CONFIG,isPaymentCurrency} from '@picomart/config';
 import {hexlify,parseUnits,verifyMessage} from 'ethers';
 import type {WalletAdapter} from '@/context/wallet/types';
 import {tempoWalletRevision,assertTempoWalletRevision} from './internalWallet/providers/tempoInternalWalletProvider';
@@ -7,7 +7,6 @@ export const CATALOG_CDN=PICOMART_TEMPO_CONFIG.services.catalogOrigin;
 export const IMAGE_LIMIT=10*1024*1024;
 export interface PublicProduct {ProductId:string;Name:string;Description:string;Price:string;PriceToken:string;Image:string;}
 export type DraftProduct=PublicProduct&{LocalFile?:File};
-const token=PICOMART_TEMPO_CONFIG.defaultPaymentToken.tokenId;
 export function pathUsdPrice(value:string) {
   if(!/^\d+(\.\d{1,6})?$/.test(value))throw new Error('Use a positive price with up to six decimal places.');
   const amount=parseUnits(value,6);
@@ -50,7 +49,7 @@ export async function uploadCatalog(wallet:WalletAdapter,api:string,products:rea
   const ids=new Set<string>();
   for(const p of products){
     if(!p.ProductId||p.ProductId.length>100||ids.has(p.ProductId)||!p.Name.trim()||p.Name.length>60||p.Description.length>320||
-      !/^[1-9][0-9]{0,77}$/.test(p.Price)||BigInt(p.Price)>2n**256n-1n||p.PriceToken!==token)throw new Error('Invalid PathUSD product terms.');
+      !/^[1-9][0-9]{0,77}$/.test(p.Price)||BigInt(p.Price)>2n**256n-1n||!isPaymentCurrency(p.PriceToken))throw new Error('Invalid product terms or unsupported payment currency.');
     ids.add(p.ProductId);if(p.LocalFile)validateImage(p.LocalFile);
     else if(!new RegExp(`^${CATALOG_CDN.replaceAll('.','\\.')}/moderato/v1/${account}/images/[0-9a-f]{64}\\.(png|jpg|gif|webp)$`).test(p.Image))throw new Error('Re-upload images with the selected seller wallet.');
   }
