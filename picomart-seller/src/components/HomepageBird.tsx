@@ -36,7 +36,7 @@ export default function HomepageBird() {
       bird = document.createElement("picomart-bird");
       bird.setAttribute("logo", "#site-logo");
       bird.setAttribute("target", "#start-selling");
-      bird.setAttribute("size", "70");
+      bird.setAttribute("size", "82");
       // Keep the mascot below the sticky header and account dialogs.
       bird.style.zIndex = "40";
       document.body.appendChild(bird);
