@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import express from 'express';
 import axios from 'axios';
 import {Wallet} from 'ethers';
+import {PICOMART_TEMPO_CONFIG} from '@picomart/config';
 import {createCatalogUploadRouter} from '../routes/api/upload-to-bunny';
 import {CATALOG_CDN,IMAGE_LIMIT,storageConfig,sha256,uploadMessage,authorizeUpload,imageType,catalogBytes,storagePath,PATH_USD} from '../catalogStorage';
 
@@ -44,9 +45,12 @@ test('signature binds the exact public upload scope, content, wallet and deadlin
   assert.throws(()=>authorizeUpload(proof,'image',hash,expiry));
   assert.throws(()=>authorizeUpload({...proof,expiresAt:now+300001},'image',hash,now));
 });
-test('catalog terms reject private/unknown fields, mixed tokens, duplicate IDs and foreign image paths',()=>{
-  assert.deepEqual(catalogBytes(JSON.stringify([product]),account),Buffer.from(JSON.stringify([product])));
-  for(const products of [[],[product,product],[{...product,LocalFile:'private'}],[{...product,Price:'1.2'}],[{...product,PriceToken:PATH_USD.slice(0,-1)+'1'}],[{...product,Image:'https://evil.test/image.png'}],[{...product,Image:product.Image.replace(account,'0x'+'22'.repeat(20))}]])assert.throws(()=>catalogBytes(JSON.stringify(products),account));
+test('catalog terms accept configured currencies and reject private/unknown fields, unsupported tokens, duplicate IDs and foreign image paths',()=>{
+  for(const token of PICOMART_TEMPO_CONFIG.paymentTokens) {
+    const content=JSON.stringify([{...product,PriceToken:token.tokenId}]);
+    assert.deepEqual(catalogBytes(content,account),Buffer.from(content));
+  }
+  for(const products of [[],[product,product],[{...product,LocalFile:'private'}],[{...product,Price:'1.2'}],[{...product,PriceToken:'0x'+'99'.repeat(20)}],[{...product,Image:'https://evil.test/image.png'}],[{...product,Image:product.Image.replace(account,'0x'+'22'.repeat(20))}]])assert.throws(()=>catalogBytes(JSON.stringify(products),account));
   assert.throws(()=>catalogBytes('x'.repeat(1000001),account));
 });
 test('image bytes determine the extension and SVG/empty/oversized files are rejected',()=>{

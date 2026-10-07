@@ -27,7 +27,7 @@ test('public configuration validates identity and rejects unsafe links and asset
   for (const change of [{schemaVersion: 1}, {network: 'mainnet'}, {chainId: 1}, {contractAddress: '0x' + '11'.repeat(20)}, {catalogSeed: 'AAAAAAAAAAAAAAAAAAAAAA'}]) {
     expect(() => StorefrontConfigSchema.parse({...config, ...change})).toThrow();
   }
-  expect(() => parseCatalog([{...pantry.products[0], PriceToken: '0x20c0000000000000000000000000000000000001'}])).toThrow();
+  expect(() => parseCatalog([{...pantry.products[0], PriceToken: '0x' + '99'.repeat(20)}])).toThrow();
   expect(() => StorefrontConfigSchema.parse({...config, catalogSeed: '../another-shop'})).toThrow();
   expect(() => StorefrontConfigSchema.parse({...config, links: [{label: 'Bad', url: 'javascript:alert(1)'}]})).toThrow();
   expect(() => StorefrontConfigSchema.parse({...config, branding: {...config.branding, logo: 'shop-assets/../secret.json'}})).toThrow();

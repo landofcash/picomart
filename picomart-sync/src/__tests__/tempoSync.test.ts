@@ -72,7 +72,9 @@ function fixture(logs = flow()) {
       blockHash: blockHash(start), logs },
     order: async () => control.mismatch ? {} : expected.orders.get(oid)?.deleted ? { version: 0, status: 0 } : expected.orders.get(oid)! as unknown as Record<string, unknown>,
     catalog: async () => expected.catalogs.get(cid) as unknown as Record<string, unknown> ?? { seller: ZeroAddress },
-    consumed: async () => true, escrow: async () => control.escrow, balance: async () => control.balance,
+    consumed: async () => true,
+    escrow: async currency => currency.toLowerCase() === token ? control.escrow : 0n,
+    balance: async currency => currency.toLowerCase() === token ? control.balance : 0n,
   };
   return { control, source, indexer: new TempoIndexer(source, 2, keccak256(code)), expected };
 }
