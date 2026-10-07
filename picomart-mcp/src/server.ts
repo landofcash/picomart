@@ -10,7 +10,7 @@ import { PicomartOrderFlow } from "./orderFlow.js";
 const config = loadConfig();
 const flow = new PicomartOrderFlow(config, new PendingIntentStore(config.dataDir));
 const server = new McpServer(
-  { name: "picomart", version: "1.0.2" },
+  { name: "picomart", version: "1.0.3" },
   {
     instructions: [
       "For every approval_required Picomart order, present approvalUrl as a clickable link and show the returned QR image when the client exposes it.",

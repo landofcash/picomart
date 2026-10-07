@@ -167,6 +167,7 @@ export default function PicomartHero({
         </div>
         <div className="mx-auto mt-3 grid max-w-sm">
           <Button
+            id="start-selling"
             size="lg"
             onClick={onStartSelling}
             variant="outline"

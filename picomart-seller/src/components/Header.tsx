@@ -32,6 +32,7 @@ export default function Header() {
       <div className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 px-3 py-3 sm:px-6 lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:gap-5">
         <div className="flex min-w-0 items-center gap-1.5 sm:gap-2.5">
           <Link
+            id="site-logo"
             to="/"
             aria-label="Picomart seller dashboard"
             className="shrink-0 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"

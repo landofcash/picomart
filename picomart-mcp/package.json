@@ -1,6 +1,6 @@
 {
   "name": "@picomart/mcp",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Local Codex MCP bridge for Picomart browser-approved testnet orders",
   "type": "module",
   "bin": {

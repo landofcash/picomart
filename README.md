@@ -99,6 +99,12 @@ The contract records public commerce state and message commitments. Plaintext de
 | [Quote service](picomart-x402-server/README.md) | Signed quotes and Tempo payment-evidence verification. |
 | [Storefront harness](tools/storefront-harness/README.md) | Isolated build and publication validation. |
 
+## Release versions
+
+Before committing and pushing a release, bump the version of each app or shared package whose behavior changed. Use a patch bump for fixes, a minor bump for compatible features, and a major bump for breaking changes. Keep `package.json` and the root version fields in `package-lock.json` synchronized; a version-only update should not change dependencies. Packages without changes can keep their current version.
+
+When changing the storefront template, also refresh the builder's source digest and packaged template, and deploy through the **Deploy storefront builder** workflow so the release receives a matching validated checkpoint. Confirm CI and the affected deployments succeed after pushing.
+
 ## Run locally
 
 Use **Node.js 24.11 or later**. Each project installs independently from its lockfile. Start these services in separate terminals.
