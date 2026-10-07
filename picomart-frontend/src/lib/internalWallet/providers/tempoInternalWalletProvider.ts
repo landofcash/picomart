@@ -1,5 +1,6 @@
 import {TEMPO_UI_DEPLOYMENT,TEMPO_UI_ENABLED} from "@/lib/tempoDeployment";
 import {Wallet} from "ethers";
+import {Account as TempoAccount} from "viem/tempo";
 import {createTempoTransactionService, type TempoTransactionServiceOptions} from "../tempoTransactions";
 import {createPublicClient, formatUnits, hexToBytes, http, parseAbi, type Hex} from "viem";
 import {english, generateMnemonic, mnemonicToAccount, privateKeyToAccount} from "viem/accounts";
@@ -233,5 +234,31 @@ export function createTempoWalletTransactions(options:Omit<TempoTransactionServi
       if(isWalletLocked(session.walletId)||session.walletId!==await getActiveWalletId("tempo",NETWORK))throw new Error("Wallet changed or locked during transaction signing.");
       return signed;
     },
+    async signTransfer(session, transaction) {
+        assertTempoWalletRevision(session.revision);
+        if (session.walletId !== (await getActiveWalletId("tempo", NETWORK)))
+          throw new Error("The selected account changed.");
+        const record = await recordFor(session.walletId),
+          secret = getCachedUnlockedSecret(session.walletId);
+        if (!secret || isWalletLocked(session.walletId))
+          throw new Error("Unlock the account before sending.");
+        const account = TempoAccount.fromSecp256k1(
+          `0x${normalizePrivateKeyHex(secret.privateKeyHex)}`,
+        );
+        if (
+          account.address.toLowerCase() !== session.address.toLowerCase() ||
+          account.address.toLowerCase() !==
+            record.baseIdentity.evmAddress.toLowerCase()
+        )
+          throw new Error("The signing account changed.");
+        const signed = await account.signTransaction(transaction);
+        assertTempoWalletRevision(session.revision);
+        if (
+          isWalletLocked(session.walletId) ||
+          session.walletId !== (await getActiveWalletId("tempo", NETWORK))
+        )
+          throw new Error("The account changed or locked while signing.");
+        return signed;
+      },
   }});
 }

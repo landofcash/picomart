@@ -3,16 +3,17 @@ import {Button} from './components/ui/button'
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from './components/ui/card'
 import {Link} from 'react-router-dom'
 import WalletAuth from './components/WalletAuth'
-import TempoNetworkIndicator from './components/TempoNetworkIndicator'
 import BrandLockup from './components/BrandLockup'
 import AppFooter from './components/AppFooter'
+import TempoNetworkIndicator from './components/TempoNetworkIndicator'
 
 function App() {
   return (
-    <div className="min-h-screen bg-background flex items-start justify-center px-4 py-8 sm:py-16">
-      <Card className="w-full max-w-md overflow-hidden pt-0">
-        <TempoNetworkIndicator/>
-        <CardHeader className="text-center">
+    <div className="min-h-screen bg-background flex items-start justify-center pb-2 sm:px-4 sm:pb-16">
+      <Card className="w-full max-w-md overflow-hidden rounded-none border-0 bg-background pt-0 shadow-none sm:rounded-2xl sm:border sm:shadow-sm">
+        <div>
+        <TempoNetworkIndicator className="hidden sm:block"/>
+        <CardHeader className="border-b border-slate-200/80 bg-gradient-to-b from-slate-50 to-white py-6 text-center">
           <CardTitle className="flex justify-center">
             <BrandLockup
               size="hero"
@@ -25,6 +26,7 @@ function App() {
             Scan. Shop. Pay in a flash.
           </CardDescription>
         </CardHeader>
+        </div>
         <CardContent className="space-y-4">
           <Link to="/scan" className="block w-full">
             <Button className="w-full" size="lg">

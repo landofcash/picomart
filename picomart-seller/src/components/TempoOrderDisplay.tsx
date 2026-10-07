@@ -176,11 +176,13 @@ export default function TempoOrderDisplay({
       action === "seller-delivery"
         ? { shipmentCode: tracking, customInfo: comment }
         : { customInfo: comment },
+      controller.current?.signal,
     );
     const decoded = await previewPreparedMessage(
       wallet.walletAdapter!,
       order.context,
       action,
+      controller.current?.signal,
     );
     assertTempoWalletRevision(revision);
     if (controller.current?.signal.aborted) return;
@@ -210,6 +212,7 @@ export default function TempoOrderDisplay({
             wallet.walletAdapter!,
             order,
             next as "seller-delivery" | "seller-refusal",
+            controller.current?.signal,
           );
           if (
             marketInterface.encodeFunctionData(

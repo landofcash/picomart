@@ -1,5 +1,6 @@
 import React from "react";
 import {tryGetTokenByType} from "@/lib/tokenUtils.ts";
+import {PICOMART_TEMPO_CONFIG} from "@picomart/config";
 
 interface TokenIconProps {
   assetId: number | string;
@@ -9,7 +10,9 @@ interface TokenIconProps {
 }
 
 const TokenIcon: React.FC<TokenIconProps> = ({assetId, size = 20, alt = '', className = ''}) => {
-  const token = tryGetTokenByType(String(assetId));
+  const token = tryGetTokenByType(String(assetId)) ?? PICOMART_TEMPO_CONFIG.tokens.find(
+    candidate => candidate.tokenId.toLowerCase() === String(assetId).trim().toLowerCase(),
+  );
   const imgSrc = token ? token.img ?? `/tokens/${token.id}-icon.png` : null;
   const [failedSrc, setFailedSrc] = React.useState<string | null>(null);
 

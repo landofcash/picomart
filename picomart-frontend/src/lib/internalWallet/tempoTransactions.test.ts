@@ -1,10 +1,6 @@
 import {beforeEach,describe,expect,it,vi} from "vitest";
 import {FeeData,JsonRpcProvider,Network,Transaction,Wallet,keccak256,ZeroAddress} from "ethers";
-const state=vi.hoisted(()=>({db:new Map<string,unknown>(),balance:1_000_000n,allowance:0n,feePreference:"0x0000000000000000000000000000000000000000",chain:42431,code:"0x6000",nonce:7,revision:0,locked:false,receipts:new Map<string,{status:number;blockNumber:number;fee:bigint;from:string;to:string|null}>(),broadcast:"confirmed" as "confirmed"|"uncertain"|"reverted",orderVersion:1,orderToken:'0x20c0000000000000000000000000000000000000',extraCheckout:false}));
-vi.mock('@picomart/config',async(importOriginal)=>{
- const actual=await importOriginal<typeof import('@picomart/config')>();
- return {...actual,isPaymentCurrency:(token:unknown)=>actual.isPaymentCurrency(token)||(state.extraCheckout&&token==='0x20c0000000000000000000000000000000000001')};
-});
+const state=vi.hoisted(()=>({db:new Map<string,unknown>(),balance:1_000_000n,allowance:0n,feePreference:"0x0000000000000000000000000000000000000000",chain:42431,code:"0x6000",nonce:7,revision:0,locked:false,receipts:new Map<string,{status:number;blockNumber:number;fee:bigint;from:string;to:string|null}>(),broadcast:"confirmed" as "confirmed"|"uncertain"|"reverted",orderVersion:1,orderToken:'0x20c0000000000000000000000000000000000000'}));
 vi.mock("idb-keyval",()=>({get:async(k:string)=>structuredClone(state.db.get(k)),set:async(k:string,v:unknown)=>{state.db.set(k,structuredClone(v));}}));
 vi.mock("@picomart/order-protocol/tempo-contract",async(importOriginal)=>{const actual=await importOriginal<typeof import("@picomart/order-protocol/tempo-contract")>();const {keccak256:hash}=await import("ethers");return {...actual,PICOMART_TEMPO_BUILD:{...actual.PICOMART_TEMPO_BUILD,runtimeBytecodeHash:hash("0x6000")}};});
 vi.mock("ethers",async(importOriginal)=>{const actual=await importOriginal<typeof import("ethers")>();return {...actual,Contract:class {async userTokens(){return state.feePreference;}async balanceOf(){return state.balance;}async allowance(){return state.allowance;}async getOrder(){return {version:state.orderVersion,priceAmount:10000n,priceToken:state.orderToken};}}};});
@@ -22,7 +18,7 @@ const service=()=>createTempoTransactionService({wallet:gateway,rpc,deployment:(
 const opts=(id="test-operation"):TempoTransactionOptions=>({operationId:id,expectedAccount:account,signal:new AbortController().signal});
 let s=service();
 beforeEach(()=>{
- vi.restoreAllMocks();state.db.clear();state.receipts.clear();state.balance=1_000_000n;state.allowance=0n;state.feePreference=ZeroAddress;state.chain=42431;state.code="0x6000";state.nonce=7;state.revision=0;state.locked=false;state.broadcast="confirmed";state.orderVersion=1;state.orderToken='0x20c0000000000000000000000000000000000000';state.extraCheckout=false;selected=deployment;s=service();
+ vi.restoreAllMocks();state.db.clear();state.receipts.clear();state.balance=1_000_000n;state.allowance=0n;state.feePreference=ZeroAddress;state.chain=42431;state.code="0x6000";state.nonce=7;state.revision=0;state.locked=false;state.broadcast="confirmed";state.orderVersion=1;state.orderToken='0x20c0000000000000000000000000000000000000';selected=deployment;s=service();
  const queues=new Map<string,Promise<unknown>>();vi.stubGlobal("navigator",{locks:{request:<T>(name:string,work:()=>Promise<T>)=>{const next=(queues.get(name)??Promise.resolve()).catch(()=>{}).then(work);queues.set(name,next);return next;}}});
  vi.spyOn(rpc,"getNetwork").mockImplementation(async()=>Network.from(state.chain));vi.spyOn(rpc,"getCode").mockImplementation(async()=>state.code);
  vi.spyOn(rpc,"estimateGas").mockResolvedValue(100000n);vi.spyOn(rpc,"getFeeData").mockResolvedValue(new FeeData(null,1_000_000_000n,0n));
@@ -40,6 +36,28 @@ beforeEach(()=>{
  });
 });
 describe("reusable built-in Tempo transaction service",()=>{
+ it("estimates authorization costs without signing, saving or broadcasting",async()=>{
+  const sign=vi.spyOn(gateway,'sign');
+  const quote=await s.estimateNextPayment({method:'buyOrder',args:['0x'+'01'.repeat(16)]});
+  expect(quote).toMatchObject({approvalRequired:true,amount:'10000',balance:'1000000',maximumFee:'120',requiredBalance:'10120'});
+  expect(rpc.estimateGas).toHaveBeenCalledWith(expect.objectContaining({to:state.orderToken,data:tempoTokenInterface.encodeFunctionData('approve',[deployment.address,'10000'])}));
+  expect(sign).not.toHaveBeenCalled();expect(rpc.broadcastTransaction).not.toHaveBeenCalled();expect(state.db.size).toBe(0);
+ });
+ it("estimates the payment after authorization and rejects a changed wallet",async()=>{
+  state.allowance=10000n;
+  expect(await s.estimateNextPayment({method:'buyOrder',args:['0x'+'01'.repeat(16)]})).toMatchObject({approvalRequired:false,maximumFee:'120'});
+  expect(rpc.estimateGas).toHaveBeenCalledWith(expect.objectContaining({to:deployment.address}));
+  vi.mocked(rpc.getFeeData).mockImplementation(async()=>{state.revision++;return new FeeData(null,1_000_000_000n,0n);});
+  await expect(s.estimateNextPayment({method:'buyOrder',args:['0x'+'01'.repeat(16)]})).rejects.toThrow('changed or locked');
+  expect(rpc.broadcastTransaction).not.toHaveBeenCalled();
+ });
+ it("rejects invalid fee estimates before showing a cost",async()=>{
+  vi.mocked(rpc.estimateGas).mockResolvedValue(0n);
+  await expect(s.estimateNextPayment({method:'buyOrder',args:['0x'+'01'.repeat(16)]})).rejects.toThrow('Gas estimate');
+  vi.mocked(rpc.estimateGas).mockResolvedValue(100000n);
+  vi.mocked(rpc.getFeeData).mockResolvedValue(new FeeData(null,null,null));
+  await expect(s.estimateNextPayment({method:'buyOrder',args:['0x'+'01'.repeat(16)]})).rejects.toThrow('invalid EIP-1559');
+ });
  it("records a checked signature before broadcast and saves public receipt metadata",async()=>{
   const observer=vi.fn(),r=await s.approve(10000n,{...opts(),onSaved:observer});expect(r).toMatchObject({state:"confirmed",block:123,fee:"100",nonce:7,gasLimit:"120000",maximumFeeBaseUnits:"120",operationId:"test-operation"});
   expect(observer).toHaveBeenCalled();expect(rpc.broadcastTransaction).toHaveBeenCalledOnce();const json=JSON.stringify([...state.db.values()]);expect(json).not.toContain(privateKey);expect(json).not.toContain("serialized");
@@ -128,7 +146,7 @@ describe("reusable built-in Tempo transaction service",()=>{
 
 describe('configured checkout currencies',()=>{
  it('approves the selected token contract and then pays the matching order',async()=>{
-  state.extraCheckout=true;state.orderToken='0x20c0000000000000000000000000000000000001';
+  state.orderToken='0x20c0000000000000000000000000000000000001';
   const call={method:'buyOrder',args:['0x'+'01'.repeat(16)]};
   expect((await s.paymentRequirements(call)).token).toBe(state.orderToken);
   const approval=await s.approvePayment(call,opts('alternate'));
@@ -136,8 +154,8 @@ describe('configured checkout currencies',()=>{
   state.allowance=10000n;
   expect((await s.payOrder(call,opts('alternate'))).state).toBe('confirmed');
  });
- it('rejects an order currency absent from checkout configuration',async()=>{
-  state.orderToken='0x20c0000000000000000000000000000000000001';
+ it('rejects an order currency absent from configuration',async()=>{
+  state.orderToken='0x1111111111111111111111111111111111111111';
   await expect(s.paymentRequirements({method:'buyOrder',args:['0x'+'01'.repeat(16)]})).rejects.toThrow('supported');
   expect(rpc.broadcastTransaction).not.toHaveBeenCalled();
  });

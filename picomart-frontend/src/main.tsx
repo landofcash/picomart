@@ -1,3 +1,4 @@
+import WalletReceivePage from "@/pages/WalletReceivePage";
 import {TempoCheckoutDetailsProvider} from '@/context/TempoCheckoutDetails';
 import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
@@ -24,6 +25,9 @@ createRoot(document.getElementById('root')!).render(<StrictMode><WalletProvider>
   <Route path="/pay-crypto" element={<TempoCheckoutPage stage="payment"/>}/>
   <Route path="/orders" element={<TempoOrdersPage/>}/>
   <Route path="/wallet" element={<WalletPage/>}/>
+  <Route path="/wallet/receive" element={<WalletReceivePage/>}/>
+  <Route path="/wallet/receive/transfer" element={<WalletReceivePage mode="transfer"/>}/>
+  <Route path="/wallet/receive/test-tokens" element={<WalletReceivePage mode="test-tokens"/>}/>
   <Route path="/settings" element={<TempoSettingsPage/>}/>
   <Route path="/tempo-wallet" element={<TempoWalletPage/>}/>
   <Route path="/tempo-contract" element={<TempoContractPage/>}/>

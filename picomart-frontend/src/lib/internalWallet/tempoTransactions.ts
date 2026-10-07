@@ -4,6 +4,7 @@ import {get,set} from "idb-keyval";
 import {PICOMART_TEMPO_CONFIG} from '@picomart/config';
 
 import {PICOMART_TEMPO_ABI,PICOMART_TEMPO_BUILD} from "@picomart/order-protocol/tempo-contract";
+import {createTempoTransferService, type TempoTransferRequest} from "./tempoTransfers";
 
 export interface TempoDeployment {address:string;block:number;}
 export interface TempoWalletSession {walletId:string;address:string;revision:number;}
@@ -12,6 +13,7 @@ export interface TempoTransactionWallet {
   capture():Promise<TempoWalletSession>;
   assert(session:TempoWalletSession):Promise<void>;
   sign(session:TempoWalletSession,transaction:TransactionRequest):Promise<string>;
+  signTransfer?(session:TempoWalletSession,transaction:TempoTransferRequest):Promise<`0x${string}`>;
 }
 export interface TempoTransactionRecord {
   hash:string;account:string;method:string;nonce:number;
@@ -119,6 +121,31 @@ export function createTempoTransactionService(options:TempoTransactionServiceOpt
     if(stored&&stored.dataHash!==digest)throw new Error("Payment operation ID already belongs to different order terms.");
     if(!stored)await set(key,{dataHash:digest});
   }
+  async function estimateFee(
+    from: string,
+    to: string,
+    data: string,
+    checkpoint: () => Promise<void>,
+  ) {
+    const estimate = await rpc.estimateGas({ from, to, data, value: 0 });
+    await checkpoint();
+    if (estimate <= 0n || estimate > 30_000_000n)
+      throw new Error("Gas estimate exceeds the supported transaction limit.");
+    const buffered = (estimate * 120n + 99n) / 100n,
+      gasLimit = buffered > 30_000_000n ? 30_000_000n : buffered;
+    const fees = await rpc.getFeeData();
+    await checkpoint();
+    if (
+      !fees.maxFeePerGas ||
+      fees.maxPriorityFeePerGas == null ||
+      fees.maxPriorityFeePerGas < 0n ||
+      fees.maxPriorityFeePerGas > fees.maxFeePerGas
+    )
+      throw new Error("RPC returned invalid EIP-1559 fee parameters.");
+    const maximumFee =
+      (gasLimit * fees.maxFeePerGas + 999_999_999_999n) / 1_000_000_000_000n;
+    return { gasLimit, fees, maximumFee };
+  }
   async function sendLocked(target:'contract'|'token',call:TempoContractCall,opts:TempoTransactionOptions,session:TempoWalletSession,d:TempoDeployment,checkpoint:()=>Promise<void>,writeToken:string=TOKEN){
     if(target==="contract"&&["createOrderInitial","createOrderPaid","startDelivering","refuseOrder"].includes(call.method)&&!opts.beforeSign)throw new Error("Provide encrypted message/reference validation before signing this method.");
     const {abi,fragment,data}=encode(target,call),to=target==='contract'?d.address:address(writeToken),digest=keccak256(data);
@@ -133,12 +160,7 @@ export function createTempoTransactionService(options:TempoTransactionServiceOpt
     let spend=0n,spendToken=writeToken;
     if(target==='contract'&&(call.method==='createOrderPaid'||call.method==='buyOrder')){const payment=await requirements(session,d,call);await checkpoint();if(payment.approvalRequired)throw new Error("Approve the exact payment in a separate transaction first.");spend=BigInt(payment.amount);spendToken=payment.token;}
     else if(target==='token'&&call.method==='transfer')spend=BigInt(decoded[1]);
-    const estimate=await rpc.estimateGas({from:session.address,to,data,value:0});await checkpoint();
-    if(estimate<=0n||estimate>30_000_000n)throw new Error("Gas estimate exceeds the supported transaction limit.");
-    const buffered=(estimate*120n+99n)/100n,gasLimit=buffered>30_000_000n?30_000_000n:buffered;
-    const fees=await rpc.getFeeData();await checkpoint();
-    if(!fees.maxFeePerGas||fees.maxPriorityFeePerGas==null||fees.maxPriorityFeePerGas<0n||fees.maxPriorityFeePerGas>fees.maxFeePerGas)throw new Error("RPC returned invalid EIP-1559 fee parameters.");
-    const maximumFee=(gasLimit*fees.maxFeePerGas+999_999_999_999n)/1_000_000_000_000n;
+    const {gasLimit,fees,maximumFee}=await estimateFee(session.address,to,data,checkpoint);
     const balance:bigint=await new Contract(PICOMART_TEMPO_CONFIG.feeToken.tokenId,tempoTokenInterface,rpc).balanceOf(session.address);await checkpoint();
     if(spend>0n&&spendToken!==PICOMART_TEMPO_CONFIG.feeToken.tokenId&&BigInt(await new Contract(spendToken,tempoTokenInterface,rpc).balanceOf(session.address))<spend)throw new Error(`Insufficient ${getCurrency(spendToken).symbol} for payment.`);
     if(balance<maximumFee+(spendToken===PICOMART_TEMPO_CONFIG.feeToken.tokenId?spend:0n))throw new Error(`Insufficient ${PICOMART_TEMPO_CONFIG.feeToken.symbol} for payment and the maximum fee.`);
@@ -157,6 +179,7 @@ export function createTempoTransactionService(options:TempoTransactionServiceOpt
     catch{try{const recovered=await refresh(saved);if(recovered.state!=='uncertain')return recovered;}catch{/* retain original uncertain intent */}return saved;}
   }
   return {
+    ...createTempoTransferService({rpc,wallet:options.wallet}),
     pending,
     async recover(account:string){
       if(typeof navigator==="undefined"||!navigator.locks)throw new Error("Web Locks are required for safe receipt recovery.");
@@ -164,6 +187,41 @@ export function createTempoTransactionService(options:TempoTransactionServiceOpt
     },
     async recoverOperation(account:string,id:string){const d=selectedDeployment();await checkDeployment(d);if(typeof navigator==="undefined"||!navigator.locks)throw new Error("Web Locks are required for safe receipt recovery.");return navigator.locks.request(`picomart_tempo_transaction_${chain}_${address(account)}`,async()=>{const stored=await get(operationKey(address(account),d.address,operationId(id,128)));return stored?refresh(record(stored,account)):null;});},
     async paymentRequirements(call:TempoContractCall){const d=selectedDeployment(),session=await options.wallet.capture();await options.wallet.assert(session);await checkDeployment(d);const result=await requirements(session,d,call);await options.wallet.assert(session);return result;},
+    async estimateNextPayment(call: TempoContractCall) {
+      const d = selectedDeployment(),
+        session = await options.wallet.capture();
+      const checkpoint = () => options.wallet.assert(session);
+      await checkpoint();
+      await checkDeployment(d);
+      await checkpoint();
+      const payment = await requirements(session, d, call);
+      await checkpoint();
+      const target = payment.approvalRequired ? payment.token : d.address;
+      const data = payment.approvalRequired
+        ? tempoTokenInterface.encodeFunctionData("approve", [
+            d.address,
+            payment.amount,
+          ])
+        : encode("contract", call).data;
+      const { maximumFee } = await estimateFee(
+        session.address,
+        target,
+        data,
+        checkpoint,
+      );
+      const balance: bigint = await new Contract(
+        payment.token,
+        tempoTokenInterface,
+        rpc,
+      ).balanceOf(session.address);
+      await checkpoint();
+      return {
+        ...payment,
+        balance: balance.toString(),
+        maximumFee: maximumFee.toString(),
+        requiredBalance: (BigInt(payment.amount) + maximumFee).toString(),
+      };
+    },
     async sendContract(call:TempoContractCall,opts:TempoTransactionOptions){return locked(opts,async(session,d,checkpoint)=>{if(call.method==='createOrderPaid'||call.method==='buyOrder')await bindPayment(session,d,call,opts.operationId);await checkpoint();return sendLocked('contract',call,opts,session,d,checkpoint);});},
     async approvePayment(call:TempoContractCall,opts:TempoTransactionOptions){return locked(opts,async(session,d,checkpoint)=>{await bindPayment(session,d,call,opts.operationId);await checkpoint();const payment=await requirements(session,d,call);await checkpoint();return sendLocked('token',{method:'approve',args:[d.address,payment.amount]},{...opts,operationId:`${opts.operationId}:approval`},session,d,checkpoint,payment.token);});},
     async payOrder(call:TempoContractCall,opts:TempoTransactionOptions){if(!['createOrderPaid','buyOrder'].includes(call.method))throw new Error("Select createOrderPaid or buyOrder for payment.");return locked(opts,async(session,d,checkpoint)=>{await bindPayment(session,d,call,opts.operationId);await checkpoint();return sendLocked('contract',call,opts,session,d,checkpoint);});},

@@ -27,6 +27,7 @@ export function wrapWalletAdapterWithWalletAction(adapter: WalletAdapter, opts: 
       payOrder: (...args) => tempoWrite(()=>adapter.tempo!.payOrder(...args)),
       approve: (...args) => tempoWrite(()=>adapter.tempo!.approve(...args)),
       transfer: (...args) => tempoWrite(()=>adapter.tempo!.transfer(...args)),
+      transferToken: (...args) => tempoWrite(()=>adapter.tempo!.transferToken(...args)),
     } : undefined,
     chain: adapter.chain,
     name: adapter.name,

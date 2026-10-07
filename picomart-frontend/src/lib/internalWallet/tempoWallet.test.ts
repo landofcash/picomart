@@ -151,6 +151,43 @@ describe("Tempo local wallet and recovery", () => {
 });
 
  describe("Tempo provider transaction boundary",()=>{
+  it("signs selected-token transfers through the encrypted vault independently of commerce",async()=>{
+    const current=await restore();
+    const {JsonRpcProvider,Network,FeeData,keccak256}=await import('ethers');
+    const {Transaction}=await import('viem/tempo');
+    const {PICOMART_TEMPO_CONFIG:config}=await import('@picomart/config');
+    const {tempoTokenInterface}=await import('./tempoTransactions');
+    const rpc=new JsonRpcProvider('https://unused.test');
+    vi.stubGlobal('navigator',{locks:{request:async(_key:string,work:()=>Promise<unknown>)=>work()}});
+    vi.spyOn(rpc,'getNetwork').mockResolvedValue(Network.from(config.chainId));
+    vi.spyOn(rpc,'getCode').mockRejectedValue(new Error('Commerce not available'));
+    vi.spyOn(rpc,'getFeeData').mockResolvedValue(new FeeData(null,1_000_000_000n,0n));
+    vi.spyOn(rpc,'getTransactionCount').mockResolvedValue(7);
+    vi.spyOn(rpc,'call').mockResolvedValue(tempoTokenInterface.encodeFunctionResult('balanceOf',[10_000_000n]));
+    vi.spyOn(rpc,'waitForTransaction').mockResolvedValue(null);
+    let hash:string|undefined;
+    vi.spyOn(rpc,'send').mockImplementation(async(method,params)=>{
+      if(method==='eth_estimateGas')return '0xc350';
+      if(method==='eth_sendRawTransaction'){
+        const raw=(params as string[])[0] as `0x76${string}`;
+        const transaction=Transaction.deserialize(raw);
+        expect(transaction.calls[0].to).toBe(config.tokens[1].tokenId);
+        expect(transaction.feeToken).toBe(config.feeToken.tokenId);
+        hash=keccak256(raw);return hash;
+      }
+      if(method==='eth_getTransactionReceipt')return hash?{from:current.identity.evmAddress,to:config.tokens[1].tokenId,status:'0x1',blockNumber:'0x10',gasUsed:'0xc350',effectiveGasPrice:'0x3b9aca00'}:null;
+      throw new Error('Unexpected RPC call');
+    });
+    const transactions=createTempoWalletTransactions({rpc,deployment:()=>null});
+    const quote=await transactions.estimateTransfer({token:config.tokens[1].tokenId,recipient:'0x'+'22'.repeat(20),amount:'1',feeToken:config.feeToken.tokenId},current.identity.evmAddress);
+    const result=await transactions.transferToken(quote,{operationId:'vault-transfer',expectedAccount:current.identity.evmAddress});
+    expect(result.state).toBe('confirmed');expect(rpc.getCode).not.toHaveBeenCalled();
+    const saved=[...db.entries()].filter(([key])=>key.includes('tempo_transfer')||key.includes('contract_test_tx'));
+    expect(JSON.stringify(saved)).not.toContain(mnemonic);expect(JSON.stringify(saved)).not.toContain('privateKey');
+    await provider.lockWallet(current.id);
+    await expect(transactions.estimateTransfer({token:config.tokens[1].tokenId,recipient:'0x'+'22'.repeat(20),amount:'1',feeToken:config.feeToken.tokenId},current.identity.evmAddress)).rejects.toThrow('unlock');
+    rpc.destroy();vi.unstubAllGlobals();
+  });
   it("keeps the default commerce facade disabled and inherited payloads rejected",async()=>{
     const current=await restore();const isolated=provider.getWalletAdapter(network);expect(isolated.tempo).toBeDefined();
     await expect(isolated.tempo!.approve(1n,{operationId:"gated",expectedAccount:current.identity.evmAddress})).rejects.toThrow("not enabled");

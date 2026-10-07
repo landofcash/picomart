@@ -64,9 +64,14 @@ describe('Tempo commerce UI boundary',()=>{
     for(const bad of ['0.0.1','0x'+'00'.repeat(20),'some.eth'])expect(()=>marketAddress(bad)).toThrow();
     expect(()=>validateProducts([product,product])).toThrow();
     expect(()=>validateProducts([{...product,Price:Number.MAX_SAFE_INTEGER+1}])).toThrow();
-    expect(()=>validateProducts([{...product,PriceToken:PATH_USD.slice(0,-1)+'1'}])).toThrow();
+    expect(()=>validateProducts([{...product,PriceToken:'0x1111111111111111111111111111111111111111'}])).toThrow();
     expect(validateSelection(selection).amount).toBe(20000n);
     expect(()=>validateSelection({...selection,products:[{...product,quantity:1.5}]})).toThrow();
+  });
+  it('uses each configured catalog token and rejects mixed-token orders',()=>{
+    const alpha={...product,ProductId:'alpha',PriceToken:'0x20c0000000000000000000000000000000000001',quantity:2};
+    expect(validateSelection({...selection,products:[alpha]})).toMatchObject({token:alpha.PriceToken,amount:20000n});
+    expect(()=>validateSelection({...selection,products:[alpha,{...product,quantity:1}]})).toThrow('one payment currency');
   });
   it('checks response deployment and CDN origin; rejects redirects and missing history',async()=>{
     await expect(fetchCatalogProducts('https://evil.test/catalog.json')).rejects.toThrow(/CDN/);
@@ -115,6 +120,7 @@ describe('Tempo commerce UI boundary',()=>{
   it('separates approval and payment and rechecks storage and terms immediately before signing',async()=>{
     const draft=await prepareCheckout(wallet,selection,delivery,id,'createOrderPaid');
     await submitCheckout(wallet,draft,selection,true);expect(state.approve).toHaveBeenCalledOnce();expect(state.pay).not.toHaveBeenCalled();
+    expect(state.resume).toHaveBeenCalledWith(wallet,draft.order,{messageType:'buyer-order',sequence:1},{waitForReady:true,signal:undefined});
     await submitCheckout(wallet,draft,selection);expect(state.pay).toHaveBeenCalledOnce();
     const options=state.pay.mock.calls[0][1];expect(options.expectedAccount).toBe(buyer);expect(options.operationId).toBe('order:'+id);
     await options.beforeSign();

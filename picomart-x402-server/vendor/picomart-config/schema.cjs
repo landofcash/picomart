@@ -32,14 +32,14 @@ function validateConfig(value) {
       if (!Number.isSafeInteger(currency.id) || currency.id < 0 || ids.has(currency.id)) fail(`${id}/${key} needs a unique presentation ID.`);
       addresses.add(currency.address); ids.add(currency.id);
       if (!currency.name || !currency.symbol || !Number.isInteger(currency.decimals) || currency.decimals < 0 || currency.decimals > 255) fail(`${id}/${key} has invalid metadata.`);
-      if (typeof currency.accountEnabled !== 'boolean' || typeof currency.checkoutEnabled !== 'boolean') fail(`${id}/${key} needs explicit account/checkout flags.`);
-      if (currency.checkoutEnabled && (!currency.accountEnabled || currency.decimals !== 6)) fail(`${id}/${key}: checkout requires account support and six decimals.`);
+      if (typeof currency.accountEnabled !== 'boolean') fail(`${id}/${key} needs an explicit accountEnabled flag.`);
+      if (currency.accountEnabled && currency.decimals !== 6) fail(`${id}/${key}: enabled currencies require six decimals for commerce.`);
       if (typeof currency.icon !== 'string' || !currency.icon) fail(`${id}/${key} needs an icon.`);
       if (!currency.icon.startsWith('/') || currency.icon.startsWith('//')) url(currency.icon, `${id}/${key} icon`);
     }
-    for (const [field, capability] of [['defaultPaymentCurrency', 'checkoutEnabled'], ['defaultFeeCurrency', 'accountEnabled']]) {
+    for (const field of ['defaultPaymentCurrency', 'defaultFeeCurrency']) {
       const key = network[field];
-      if (!own(network.currencies, key) || !network.currencies[key][capability]) fail(`${id}/${field} must reference an enabled currency.`);
+      if (!own(network.currencies, key) || !network.currencies[key].accountEnabled) fail(`${id}/${field} must reference an enabled currency.`);
     }
     if (network.currencies[network.defaultFeeCurrency].decimals !== 6) fail(`${id}: fee currency must use six decimals.`);
   }
@@ -57,10 +57,11 @@ function getNetworkConfig(id = PICOMART_CONFIG.defaultNetwork) {
 function getTempoConfig(id = PICOMART_CONFIG.defaultNetwork) {
   const network = getNetworkConfig(id);
   const currencies = Object.entries(network.currencies).map(([key, c]) => ({...c, key, tokenId: c.address, img: c.icon}));
+  const tokens = currencies.filter(c => c.accountEnabled);
   return freeze({network: id, chainId: network.chainId, rpcUrl: network.rpcUrl, explorerUrl: network.explorerUrl,
     label: network.label, mainnetEnabled: Boolean(PICOMART_CONFIG.networks.mainnet?.enabled),
     deployment: {address: network.contract.address, block: network.contract.deploymentBlock},
-    tokens: currencies.filter(c => c.accountEnabled), paymentTokens: currencies.filter(c => c.checkoutEnabled),
+    tokens, paymentTokens: tokens,
     defaultPaymentToken: currencies.find(c => c.key === network.defaultPaymentCurrency),
     feeToken: currencies.find(c => c.key === network.defaultFeeCurrency), services: network.services, adminAddress: network.adminAddress});
 }

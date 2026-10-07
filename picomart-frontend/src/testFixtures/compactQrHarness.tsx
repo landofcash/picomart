@@ -1,3 +1,4 @@
+import WalletReceivePage from "@/pages/WalletReceivePage";
 import TempoCheckoutPage from '@/pages/TempoCheckoutPage';
 import {TempoCheckoutDetailsProvider} from '@/context/TempoCheckoutDetails';
 import {createRoot} from 'react-dom/client';
@@ -11,9 +12,10 @@ import WalletPage from '@/pages/WalletPage';
 import TempoOrdersPage from '@/pages/TempoOrdersPage';
 import TempoContractPage from '@/pages/TempoContractPage';
 import '@/index.css';
+import Layout from '@/components/Layout';
 
 // Imported only by tools/verify-tempo-compact-links.mjs, with mocked public catalogs and camera input.
-createRoot(document.getElementById('root')!).render(<BrowserRouter><TempoCheckoutDetailsProvider><Routes>
+createRoot(document.getElementById('root')!).render(<BrowserRouter><TempoCheckoutDetailsProvider><Layout><Routes>
   <Route path="/" element={<BuyerEntryPage/>}/>
   <Route path="/scan" element={<TempoScanPage/>}/>
   <Route path="/order" element={<TempoCheckoutPage stage="review"/>}/>
@@ -22,7 +24,10 @@ createRoot(document.getElementById('root')!).render(<BrowserRouter><TempoCheckou
   <Route path="/settings" element={<TempoSettingsPage/>}/>
   <Route path="/home" element={<App/>}/>
   <Route path="/wallet" element={<WalletPage/>}/>
+  <Route path="/wallet/receive" element={<WalletReceivePage/>}/>
+  <Route path="/wallet/receive/transfer" element={<WalletReceivePage mode="transfer"/>}/>
+  <Route path="/wallet/receive/test-tokens" element={<WalletReceivePage mode="test-tokens"/>}/>
   <Route path="/orders" element={<TempoOrdersPage/>}/>
   <Route path="/tempo-contract" element={<TempoContractPage/>}/>
   <Route path="*" element={<Navigate to="/" replace/>}/>
-</Routes></TempoCheckoutDetailsProvider></BrowserRouter>);
+</Routes></Layout></TempoCheckoutDetailsProvider></BrowserRouter>);

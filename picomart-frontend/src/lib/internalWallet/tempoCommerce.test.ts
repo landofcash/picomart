@@ -66,6 +66,15 @@ beforeEach(async () => {
 
 describe("built-in Tempo commerce preparation and durable encrypted recovery", () => {
   for (const example of fixture.examples) {
+    it(`automatically uploads and verifies ${example.expected.messageType} without a second action`,async()=>{
+      const s=server(),expected=example.expected as TempoExpectedMessage,payload=TempoMessagePayloadSchema.parse(example.payload);
+      await select(expected.messageType==="buyer-order" ? "buyer" : "seller");
+      const prepared=await s.service.prepare(adapter,order,payload,expected,expiration());
+      const verified=await s.service.resumeUpload(adapter,order,expected,{waitForReady:true});
+      expect(verified).toMatchObject({ready:true,state:"active",commitment:prepared.commitment});
+      expect(s.posts).toBe(1);
+      expect(s.requests.filter(url=>url.endsWith("/status"))).toHaveLength(2);
+    });
     it(`prepares, restores and decrypts ${example.expected.messageType} for both parties`, async () => {
       const s=server(),expected=example.expected as TempoExpectedMessage,payload=TempoMessagePayloadSchema.parse(example.payload);
       const role=expected.messageType === "buyer-order" ? "buyer" : "seller";
@@ -120,6 +129,51 @@ describe("built-in Tempo commerce preparation and durable encrypted recovery", (
     expect(operationEntries()).toHaveLength(0);expect(s.posts).toBe(0);
   });
   const example=fixture.examples[0],expected=example.expected as TempoExpectedMessage,payload=TempoMessagePayloadSchema.parse(example.payload);
+  it("waits through pending verification without uploading the message again",async()=>{
+    const s=server();await select("buyer");await s.service.prepare(adapter,order,payload,expected,expiration());
+    const fetch=s.fetch.getMockImplementation()!;let reads=0;
+    s.fetch.mockImplementation(async(input,init)=>{
+      if(String(input).endsWith("/status")) {reads++;s.mode=reads===2 ? "pending" : "normal";}
+      return fetch(input,init);
+    });
+    expect(await s.service.resumeUpload(adapter,order,expected,{waitForReady:true})).toMatchObject({ready:true,state:"active"});
+    expect(s.posts).toBe(1);expect(reads).toBe(3);
+  });
+  it("stops bounded verification with the saved pending message intact",async()=>{
+    const s=server();await select("buyer");const prepared=await s.service.prepare(adapter,order,payload,expected,expiration());
+    s.mode="pending";
+    expect(await s.service.resumeUpload(adapter,order,expected,{waitForReady:true})).toMatchObject({ready:false,state:"pending",commitment:prepared.commitment});
+    expect(s.requests.filter(url=>url.endsWith("/status"))).toHaveLength(15);expect(s.posts).toBe(0);
+    expect(await s.service.hasPreparedOperation(order,expected)).toBe(true);
+  },20000);
+  it("cancels automatic verification while preserving the uploaded candidate",async()=>{
+    const s=server();await select("buyer");const prepared=await s.service.prepare(adapter,order,payload,expected,expiration());
+    const controller=new AbortController(),fetch=s.fetch.getMockImplementation()!;
+    s.fetch.mockImplementation(async(input,init)=>{
+      if(String(input).endsWith("/status") && s.posts) {s.mode="pending";controller.abort();}
+      return fetch(input,init);
+    });
+    await expect(s.service.resumeUpload(adapter,order,expected,{waitForReady:true,signal:controller.signal})).rejects.toThrow("cancelled");
+    expect(s.posts).toBe(1);
+    expect((await s.service.resumeUpload(adapter,order,expected)).commitment).toBe(prepared.commitment);
+  });
+  it("rejects altered signed objects during automatic verification",async()=>{
+    const s=server();await select("buyer");await s.service.prepare(adapter,order,payload,expected,expiration());s.mode="bad-object";
+    await expect(s.service.resumeUpload(adapter,order,expected,{waitForReady:true})).rejects.toThrow("uncertain");
+    expect(s.posts).toBe(1);
+    expect(await s.service.hasPreparedOperation(order,expected)).toBe(true);
+  });
+  it("stops verification when the account locks without another upload",async()=>{
+    const s=server(),selected=await select("buyer");await s.service.prepare(adapter,order,payload,expected,expiration());
+    const fetch=s.fetch.getMockImplementation()!;s.mode="pending";
+    s.fetch.mockImplementation(async(input,init)=>{
+      const response=await fetch(input,init);
+      if(String(input).endsWith("/status")) await provider.lockWallet(selected.id);
+      return response;
+    });
+    await expect(s.service.resumeUpload(adapter,order,expected,{waitForReady:true})).rejects.toThrow(/changed|locked/);
+    expect(s.posts).toBe(0);expect(await s.service.hasPreparedOperation(order,expected)).toBe(true);
+  });
   it("retains the candidate after an accepted POST times out and recovers without another upload", async () => {
     const s=server(); await select("buyer");
     const prepared=await s.service.prepare(adapter,order,payload,expected,expiration());

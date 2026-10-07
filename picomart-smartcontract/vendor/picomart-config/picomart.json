@@ -37,8 +37,7 @@
           "decimals": 6,
           "address": "0x20c0000000000000000000000000000000000000",
           "icon": "/tokens/0-icon.png",
-          "accountEnabled": true,
-          "checkoutEnabled": true
+          "accountEnabled": true
         },
         "alphaUSD": {
           "id": 1,
@@ -47,8 +46,7 @@
           "decimals": 6,
           "address": "0x20c0000000000000000000000000000000000001",
           "icon": "/tokens/1-icon.png",
-          "accountEnabled": true,
-          "checkoutEnabled": false
+          "accountEnabled": true
         },
         "betaUSD": {
           "id": 2,
@@ -57,8 +55,7 @@
           "decimals": 6,
           "address": "0x20c0000000000000000000000000000000000002",
           "icon": "/tokens/betausd.svg",
-          "accountEnabled": true,
-          "checkoutEnabled": false
+          "accountEnabled": true
         },
         "openUSD": {
           "id": 3,
@@ -67,8 +64,7 @@
           "decimals": 6,
           "address": "0x20c0000000000000000000006a37da5c996874be",
           "icon": "/tokens/openusd.svg",
-          "accountEnabled": true,
-          "checkoutEnabled": false
+          "accountEnabled": true
         }
       }
     },

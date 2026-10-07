@@ -2,19 +2,15 @@ import {beforeEach,afterEach,describe,it,expect,vi} from 'vitest';
 import fixture from '@picomart/order-protocol/fixtures/tempo/agent-order-v2.json';
 import {AgentProfileSchema,AgentHandoffSchema,AgentQuoteSchema} from '../../agentProtocol.js';
 import {resolveTempoAgent,executeTempoAgentOrder} from './tempoAgentClient';
-const mocks=vi.hoisted(()=>({assertProfile:vi.fn(),marketApi:vi.fn(),fetchCatalogProducts:vi.fn(),prepareCheckout:vi.fn(),submitCheckout:vi.fn(),assertRevision:vi.fn(),extraCheckout:false}));
-vi.mock('@picomart/config',async importOriginal=>{
-  const actual=await importOriginal<typeof import('@picomart/config')>();
-  return {...actual,isPaymentCurrency:(token:unknown)=>actual.isPaymentCurrency(token)||mocks.extraCheckout&&token==='0x20c0000000000000000000000000000000000001'};
-});
+const mocks=vi.hoisted(()=>({assertProfile:vi.fn(),marketApi:vi.fn(),fetchCatalogProducts:vi.fn(),prepareCheckout:vi.fn(),submitCheckout:vi.fn(),assertRevision:vi.fn()}));
 vi.mock('./tempoAgentProfile',()=>({assertCurrentAgentProfile:mocks.assertProfile,installedAgentProfile:()=>fixture.profile}));
 vi.mock('@/lib/tempoMarket',()=>({...mocks,PATH_USD:'0x20c0000000000000000000000000000000000000',TEMPO_MARKET_ENABLED:true}));
 vi.mock('@/lib/internalWallet/providers/tempoInternalWalletProvider',()=>({tempoWalletRevision:()=>1,assertTempoWalletRevision:mocks.assertRevision}));
 const handoff=AgentHandoffSchema.parse({version:2,chainId:42431,contractAddress:fixture.profile.contractAddress,orderSeed:fixture.request.orderSeed,deliveryKey:fixture.deliveryKey}),profile=AgentProfileSchema.parse(fixture.profile);
-beforeEach(()=>{vi.resetAllMocks();mocks.extraCheckout=false;vi.useFakeTimers();vi.setSystemTime(1700000001000);});afterEach(()=>vi.useRealTimers());
+beforeEach(()=>{vi.resetAllMocks();vi.useFakeTimers();vi.setSystemTime(1700000001000);});afterEach(()=>vi.useRealTimers());
 describe('Tempo browser approval boundary',()=>{
-  it('uses the quoted extra checkout currency and rejects mismatched product tokens',async()=>{
-    mocks.extraCheckout=true;
+  it('uses the quoted configured currency and rejects mismatched product tokens',async()=>{
+
     const q=structuredClone(fixture.resolution.quote) as ReturnType<typeof AgentQuoteSchema.parse>;
     q.payment.asset='0x20c0000000000000000000000000000000000001';
     mocks.marketApi.mockResolvedValue({catalog:{seller:q.catalog.sellerEvmAddress,sellerPublicKey:q.catalog.sellerPublicKey,sellerIdentityId:q.catalog.sellerIdentityId,catalogUrl:q.catalog.catalogUrl}});
@@ -27,7 +23,8 @@ describe('Tempo browser approval boundary',()=>{
     mocks.fetchCatalogProducts.mockResolvedValue([{...product,PriceToken:fixture.resolution.quote.payment.asset}]);
     await expect(executeTempoAgentOrder(intent,{} as never)).rejects.toThrow('Product terms changed');
     expect(mocks.prepareCheckout).not.toHaveBeenCalled();expect(mocks.submitCheckout).not.toHaveBeenCalled();
-    mocks.extraCheckout=false;
+
+    q.payment.asset='0x1111111111111111111111111111111111111111';
     await expect(executeTempoAgentOrder(intent,{} as never)).rejects.toThrow('Unsupported quoted payment currency');
   });
   it('stops payment if trust settings change during preparation',async()=>{

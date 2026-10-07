@@ -1,6 +1,6 @@
 export interface CurrencyConfig {
   id: number; name: string; symbol: string; decimals: number; address: `0x${string}`; icon: string;
-  accountEnabled: boolean; checkoutEnabled: boolean;
+  accountEnabled: boolean;
 }
 export interface TokenConfig extends CurrencyConfig { key: string; tokenId: `0x${string}`; img: string; }
 export interface Services { syncOrigin: string; syncPath: string; agentPath: string; catalogOrigin: string; x402Origin: string; builderOrigin: string; }

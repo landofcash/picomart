@@ -181,22 +181,24 @@ export function validateCheckoutDraft(draft:CheckoutDraft,selection:CheckoutSele
     order.catalogSeed!==selection.catalog.seed||canonicalJson(expected)!==canonicalJson(draft.input)||
     draft.operationId!==`order:${expected.orderId}`||!['createOrderPaid','createOrderInitial'].includes(draft.method))throw new Error('Prepared order terms differ from the reviewed selection.');
 }
-export async function readyReference(wallet:WalletAdapter,order:TempoOrderContext,type:TempoExpectedMessage['messageType']) {
-  const op=await commerceService().resumeUpload(wallet,order,{messageType:type,sequence:1});
-  if(!op.ready)throw new Error(`Private message is ${op.state}. Resume preparation before submitting.`);
+export async function readyReference(wallet:WalletAdapter,order:TempoOrderContext,type:TempoExpectedMessage['messageType'],signal?:AbortSignal) {
+  const op=await commerceService().resumeUpload(wallet,order,{messageType:type,sequence:1},{waitForReady:true,signal});
+  if(!op.ready)throw new Error(op.state==='pending'
+    ? 'Order details are still being verified. Resume preparation to check the saved details again.'
+    : `Saved order details are ${op.state}. Resume the saved preparation before submitting.`);
   if(Date.parse(op.expiresAt)-Date.now()<29*86400_000-2000)throw new Error('Message retention is insufficient. Keep this operation for recovery; prepare a fresh intentional action.');
   return op;
 }
 const reference=(op:TempoOperationSummary)=>({sequence:1,buyerEnvelope:hexlify(toUtf8Bytes(op.buyerEnvelope)),sellerEnvelope:hexlify(toUtf8Bytes(op.sellerEnvelope))});
-export async function checkoutCall(wallet:WalletAdapter,draft:CheckoutDraft):Promise<TempoContractCall> {
-  const op=await readyReference(wallet,draft.order,'buyer-order');
+export async function checkoutCall(wallet:WalletAdapter,draft:CheckoutDraft,signal?:AbortSignal):Promise<TempoContractCall> {
+  const op=await readyReference(wallet,draft.order,'buyer-order',signal);
   return {method:draft.method,args:[draft.input,reference(op)]};
 }
 export async function submitCheckout(wallet:WalletAdapter,draft:CheckoutDraft,selection:CheckoutSelection,approveOnly=false,signal?:AbortSignal,assertApproval?:()=>void):Promise<TempoTransactionRecord|null> {
   if(draft.selectionHash!==selectionHash(selection))throw new Error('Checkout selection differs from the prepared order.');
   validateCheckoutDraft(draft,selection);
-  const call=await checkoutCall(wallet,draft);
-  const beforeSign=async()=>{assertApproval?.();validateCheckoutDraft(draft,selection);await revalidateSelection(selection);const verified=await checkoutCall(wallet,draft);assertApproval?.();
+  const call=await checkoutCall(wallet,draft,signal);
+  const beforeSign=async()=>{assertApproval?.();validateCheckoutDraft(draft,selection);await revalidateSelection(selection);const verified=await checkoutCall(wallet,draft,signal);assertApproval?.();
     if(marketInterface.encodeFunctionData(call.method,call.args)!==marketInterface.encodeFunctionData(verified.method,verified.args))throw new Error('Prepared references changed.');};
   const options={operationId:draft.operationId,expectedAccount:draft.account,signal,beforeSign};
   if(approveOnly)return marketTransactions.approvePayment(call,options);
@@ -228,26 +230,26 @@ export async function verifyOrderTerms(order:MarketOrder) {
   const actual=await marketContract.getOrder(order.orderId);
   if(Number(actual.version)!==1||Number(actual.status)!==order.status||actual.buyer.toLowerCase()!==order.buyer||actual.seller.toLowerCase()!==order.seller||actual.payer.toLowerCase()!==order.payer||actual.priceToken.toLowerCase()!==order.priceToken||String(actual.priceAmount)!==order.priceAmount||actual.buyerIdentityId!==order.context.buyerIdentity.identityId||actual.sellerIdentityId!==order.context.sellerIdentity.identityId)throw new Error('Order state changed; refresh history before acting.');
 }
-export async function sellerMessage(wallet:WalletAdapter,order:MarketOrder,type:'seller-delivery'|'seller-refusal',data:Record<string,string>) {
+export async function sellerMessage(wallet:WalletAdapter,order:MarketOrder,type:'seller-delivery'|'seller-refusal',data:Record<string,string>,signal?:AbortSignal) {
   const revision=tempoWalletRevision();await verifyMarketDeployment();assertTempoWalletRevision(revision);
   validateMarketOrder(order);const key=`picomart_tempo_seller_message_${TEMPO_MARKET_DEPLOYMENT.address}_${order.orderId}_${type}`;
   const expiresAt=await get<string>(key)??new Date(Date.now()+2592000_000-1000).toISOString().replace(/\.\d{3}Z$/,'Z');
   await set(key,expiresAt);
   const service=commerceService(),expected={messageType:type,sequence:1};
   await service.prepare(wallet,order.context,TempoMessagePayloadSchema.parse({version:1,profile:'picomart-message-v1',binding:createTempoMessageBinding(order.context,expected),data}),expected,expiresAt);
-  const op=await readyReference(wallet,order.context,type);
+  const op=await readyReference(wallet,order.context,type,signal);
   return {method:type==='seller-delivery'?'startDelivering':'refuseOrder',args:[order.orderId,reference(op)]} satisfies TempoContractCall;
 }
-export async function prepareOrResumeSellerMessage(wallet:WalletAdapter,order:MarketOrder,type:'seller-delivery'|'seller-refusal',data:Record<string,string>) {
+export async function prepareOrResumeSellerMessage(wallet:WalletAdapter,order:MarketOrder,type:'seller-delivery'|'seller-refusal',data:Record<string,string>,signal?:AbortSignal) {
   return await commerceService().hasPreparedOperation(order.context,{messageType:type,sequence:1})
-    ? resumeSellerMessage(wallet,order,type) : sellerMessage(wallet,order,type,data);
+    ? resumeSellerMessage(wallet,order,type,signal) : sellerMessage(wallet,order,type,data,signal);
 }
-export async function resumeSellerMessage(wallet:WalletAdapter,order:MarketOrder,type:'seller-delivery'|'seller-refusal') {
-  const op=await readyReference(wallet,order.context,type);
+export async function resumeSellerMessage(wallet:WalletAdapter,order:MarketOrder,type:'seller-delivery'|'seller-refusal',signal?:AbortSignal) {
+  const op=await readyReference(wallet,order.context,type,signal);
   return {method:type==='seller-delivery'?'startDelivering':'refuseOrder',args:[order.orderId,reference(op)]} satisfies TempoContractCall;
 }
-export async function previewPreparedMessage(wallet:WalletAdapter,order:TempoOrderContext,type:TempoExpectedMessage['messageType']) {
-  const op=await readyReference(wallet,order,type);
+export async function previewPreparedMessage(wallet:WalletAdapter,order:TempoOrderContext,type:TempoExpectedMessage['messageType'],signal?:AbortSignal) {
+  const op=await readyReference(wallet,order,type,signal);
   return commerceService().receive(wallet,order,{messageType:type,sequence:1},type==='buyer-order'?'buyer':'seller',op.buyerEnvelope,op.sellerEnvelope,op.commitment);
 }
 export function catalogLink(seed:string,productId?:string,origin='https://app.picomart.zkbytes.com') {

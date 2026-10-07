@@ -2,11 +2,7 @@ import {beforeEach,describe,it,expect,vi} from 'vitest';
 import {Wallet,hexlify,verifyMessage} from 'ethers';
 import {uploadCatalog,pathUsdPrice,sha256,CATALOG_CDN,uploadMessage,type DraftProduct} from './catalogStorage';
 import type {WalletAdapter} from '@/context/wallet/types';
-const state=vi.hoisted(()=>({revision:1,extraCheckout:false}));
-vi.mock('@picomart/config',async importOriginal=>{
-  const actual=await importOriginal<typeof import('@picomart/config')>();
-  return {...actual,isPaymentCurrency:(token:unknown)=>actual.isPaymentCurrency(token)||state.extraCheckout&&token==='0x20c0000000000000000000000000000000000001'};
-});
+const state=vi.hoisted(()=>({revision:1}));
 vi.mock('./internalWallet/providers/tempoInternalWalletProvider',()=>({tempoWalletRevision:()=>state.revision,assertTempoWalletRevision:(r:number)=>{if(r!==state.revision)throw new Error('Wallet changed');}}));
 const key=new Wallet('0x'+'11'.repeat(32)),account=key.address.toLowerCase(); // Public test fixture.
 const png=new Uint8Array([137,80,78,71,13,10,26,10,0,0,0,0]);
@@ -18,7 +14,7 @@ const json=(value:unknown)=>new Response(JSON.stringify(value),{headers:{'Conten
 let stored=new Map<string,Uint8Array>(),posts:Array<{kind:string;bytes:Uint8Array;auth:Record<string,unknown>}>=[];
 let corrupt=false;
 beforeEach(()=>{
-  state.revision=1;state.extraCheckout=false;stored=new Map();posts=[];corrupt=false;
+  state.revision=1;stored=new Map();posts=[];corrupt=false;
   vi.stubGlobal('fetch',vi.fn(async(url:string,options?:RequestInit)=>{
     if(url===api+'/status')return json({ready:true,version:1,publicBase:CATALOG_CDN});
     if(options?.method==='POST'){
@@ -36,15 +32,15 @@ beforeEach(()=>{
   }));
 });
 describe('catalog storage browser integration',()=>{
-  it('publishes an enabled extra checkout currency without replacing its token',async()=>{
-    state.extraCheckout=true;
+  it('publishes a configured currency without replacing its token',async()=>{
+
     const alpha={...product,PriceToken:'0x20c0000000000000000000000000000000000001'};
     const result=await uploadCatalog(wallet,api,[alpha]);
     expect(result.products[0].PriceToken).toBe(alpha.PriceToken);
     expect(JSON.parse(new TextDecoder().decode(posts[1].bytes))[0].PriceToken).toBe(alpha.PriceToken);
   });
-  it('rejects account-only currencies before any storage write',async()=>{
-    await expect(uploadCatalog(wallet,api,[{...product,PriceToken:'0x20c0000000000000000000000000000000000001'}])).rejects.toThrow('unsupported payment currency');
+  it('rejects unconfigured currencies before any storage write',async()=>{
+    await expect(uploadCatalog(wallet,api,[{...product,PriceToken:'0x1111111111111111111111111111111111111111'}])).rejects.toThrow('unsupported payment currency');
     expect(posts).toHaveLength(0);
   });
   it('preserves exact six-decimal prices and rejects rounding/unsafe input',()=>{

@@ -98,6 +98,10 @@ export function WalletProvider({children}: {children: ReactNode}) {
   const [walletActionPending, setWalletActionPending] = useState(false);
   const [walletActionLabel, setWalletActionLabel] = useState<string | null>(null);
   const walletActionCountRef = useRef(0);
+  const balanceRequestRef = useRef(0);
+  const activeWalletKey = `${network}:${internalActiveWallet?.id ?? ""}`;
+  const activeWalletKeyRef = useRef(activeWalletKey);
+  activeWalletKeyRef.current = activeWalletKey;
 
   const internalProvider = useMemo(() => getInternalWalletProvider(chain), [chain]);
   const adapters = useMemo(() => createAdaptersForChain(), []);
@@ -203,8 +207,11 @@ export function WalletProvider({children}: {children: ReactNode}) {
       return;
     }
 
+    const request = ++balanceRequestRef.current;
+    const key = `${network}:${internalActiveWallet.id}`;
     const refreshed = await internalProvider.refreshWallet(network, internalActiveWallet.id);
-    setInternalActiveWallet(refreshed);
+    if (request !== balanceRequestRef.current || key !== activeWalletKeyRef.current) return;
+    setInternalActiveWallet(previous => previous?.id === refreshed.id ? {...previous, balances: refreshed.balances} : previous);
     await syncInternalWalletState();
   }, [internalActiveWallet, internalProvider, network, syncInternalWalletState]);
 
@@ -214,7 +221,7 @@ export function WalletProvider({children}: {children: ReactNode}) {
     }
 
     const connected = await internalProvider.activateWallet(network, walletId);
-    setInternalActiveWallet(connected);
+    setInternalActiveWallet(previous => ({...connected, balances: previous?.id === connected.id ? previous.balances : connected.balances}));
     setWalletKind("internal");
     await syncInternalWalletState();
   }, [internalProvider, network, syncInternalWalletState]);
@@ -294,7 +301,7 @@ export function WalletProvider({children}: {children: ReactNode}) {
     }
 
     const unlocked = await internalProvider.unlockWallet(network, internalActiveWallet.id, passphrase);
-    setInternalActiveWallet(unlocked);
+    setInternalActiveWallet(previous => ({...unlocked, balances: previous?.id === unlocked.id ? previous.balances : unlocked.balances}));
     await syncInternalWalletState();
   }, [internalActiveWallet, internalProvider, network, syncInternalWalletState]);
 
@@ -304,7 +311,7 @@ export function WalletProvider({children}: {children: ReactNode}) {
     }
 
     const updated = await internalProvider.changePassphrase(network, internalActiveWallet.id, input);
-    setInternalActiveWallet(updated);
+    setInternalActiveWallet(previous => ({...updated, balances: previous?.id === updated.id ? previous.balances : updated.balances}));
     await syncInternalWalletState();
   }, [internalActiveWallet, internalProvider, network, syncInternalWalletState]);
 
@@ -322,7 +329,7 @@ export function WalletProvider({children}: {children: ReactNode}) {
     }
 
     const updated = await internalProvider.associateToken(network, internalActiveWallet.id, tokenId);
-    setInternalActiveWallet(updated);
+    setInternalActiveWallet(previous => ({...updated, balances: previous?.id === updated.id ? previous.balances : updated.balances}));
     await syncInternalWalletState();
   }, [internalActiveWallet, internalProvider, network, syncInternalWalletState]);
 
@@ -334,7 +341,7 @@ export function WalletProvider({children}: {children: ReactNode}) {
         if (preferredKind === "internal" && internalProvider) {
           const activeWallet = await internalProvider.getActiveWallet(network);
           if (activeWallet) {
-            setInternalActiveWallet(activeWallet);
+            setInternalActiveWallet(previous => ({...activeWallet, balances: previous?.id === activeWallet.id ? previous.balances : activeWallet.balances}));
             setWalletKind("internal");
             await syncInternalWalletState();
             return;
@@ -391,7 +398,7 @@ export function WalletProvider({children}: {children: ReactNode}) {
 
     const activeWallet = await provider.getActiveWallet(network);
     if (activeWallet) {
-      setInternalActiveWallet(activeWallet);
+      setInternalActiveWallet(previous => ({...activeWallet, balances: previous?.id === activeWallet.id ? previous.balances : activeWallet.balances}));
       setWalletKind("internal");
       await syncInternalWalletState();
       return;
@@ -403,7 +410,7 @@ export function WalletProvider({children}: {children: ReactNode}) {
     }
 
     const connected = await provider.activateWallet(network, wallets[0].id);
-    setInternalActiveWallet(connected);
+    setInternalActiveWallet(previous => ({...connected, balances: previous?.id === connected.id ? previous.balances : connected.balances}));
     setWalletKind("internal");
     await syncInternalWalletState();
   }, [chain, network, syncInternalWalletState, walletKind]);

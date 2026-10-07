@@ -50,14 +50,14 @@ export function DeliveryInfoForm({onDeliveryInfoChange, deliveryInfo}: DeliveryI
   }
 
   return (
-    <Card>
-      <CardHeader>
+    <Card className="gap-4 rounded-none border-0 bg-transparent py-0 shadow-none">
+      <CardHeader className="px-0">
         <CardTitle className="flex items-center gap-2">
           <Truck className="h-5 w-5"/>
           Delivery Information
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 px-0">
         {/* No Physical Delivery Switch */}
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">

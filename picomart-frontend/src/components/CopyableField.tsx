@@ -1,4 +1,5 @@
 import React, {useState} from "react";
+import {Copy} from "lucide-react";
 import {truncateString} from "@/lib/cryptoFormat";
 import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,} from "@/components/ui/tooltip";
 
@@ -11,6 +12,7 @@ interface CopyableFieldProps {
     mdLength?: number;
     className?: string;
     copyable?: boolean;
+    showCopyIcon?: boolean;
 }
 
 const CopyableField: React.FC<CopyableFieldProps> = ({
@@ -22,6 +24,7 @@ const CopyableField: React.FC<CopyableFieldProps> = ({
     mdLength = 0,
     className = "",
     copyable = true,
+    showCopyIcon = false,
 }) => {
     const [copied, setCopied] = useState(false);
 
@@ -60,8 +63,9 @@ const CopyableField: React.FC<CopyableFieldProps> = ({
         <button
             type="button"
             onClick={copyToClipboard}
-            className={fieldClassName}
+            className={`${fieldClassName} ${showCopyIcon ? "!inline-flex items-center gap-2" : ""}`}
         >
+            {showCopyIcon && <Copy className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true"/>}
             {fieldContent}
         </button>
     ) : (

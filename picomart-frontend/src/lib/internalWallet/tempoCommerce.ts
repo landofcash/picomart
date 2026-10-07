@@ -208,28 +208,50 @@ export function createTempoCommerceService(options:TempoCommerceOptions) {
         imported.state="uncertain"; await save(key,imported,keys,checkpoint); return summary(imported);
       }));
     },
-    async resumeUpload(wallet:WalletAdapter, orderInput:TempoOrderContext, expected:TempoExpectedMessage):Promise<TempoOperationSummary> {
+    async resumeUpload(wallet:WalletAdapter, orderInput:TempoOrderContext, expected:TempoExpectedMessage, verification:{waitForReady?:boolean; signal?:AbortSignal}={}):Promise<TempoOperationSummary> {
+      if (verification.signal?.aborted) throw new Error("Order preparation was cancelled.");
       const order=TempoOrderContextSchema.parse(orderInput),key=journalKey(order,expected);
       trustedClient();
       return exclusive(key,() => withKeys(wallet,identityFor(order,authorRole(expected)).context,async (keys,checkpoint) => {
+        const check = async () => {
+          if (verification.signal?.aborted) throw new Error("Order preparation was cancelled.");
+          await checkpoint();
+        };
         const stored=await get(key); await checkpoint();
         if (!stored) throw new Error("Prepare and save the message before uploading.");
         const op=await open(stored,order,expected,keys);
         try {
-          await checkpoint();
-          const recovery=await client.recoverUpload(op.item.seed,op.item.creator); await checkpoint();
-          if (recovery.outcome === "active") {
-            await decryptItem(op,authorRole(expected),keys,recovery.item); op.state="active";
-            await save(key,op,keys,checkpoint); return summary(op,true);
+          let uploaded = false;
+          for (let attempt=0; attempt<(verification.waitForReady ? 15 : 1); attempt++) {
+            await check();
+            const recovery=await client.recoverUpload(op.item.seed,op.item.creator); await check();
+            if (recovery.outcome === "active") {
+              await decryptItem(op,authorRole(expected),keys,recovery.item); op.state="active";
+              await save(key,op,keys,check); return summary(op,true);
+            }
+            const justUploaded = recovery.outcome === "not-found" && !uploaded;
+            if (justUploaded) {
+              op.state="uploading"; await save(key,op,keys,check);
+              await check(); await client.upload(op.item); await check();
+              uploaded = true;
+              op.state="pending";
+            } else {
+              op.state=recovery.outcome === "not-found" ? "pending" : recovery.outcome;
+            }
+            await save(key,op,keys,check);
+            if (!verification.waitForReady || op.state !== "pending" || attempt === 14) return summary(op);
+            // Read back immediately after POST. Further checks wait without reposting.
+            if (!justUploaded) await new Promise<void>((resolve,reject) => {
+              const signal=verification.signal;
+              const abort=()=>{clearTimeout(timer);signal?.removeEventListener("abort",abort);reject(new Error("Order preparation was cancelled."));};
+              const timer=setTimeout(()=>{signal?.removeEventListener("abort",abort);resolve();},1000);
+              signal?.addEventListener("abort",abort,{once:true});
+              if (signal?.aborted) abort();
+            });
           }
-          if (recovery.outcome !== "not-found") {
-            op.state=recovery.outcome; await save(key,op,keys,checkpoint); return summary(op);
-          }
-          op.state="uploading"; await save(key,op,keys,checkpoint);
-          await checkpoint(); await client.upload(op.item); await checkpoint();
-          // Even a completed POST requires a subsequent signed-object read-back.
-          op.state="pending"; await save(key,op,keys,checkpoint); return summary(op);
+          return summary(op);
         } catch {
+          if (verification.signal?.aborted) throw new Error("Order preparation was cancelled.");
           op.state="uncertain";
           // A lock invalidates signing work but the pre-request encrypted journal already exists.
           await checkpoint(); await save(key,op,keys,checkpoint);
