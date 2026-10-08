@@ -10,7 +10,7 @@ import { TempoOrderContextSchema, TempoMessagePayloadSchema, createTempoReceivin
 import { createTempoCommerceService, type TempoOperationSummary } from './internalWallet/tempoCommerce';
 import { configuredProofClient } from './internalWallet/tempoRecoveryProof';
 import { createTempoWalletTransactions, tempoWalletRevision, assertTempoWalletRevision } from './internalWallet/providers/tempoInternalWalletProvider';
-import { type TempoContractCall, type TempoTransactionRecord } from './internalWallet/tempoTransactions';
+import { type TempoContractCall, type TempoTransactionRecord, type TempoPaymentQuote, type TempoTransactionOptions } from './internalWallet/tempoTransactions';
 import type { WalletAdapter } from '@/context/wallet/types';
 import {TEMPO_UI_DEPLOYMENT,TEMPO_UI_ENABLED} from './tempoDeployment';
 
@@ -194,15 +194,24 @@ export async function checkoutCall(wallet:WalletAdapter,draft:CheckoutDraft,sign
   const op=await readyReference(wallet,draft.order,'buyer-order',signal);
   return {method:draft.method,args:[draft.input,reference(op)]};
 }
-export async function submitCheckout(wallet:WalletAdapter,draft:CheckoutDraft,selection:CheckoutSelection,approveOnly=false,signal?:AbortSignal,assertApproval?:()=>void):Promise<TempoTransactionRecord|null> {
+async function checkoutSubmission(wallet:WalletAdapter,draft:CheckoutDraft,selection:CheckoutSelection,signal?:AbortSignal,assertApproval?:()=>void) {
   if(draft.selectionHash!==selectionHash(selection))throw new Error('Checkout selection differs from the prepared order.');
   validateCheckoutDraft(draft,selection);
   const call=await checkoutCall(wallet,draft,signal);
   const beforeSign=async()=>{assertApproval?.();validateCheckoutDraft(draft,selection);await revalidateSelection(selection);const verified=await checkoutCall(wallet,draft,signal);assertApproval?.();
     if(marketInterface.encodeFunctionData(call.method,call.args)!==marketInterface.encodeFunctionData(verified.method,verified.args))throw new Error('Prepared references changed.');};
   const options={operationId:draft.operationId,expectedAccount:draft.account,signal,beforeSign};
+  return {call,options};
+}
+export async function submitCheckout(wallet:WalletAdapter,draft:CheckoutDraft,selection:CheckoutSelection,approveOnly=false,signal?:AbortSignal,assertApproval?:()=>void,maximumFeeBaseUnits?:string):Promise<TempoTransactionRecord|null> {
+  const submission=await checkoutSubmission(wallet,draft,selection,signal,assertApproval);
+  const {call}=submission,options={...submission.options,maximumFeeBaseUnits};
   if(approveOnly)return marketTransactions.approvePayment(call,options);
   return call.method==='createOrderPaid'?marketTransactions.payOrder(call,options):marketTransactions.sendContract(call,options);
+}
+export async function submitBuiltinCheckout(wallet:WalletAdapter,draft:CheckoutDraft,selection:CheckoutSelection,quote:TempoPaymentQuote,signal?:AbortSignal,assertApproval?:()=>void,onSaved?:TempoTransactionOptions['onSaved']) {
+  const {call,options}=await checkoutSubmission(wallet,draft,selection,signal,assertApproval);
+  return marketTransactions.payOrderAutomatically(call,quote,{...options,onSaved});
 }
 /** Independently authenticate a reference against its exact successful onchain event. */
 export async function decryptOrderMessage(wallet:WalletAdapter,orderInput:MarketOrder,message:MarketMessage,role:'buyer'|'seller'):Promise<TempoMessagePayload> {

@@ -2,13 +2,15 @@ import {isPaymentCurrency} from '@picomart/config';
 import {AGENT_RESOLVE_PATH,AgentProfileSchema,parseAgentHandoff,validateAgentResolution,decryptAgentDelivery,base64UrlToBytes,canonicalHash,
   type AgentQuote,type AgentHandoff,type AgentProfile,type PicomartDeliveryDetailsV1} from '../../agentProtocol.js';
 import {tempoSeedToId} from '@picomart/order-protocol/tempo-protocol';
-import {marketApi,fetchCatalogProducts,prepareCheckout,submitCheckout,TEMPO_MARKET_ENABLED,type MarketCatalog,type CheckoutSelection} from '@/lib/tempoMarket';
+import {marketApi,fetchCatalogProducts,prepareCheckout,submitBuiltinCheckout,checkoutCall,marketTransactions,TEMPO_MARKET_ENABLED,type MarketCatalog,type CheckoutSelection,type CheckoutDraft} from '@/lib/tempoMarket';
+import type {TempoPaymentQuote,TempoTransactionOptions} from '@/lib/internalWallet/tempoTransactions';
 import {tempoWalletRevision,assertTempoWalletRevision} from '@/lib/internalWallet/providers/tempoInternalWalletProvider';
 import type {WalletAdapter} from '@/context/wallet/types';
 import {assertQuoteExecutable} from './quoteExpiry';
 import {assertCurrentAgentProfile} from './tempoAgentProfile';
 export {installedAgentProfile} from './tempoAgentProfile';
 export type TempoAgentIntent={quote:AgentQuote;delivery:PicomartDeliveryDetailsV1;trustedProfile:AgentProfile};
+export type PreparedTempoAgentOrder={intent:TempoAgentIntent;selection:CheckoutSelection;draft:CheckoutDraft;cost:TempoPaymentQuote};
 export {parseAgentHandoff};
 export async function resolveTempoAgent(handoff:AgentHandoff,profile:AgentProfile,fetcher:typeof fetch=fetch):Promise<TempoAgentIntent>{
   const response=await fetcher(profile.quoteOrigin+AGENT_RESOLVE_PATH,{method:'POST',redirect:'error',headers:{'Content-Type':'application/json'},
@@ -22,7 +24,7 @@ export async function resolveTempoAgent(handoff:AgentHandoff,profile:AgentProfil
   if(await canonicalHash(delivery)!==resolved.quote.delivery.deliveryDetailsHash||!delivery.noPhysicalDelivery!==resolved.quote.delivery.required)throw new Error('Private delivery details do not match the quote.');
   return {quote:resolved.quote,delivery,trustedProfile:AgentProfileSchema.parse(profile)};
 }
-export async function executeTempoAgentOrder(intent:TempoAgentIntent,wallet:WalletAdapter){
+export async function prepareTempoAgentOrder(intent:TempoAgentIntent,wallet:WalletAdapter,signal?:AbortSignal):Promise<PreparedTempoAgentOrder>{
   const guard=()=>{assertCurrentAgentProfile(intent.trustedProfile);assertQuoteExecutable(intent.quote);};
   if(!TEMPO_MARKET_ENABLED)throw new Error('Tempo commerce is not enabled.');guard();
   if(!isPaymentCurrency(intent.quote.payment.asset))throw new Error('Unsupported quoted payment currency.');
@@ -33,6 +35,14 @@ export async function executeTempoAgentOrder(intent:TempoAgentIntent,wallet:Wall
   })};assertTempoWalletRevision(revision);guard();
   const draft=await prepareCheckout(wallet,selection,{...intent.delivery},tempoSeedToId(q.orderSeed),'createOrderPaid');
   assertTempoWalletRevision(revision);guard();
-  const tx=await submitCheckout(wallet,draft,selection,false,undefined,guard);
-  if(!tx?.hash)throw new Error('Payment has no transaction hash yet. Resume it through order recovery.');return tx.hash;
+  signal?.throwIfAborted();
+  const cost=await marketTransactions.estimatePayment(await checkoutCall(wallet,draft,signal));
+  assertTempoWalletRevision(revision);guard();signal?.throwIfAborted();
+  return {intent,selection,draft,cost};
+}
+export async function executeTempoAgentOrder(prepared:PreparedTempoAgentOrder,wallet:WalletAdapter,signal?:AbortSignal,onSaved?:TempoTransactionOptions['onSaved']){
+  const guard=()=>{assertCurrentAgentProfile(prepared.intent.trustedProfile);assertQuoteExecutable(prepared.intent.quote);};
+  if(!TEMPO_MARKET_ENABLED)throw new Error('Tempo commerce is not enabled.');
+  guard();signal?.throwIfAborted();
+  return submitBuiltinCheckout(wallet,prepared.draft,prepared.selection,prepared.cost,signal,guard,onSaved);
 }

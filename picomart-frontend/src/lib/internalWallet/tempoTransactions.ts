@@ -30,9 +30,17 @@ export interface TempoTransactionOptions {
   onSaved?:(transaction:TempoTransactionRecord)=>void;
   /** Revalidate storage references/trusted business terms immediately before signing. */
   beforeSign?:()=>Promise<void>;
+  /** Fee ceiling explicitly reviewed for this transaction, in fee-token base units. */
+  maximumFeeBaseUnits?:string;
 }
 export interface TempoContractCall {method:string;args:readonly unknown[];}
 export interface TempoPaymentRequirements {token:string;spender:string;amount:string;allowance:string;approvalRequired:boolean;}
+export interface TempoPaymentQuote extends TempoPaymentRequirements {
+  account:string; walletId:string; revision:number; deploymentBlock:number; dataHash:string;
+  expiresAt:number; balance:string; feeToken:string; feeBalance:string;
+  approvalMaximumFee:string; paymentMaximumFee:string; maximumFee:string;
+  requiredBalance:string; requiredFeeBalance:string;
+}
 export interface TempoTransactionServiceOptions {
   wallet:TempoTransactionWallet;
   deployment?:()=>TempoDeployment|null;
@@ -161,6 +169,7 @@ export function createTempoTransactionService(options:TempoTransactionServiceOpt
     if(target==='contract'&&(call.method==='createOrderPaid'||call.method==='buyOrder')){const payment=await requirements(session,d,call);await checkpoint();if(payment.approvalRequired)throw new Error("Approve the exact payment in a separate transaction first.");spend=BigInt(payment.amount);spendToken=payment.token;}
     else if(target==='token'&&call.method==='transfer')spend=BigInt(decoded[1]);
     const {gasLimit,fees,maximumFee}=await estimateFee(session.address,to,data,checkpoint);
+    if(opts.maximumFeeBaseUnits!==undefined && (!/^\d+$/.test(opts.maximumFeeBaseUnits) || maximumFee>BigInt(opts.maximumFeeBaseUnits)))throw new Error("Transaction fee exceeds the reviewed limit. Review payment costs again.");
     const balance:bigint=await new Contract(PICOMART_TEMPO_CONFIG.feeToken.tokenId,tempoTokenInterface,rpc).balanceOf(session.address);await checkpoint();
     if(spend>0n&&spendToken!==PICOMART_TEMPO_CONFIG.feeToken.tokenId&&BigInt(await new Contract(spendToken,tempoTokenInterface,rpc).balanceOf(session.address))<spend)throw new Error(`Insufficient ${getCurrency(spendToken).symbol} for payment.`);
     if(balance<maximumFee+(spendToken===PICOMART_TEMPO_CONFIG.feeToken.tokenId?spend:0n))throw new Error(`Insufficient ${PICOMART_TEMPO_CONFIG.feeToken.symbol} for payment and the maximum fee.`);
@@ -178,6 +187,25 @@ export function createTempoTransactionService(options:TempoTransactionServiceOpt
     try{const submitted=await rpc.broadcastTransaction(signed);if(submitted.hash.toLowerCase()!==saved.hash)throw new Error("Broadcast hash mismatch");await rpc.waitForTransaction(saved.hash,1,45_000);return await refresh(saved);}
     catch{try{const recovered=await refresh(saved);if(recovered.state!=='uncertain')return recovered;}catch{/* retain original uncertain intent */}return saved;}
   }
+  async function quotePayment(session:TempoWalletSession,d:TempoDeployment,call:TempoContractCall,checkpoint:()=>Promise<void>):Promise<TempoPaymentQuote> {
+    const payment=await requirements(session,d,call);await checkpoint();
+    const {data}=encode('contract',call);
+    let approvalMaximumFee=0n,paymentMaximumFee:bigint;
+    if(payment.approvalRequired){
+      const approval=await estimateFee(session.address,payment.token,tempoTokenInterface.encodeFunctionData('approve',[d.address,payment.amount]),checkpoint);
+      approvalMaximumFee=approval.maximumFee;
+      // Payment cannot be simulated before allowance exists. Reserve the service's
+      // supported gas ceiling; the actual payment is estimated and capped after approval.
+      paymentMaximumFee=(30_000_000n*approval.fees.maxFeePerGas!+999_999_999_999n)/1_000_000_000_000n;
+    }else paymentMaximumFee=(await estimateFee(session.address,d.address,data,checkpoint)).maximumFee;
+    const feeToken=address(PICOMART_TEMPO_CONFIG.feeToken.tokenId);
+    const balance:bigint=await new Contract(payment.token,tempoTokenInterface,rpc).balanceOf(session.address);await checkpoint();
+    const feeBalance:bigint=payment.token===feeToken?balance:await new Contract(feeToken,tempoTokenInterface,rpc).balanceOf(session.address);await checkpoint();
+    const maximumFee=approvalMaximumFee+paymentMaximumFee;
+    return {...payment,account:session.address,walletId:session.walletId,revision:session.revision,deploymentBlock:d.block,dataHash:keccak256(data),expiresAt:Date.now()+300_000,
+      balance:String(balance),feeToken,feeBalance:String(feeBalance),approvalMaximumFee:String(approvalMaximumFee),paymentMaximumFee:String(paymentMaximumFee),maximumFee:String(maximumFee),
+      requiredBalance:String(BigInt(payment.amount)+(payment.token===feeToken?maximumFee:0n)),requiredFeeBalance:String(maximumFee+(payment.token===feeToken?BigInt(payment.amount):0n))};
+  }
   return {
     ...createTempoTransferService({rpc,wallet:options.wallet}),
     pending,
@@ -187,6 +215,45 @@ export function createTempoTransactionService(options:TempoTransactionServiceOpt
     },
     async recoverOperation(account:string,id:string){const d=selectedDeployment();await checkDeployment(d);if(typeof navigator==="undefined"||!navigator.locks)throw new Error("Web Locks are required for safe receipt recovery.");return navigator.locks.request(`picomart_tempo_transaction_${chain}_${address(account)}`,async()=>{const stored=await get(operationKey(address(account),d.address,operationId(id,128)));return stored?refresh(record(stored,account)):null;});},
     async paymentRequirements(call:TempoContractCall){const d=selectedDeployment(),session=await options.wallet.capture();await options.wallet.assert(session);await checkDeployment(d);const result=await requirements(session,d,call);await options.wallet.assert(session);return result;},
+    async estimatePayment(call:TempoContractCall){
+      const d=selectedDeployment(),session=await options.wallet.capture();session.address=address(session.address);
+      const checkpoint=async()=>{await options.wallet.assert(session);const current=selectedDeployment();if(current.address!==d.address||current.block!==d.block)throw new Error('Payment deployment changed.');};
+      await checkpoint();await checkDeployment(d);await checkpoint();
+      return quotePayment(session,d,call,checkpoint);
+    },
+    async payOrderAutomatically(call:TempoContractCall,quote:TempoPaymentQuote,opts:TempoTransactionOptions){
+      if(!['createOrderPaid','buyOrder'].includes(call.method))throw new Error('Select createOrderPaid or buyOrder for payment.');
+      if(call.method==='createOrderPaid'&&!opts.beforeSign)throw new Error('Provide encrypted message/reference validation before signing this method.');
+      // Preserve the reviewed limits even if the caller updates its UI quote while waiting.
+      quote={...quote};
+      return locked(opts,async(session,d,checkpoint)=>{
+        const {data}=encode('contract',call);
+        const assertQuote=()=>{if(quote.account!==session.address||quote.walletId!==session.walletId||quote.revision!==session.revision||quote.spender!==d.address||quote.deploymentBlock!==d.block||quote.dataHash!==keccak256(data)||quote.feeToken!==address(PICOMART_TEMPO_CONFIG.feeToken.tokenId)||Date.now()>quote.expiresAt)throw new Error('Payment review changed or expired. Prepare and review payment again.');};
+        assertQuote();await bindPayment(session,d,call,opts.operationId);await checkpoint();
+        const paid=await operation(session,d,opts.operationId);await checkpoint();
+        if(paid&&paid.state!=='not-submitted')return sendLocked('contract',call,opts,session,d,checkpoint);
+        const savedApproval=await operation(session,d,`${opts.operationId}:approval`);await checkpoint();
+        if(savedApproval&&savedApproval.state!=='not-submitted'){
+          const recovered=await refresh(savedApproval);await checkpoint();
+          if(recovered.state!=='confirmed'){notify(opts.onSaved,recovered);return recovered;}
+        }
+        const payment=await requirements(session,d,call);await checkpoint();assertQuote();
+        if(payment.token!==quote.token||payment.amount!==quote.amount)throw new Error('Payment terms changed after review.');
+        if(payment.approvalRequired&&!quote.approvalRequired)throw new Error('Payment authorization changed. Prepare and review payment costs again.');
+        if(payment.approvalRequired&&savedApproval?.state==='confirmed')throw new Error('Confirmed approval no longer covers this payment. Review the saved order.');
+        const paymentBalance:bigint=await new Contract(payment.token,tempoTokenInterface,rpc).balanceOf(session.address);await checkpoint();
+        const feeBalance:bigint=payment.token===quote.feeToken?paymentBalance:await new Contract(quote.feeToken,tempoTokenInterface,rpc).balanceOf(session.address);await checkpoint();
+        const remainingFee=BigInt(quote.paymentMaximumFee)+(payment.approvalRequired?BigInt(quote.approvalMaximumFee):0n);
+        if(paymentBalance<BigInt(payment.amount)+(payment.token===quote.feeToken?remainingFee:0n))throw new Error(`Insufficient ${getCurrency(payment.token).symbol} for this payment.`);
+        if(feeBalance<remainingFee+(payment.token===quote.feeToken?BigInt(payment.amount):0n))throw new Error(`Insufficient ${getCurrency(quote.feeToken).symbol} for the reviewed fee limit.`);
+        const beforeSign=async()=>{assertQuote();await opts.beforeSign?.();await checkpoint();assertQuote();};
+        if(payment.approvalRequired){
+          const approval=await sendLocked('token',{method:'approve',args:[d.address,payment.amount]},{...opts,operationId:`${opts.operationId}:approval`,beforeSign,maximumFeeBaseUnits:quote.approvalMaximumFee},session,d,checkpoint,payment.token);
+          await checkpoint();if(approval.state!=='confirmed')return approval;
+        }
+        return sendLocked('contract',call,{...opts,beforeSign,maximumFeeBaseUnits:quote.paymentMaximumFee},session,d,checkpoint);
+      });
+    },
     async estimateNextPayment(call: TempoContractCall) {
       const d = selectedDeployment(),
         session = await options.wallet.capture();

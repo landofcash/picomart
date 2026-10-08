@@ -1,9 +1,9 @@
 import {beforeEach,describe,expect,it,vi} from "vitest";
 import {FeeData,JsonRpcProvider,Network,Transaction,Wallet,keccak256,ZeroAddress} from "ethers";
-const state=vi.hoisted(()=>({db:new Map<string,unknown>(),balance:1_000_000n,allowance:0n,feePreference:"0x0000000000000000000000000000000000000000",chain:42431,code:"0x6000",nonce:7,revision:0,locked:false,receipts:new Map<string,{status:number;blockNumber:number;fee:bigint;from:string;to:string|null}>(),broadcast:"confirmed" as "confirmed"|"uncertain"|"reverted",orderVersion:1,orderToken:'0x20c0000000000000000000000000000000000000'}));
+const state=vi.hoisted(()=>({db:new Map<string,unknown>(),balance:1_000_000n,balances:{} as Record<string,bigint>,allowance:0n,feePreference:"0x0000000000000000000000000000000000000000",chain:42431,code:"0x6000",nonce:7,revision:0,locked:false,receipts:new Map<string,{status:number;blockNumber:number;fee:bigint;from:string;to:string|null}>(),broadcast:"confirmed" as "confirmed"|"uncertain"|"reverted",orderVersion:1,orderToken:'0x20c0000000000000000000000000000000000000'}));
 vi.mock("idb-keyval",()=>({get:async(k:string)=>structuredClone(state.db.get(k)),set:async(k:string,v:unknown)=>{state.db.set(k,structuredClone(v));}}));
 vi.mock("@picomart/order-protocol/tempo-contract",async(importOriginal)=>{const actual=await importOriginal<typeof import("@picomart/order-protocol/tempo-contract")>();const {keccak256:hash}=await import("ethers");return {...actual,PICOMART_TEMPO_BUILD:{...actual.PICOMART_TEMPO_BUILD,runtimeBytecodeHash:hash("0x6000")}};});
-vi.mock("ethers",async(importOriginal)=>{const actual=await importOriginal<typeof import("ethers")>();return {...actual,Contract:class {async userTokens(){return state.feePreference;}async balanceOf(){return state.balance;}async allowance(){return state.allowance;}async getOrder(){return {version:state.orderVersion,priceAmount:10000n,priceToken:state.orderToken};}}};});
+vi.mock("ethers",async(importOriginal)=>{const actual=await importOriginal<typeof import("ethers")>();return {...actual,Contract:class {token:string;constructor(token:string){this.token=token;} async userTokens(){return state.feePreference;}async balanceOf(){return state.balances[this.token.toLowerCase()]??state.balance;}async allowance(){return state.allowance;}async getOrder(){return {version:state.orderVersion,priceAmount:10000n,priceToken:state.orderToken};}}};});
 import {createTempoTransactionService,tempoTokenInterface,type TempoTransactionWallet, type TempoTransactionOptions, type TempoWalletSession} from "./tempoTransactions";
 const privateKey="11".repeat(32),signer=new Wallet(`0x${privateKey}`),account=signer.address;
 const deployment={address:"0x3c91183f0454eab6eff6f570ac402be278dbd6f4",block:37694566};
@@ -18,7 +18,7 @@ const service=()=>createTempoTransactionService({wallet:gateway,rpc,deployment:(
 const opts=(id="test-operation"):TempoTransactionOptions=>({operationId:id,expectedAccount:account,signal:new AbortController().signal});
 let s=service();
 beforeEach(()=>{
- vi.restoreAllMocks();state.db.clear();state.receipts.clear();state.balance=1_000_000n;state.allowance=0n;state.feePreference=ZeroAddress;state.chain=42431;state.code="0x6000";state.nonce=7;state.revision=0;state.locked=false;state.broadcast="confirmed";state.orderVersion=1;state.orderToken='0x20c0000000000000000000000000000000000000';selected=deployment;s=service();
+ vi.restoreAllMocks();state.db.clear();state.receipts.clear();state.balance=1_000_000n;state.balances={};state.allowance=0n;state.feePreference=ZeroAddress;state.chain=42431;state.code="0x6000";state.nonce=7;state.revision=0;state.locked=false;state.broadcast="confirmed";state.orderVersion=1;state.orderToken='0x20c0000000000000000000000000000000000000';selected=deployment;s=service();
  const queues=new Map<string,Promise<unknown>>();vi.stubGlobal("navigator",{locks:{request:<T>(name:string,work:()=>Promise<T>)=>{const next=(queues.get(name)??Promise.resolve()).catch(()=>{}).then(work);queues.set(name,next);return next;}}});
  vi.spyOn(rpc,"getNetwork").mockImplementation(async()=>Network.from(state.chain));vi.spyOn(rpc,"getCode").mockImplementation(async()=>state.code);
  vi.spyOn(rpc,"estimateGas").mockResolvedValue(100000n);vi.spyOn(rpc,"getFeeData").mockResolvedValue(new FeeData(null,1_000_000_000n,0n));
@@ -29,13 +29,106 @@ beforeEach(()=>{
   const signed=raw as string,tx=Transaction.from(signed),hash=keccak256(signed);expect(await s.pending(account)).toMatchObject({hash,state:"uncertain",nonce:tx.nonce});state.nonce++;
   if(state.broadcast==="uncertain")throw new Error("Response lost after submission");
   state.receipts.set(hash,{status:state.broadcast==="confirmed"?1:0,blockNumber:123,fee:100n,from:account,to:tx.to});
-  if(tx.to?.toLowerCase()==="0x20c0000000000000000000000000000000000000"&&state.broadcast==="confirmed"){
+  if(tx.to?.toLowerCase().startsWith("0x20c")&&state.broadcast==="confirmed"){
    const decoded=tempoTokenInterface.parseTransaction({data:tx.data});if(decoded?.name==="approve")state.allowance=BigInt(decoded.args[1]);
   }
   return {hash} as Awaited<ReturnType<typeof rpc.broadcastTransaction>>;
  });
 });
 describe("reusable built-in Tempo transaction service",()=>{
+ it('reviews both transaction fee caps without signing and reserves the payment ceiling before allowance exists',async()=>{
+  const sign=vi.spyOn(gateway,'sign'),quote=await s.estimatePayment({method:'buyOrder',args:['0x'+'01'.repeat(16)]});
+  expect(quote).toMatchObject({approvalRequired:true,approvalMaximumFee:'120',paymentMaximumFee:'30000',maximumFee:'30120',requiredBalance:'40120',requiredFeeBalance:'40120'});
+  expect(sign).not.toHaveBeenCalled();expect(state.db.size).toBe(0);expect(rpc.broadcastTransaction).not.toHaveBeenCalled();
+ });
+ it('approves exactly the reviewed amount and pays under one operation, then recovers without sending twice',async()=>{
+  const call={method:'buyOrder',args:['0x'+'01'.repeat(16)]},quote=await s.estimatePayment(call);
+  const tx=await s.payOrderAutomatically(call,quote,opts());
+  expect(tx).toMatchObject({method:'buyOrder',state:'confirmed'});expect(rpc.broadcastTransaction).toHaveBeenCalledTimes(2);
+  const approved=Transaction.from(vi.mocked(rpc.broadcastTransaction).mock.calls[0][0] as string);
+  expect(tempoTokenInterface.decodeFunctionData('approve',approved.data)[1]).toBe(10000n);
+  state.allowance=0n;state.orderVersion=0;
+  expect((await s.payOrderAutomatically(call,quote,opts())).hash).toBe(tx.hash);expect(rpc.broadcastTransaction).toHaveBeenCalledTimes(2);
+ });
+ it('skips approval when allowance already covers the order and serializes concurrent payment clicks',async()=>{
+  state.allowance=10000n;const call={method:'buyOrder',args:['0x'+'01'.repeat(16)]},quote=await s.estimatePayment(call);
+  expect(quote).toMatchObject({approvalMaximumFee:'0',paymentMaximumFee:'120',maximumFee:'120'});
+  const [a,b]=await Promise.all([s.payOrderAutomatically(call,quote,opts()),s.payOrderAutomatically(call,quote,opts())]);
+  expect(a.hash).toBe(b.hash);expect(rpc.broadcastTransaction).toHaveBeenCalledOnce();
+ });
+ it.each(['uncertain','reverted'] as const)('stops after %s approval and does not resubmit it',async(outcome)=>{
+  const call={method:'buyOrder',args:['0x'+'01'.repeat(16)]},quote=await s.estimatePayment(call);state.broadcast=outcome;
+  expect(await s.payOrderAutomatically(call,quote,opts())).toMatchObject({method:'approve',state:outcome});
+  expect(await s.payOrderAutomatically(call,quote,opts())).toMatchObject({method:'approve',state:outcome});
+  expect(rpc.broadcastTransaction).toHaveBeenCalledOnce();
+ });
+ it('blocks changed order data, account, wallet, expired review and newly required approval',async()=>{
+  state.allowance=10000n;const call={method:'buyOrder',args:['0x'+'01'.repeat(16)]},quote=await s.estimatePayment(call);
+  await expect(s.payOrderAutomatically({...call,args:['0x'+'02'.repeat(16)]},quote,opts())).rejects.toThrow('review changed');
+  await expect(s.payOrderAutomatically(call,{...quote,account:deployment.address},opts())).rejects.toThrow('review changed');
+  await expect(s.payOrderAutomatically(call,{...quote,revision:quote.revision+1},opts())).rejects.toThrow('review changed');
+  await expect(s.payOrderAutomatically(call,{...quote,expiresAt:0},opts())).rejects.toThrow('expired');
+  state.allowance=0n;await expect(s.payOrderAutomatically(call,quote,opts())).rejects.toThrow('authorization changed');
+  expect(rpc.broadcastTransaction).not.toHaveBeenCalled();
+ });
+ it('checks alternate payment funds and PathUSD fee funds separately before approving',async()=>{
+  state.orderToken='0x20c0000000000000000000000000000000000001';
+  state.balances[state.orderToken]=10000n;state.balances['0x20c0000000000000000000000000000000000000']=30119n;
+  const call={method:'buyOrder',args:['0x'+'01'.repeat(16)]},quote=await s.estimatePayment(call);
+  expect(quote).toMatchObject({balance:'10000',feeBalance:'30119',requiredBalance:'10000',requiredFeeBalance:'30120'});
+  await expect(s.payOrderAutomatically(call,quote,opts())).rejects.toThrow('Insufficient PathUSD');expect(rpc.broadcastTransaction).not.toHaveBeenCalled();
+  state.balances['0x20c0000000000000000000000000000000000000']=30120n;
+  expect(await s.payOrderAutomatically(call,quote,opts())).toMatchObject({state:'confirmed',method:'buyOrder'});
+  expect(Transaction.from(vi.mocked(rpc.broadcastTransaction).mock.calls[0][0] as string).to?.toLowerCase()).toBe(state.orderToken);
+ });
+ it('requires a new review if approval fees exceed the cap',async()=>{
+  const call={method:'buyOrder',args:['0x'+'01'.repeat(16)]},quote=await s.estimatePayment(call);
+  vi.mocked(rpc.getFeeData).mockResolvedValue(new FeeData(null,2_000_000_000n,0n));
+  await expect(s.payOrderAutomatically(call,quote,opts())).rejects.toThrow('reviewed limit');expect(rpc.broadcastTransaction).not.toHaveBeenCalled();
+ });
+ it('requires private reference validation for paid creation even in the automatic flow',async()=>{
+  const call={method:'buyOrder',args:['0x'+'01'.repeat(16)]},quote=await s.estimatePayment(call);
+  await expect(s.payOrderAutomatically({method:'createOrderPaid',args:[]},quote,opts())).rejects.toThrow('reference validation');
+  expect(rpc.broadcastTransaction).not.toHaveBeenCalled();
+ });
+ it('stops before payment signing if fees increase past its reviewed cap after approval',async()=>{
+  const call={method:'buyOrder',args:['0x'+'01'.repeat(16)]},quote=await s.estimatePayment(call);
+  const onSaved=(tx:{state:string})=>{if(tx.state==='uncertain')vi.mocked(rpc.getFeeData).mockResolvedValue(new FeeData(null,300_000_000_000n,0n));};
+  await expect(s.payOrderAutomatically(call,quote,{...opts(),onSaved})).rejects.toThrow('reviewed limit');
+  expect(rpc.broadcastTransaction).toHaveBeenCalledOnce();
+ });
+ it('revalidates before each signature and stops if the wallet locks or terms change after approval',async()=>{
+  const call={method:'buyOrder',args:['0x'+'01'.repeat(16)]},quote=await s.estimatePayment(call),beforeSign=vi.fn(async()=>{});
+  beforeSign.mockImplementationOnce(async()=>{}).mockImplementationOnce(async()=>{throw new Error('Order terms changed');});
+  await expect(s.payOrderAutomatically(call,quote,{...opts(),beforeSign})).rejects.toThrow('Order terms changed');
+  expect(beforeSign).toHaveBeenCalledTimes(2);expect(rpc.broadcastTransaction).toHaveBeenCalledOnce();
+ });
+ it('stops on wallet lock after approval and resumes with a fresh review without repeating approval',async()=>{
+  const call={method:'buyOrder',args:['0x'+'01'.repeat(16)]},quote=await s.estimatePayment(call);
+  let checks=0;const beforeSign=async()=>{if(++checks===2)state.locked=true;};
+  await expect(s.payOrderAutomatically(call,quote,{...opts(),beforeSign})).rejects.toThrow('locked');
+  expect(rpc.broadcastTransaction).toHaveBeenCalledOnce();
+  state.locked=false;state.revision++;
+  const refreshed=await s.estimatePayment(call);
+  expect(await s.payOrderAutomatically(call,refreshed,opts())).toMatchObject({state:'confirmed',method:'buyOrder'});
+  expect(rpc.broadcastTransaction).toHaveBeenCalledTimes(2);
+ });
+ it('recovers a formerly uncertain approval and resumes only the remaining payment',async()=>{
+  const call={method:'buyOrder',args:['0x'+'01'.repeat(16)]},quote=await s.estimatePayment(call);state.broadcast='uncertain';
+  const approval=await s.payOrderAutomatically(call,quote,opts());
+  state.receipts.set(approval.hash,{status:1,blockNumber:124,fee:100n,from:account,to:approval.to!});
+  state.allowance=10000n;state.broadcast='confirmed';
+  const refreshed=await s.estimatePayment(call);
+  expect(await s.payOrderAutomatically(call,refreshed,opts())).toMatchObject({state:'confirmed',method:'buyOrder'});
+  expect(rpc.broadcastTransaction).toHaveBeenCalledTimes(2);
+ });
+ it('stops an aborted checkout before payment and preserves the approval receipt for recovery',async()=>{
+  const abort=new AbortController(),call={method:'buyOrder',args:['0x'+'01'.repeat(16)]},quote=await s.estimatePayment(call);
+  let checks=0;const beforeSign=async()=>{if(++checks===2)abort.abort();};
+  await expect(s.payOrderAutomatically(call,quote,{...opts(),signal:abort.signal,beforeSign})).rejects.toThrow();
+  expect(rpc.broadcastTransaction).toHaveBeenCalledOnce();
+  expect(await s.recoverOperation(account,'test-operation:approval')).toMatchObject({state:'confirmed',method:'approve'});
+ });
  it("estimates authorization costs without signing, saving or broadcasting",async()=>{
   const sign=vi.spyOn(gateway,'sign');
   const quote=await s.estimateNextPayment({method:'buyOrder',args:['0x'+'01'.repeat(16)]});

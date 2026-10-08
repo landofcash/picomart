@@ -2,11 +2,12 @@ import {beforeEach,describe,expect,it,vi} from 'vitest';
 import {hexlify,keccak256,toUtf8Bytes} from 'ethers';
 import {createTempoReceivingIdentity,tempoIdToSeed,canonicalJson,createTempoMessageBinding,tempoReferenceCommitment} from '@picomart/order-protocol/tempo-protocol';
 import {marketAddress,receivingContext,catalogLink,parseCatalogLink,validateProducts,validateSelection,catalogs,
-  fetchCatalogProducts,checkoutIntent,prepareCheckout,loadCheckout,submitCheckout,TEMPO_MARKET_DEPLOYMENT,PATH_USD,
+  fetchCatalogProducts,checkoutIntent,prepareCheckout,loadCheckout,submitCheckout,submitBuiltinCheckout,TEMPO_MARKET_DEPLOYMENT,PATH_USD,
   authenticateOrder,verifyOrderTerms,marketInterface,type MarketOrder,type CheckoutSelection,type MarketCatalog} from './tempoMarket';
 import type {WalletAdapter} from '@/context/wallet/types';
+import type {TempoPaymentQuote} from './internalWallet/tempoTransactions';
 
-const state=vi.hoisted(()=>({db:new Map<string,unknown>(),revision:1,readCatalog:vi.fn(),receipt:vi.fn(),order:vi.fn(),fetch:vi.fn(),prepare:vi.fn(),resume:vi.fn(),send:vi.fn(),approve:vi.fn(),pay:vi.fn(),recoverOperation:vi.fn()}));
+const state=vi.hoisted(()=>({db:new Map<string,unknown>(),revision:1,readCatalog:vi.fn(),receipt:vi.fn(),order:vi.fn(),fetch:vi.fn(),prepare:vi.fn(),resume:vi.fn(),send:vi.fn(),approve:vi.fn(),pay:vi.fn(),autoPay:vi.fn(),recoverOperation:vi.fn()}));
 vi.mock('idb-keyval',()=>({get:async(key:string)=>structuredClone(state.db.get(key)),set:async(key:string,value:unknown)=>{state.db.set(key,structuredClone(value));}}));
 vi.mock('./tempoDeployment',()=>({TEMPO_UI_DEPLOYMENT:{address:'0x3c91183f0454eab6eff6f570ac402be278dbd6f4',block:37694566},TEMPO_UI_ENABLED:true}));
 vi.mock('@picomart/order-protocol/tempo-contract',async load=>{
@@ -18,7 +19,7 @@ vi.mock('ethers',async load=>{
   return {...actual,JsonRpcProvider:class {send=async()=> '0xa5bf';getCode=async()=> '0x6000';getTransactionReceipt=state.receipt;},Contract:class {catalogs=state.readCatalog;getOrder=state.order;}};
 });
 vi.mock('./internalWallet/providers/tempoInternalWalletProvider',()=>({
-  createTempoWalletTransactions:()=>({sendContract:state.send,approvePayment:state.approve,payOrder:state.pay,recoverOperation:state.recoverOperation}),
+  createTempoWalletTransactions:()=>({sendContract:state.send,approvePayment:state.approve,payOrder:state.pay,payOrderAutomatically:state.autoPay,recoverOperation:state.recoverOperation}),
   tempoWalletRevision:()=>state.revision,assertTempoWalletRevision:(revision:number)=>{if(revision!==state.revision)throw new Error('Wallet changed.');},
 }));
 vi.mock('./internalWallet/tempoRecoveryProof',()=>({configuredProofClient:()=>({apiOrigin:'https://api.example.test',downloadOrigin:'https://download.example.test'})}));
@@ -43,9 +44,20 @@ beforeEach(()=>{
   state.fetch.mockResolvedValue(response([product]));state.prepare.mockResolvedValue({state:'prepared'});
   state.resume.mockResolvedValue({ready:true,state:'active',expiresAt:new Date(Date.now()+30*86400_000-1000).toISOString(),buyerEnvelope:'buyer-ciphertext',sellerEnvelope:'seller-ciphertext'});
   state.recoverOperation.mockResolvedValue(null);
-  state.pay.mockResolvedValue({hash:'payment',state:'confirmed'});state.send.mockResolvedValue({hash:'initial',state:'confirmed'});state.approve.mockResolvedValue({hash:'approval',state:'confirmed'});
+  state.autoPay.mockResolvedValue({hash:'payment',state:'confirmed'});state.pay.mockResolvedValue({hash:'payment',state:'confirmed'});state.send.mockResolvedValue({hash:'initial',state:'confirmed'});state.approve.mockResolvedValue({hash:'approval',state:'confirmed'});
 });
 describe('Tempo commerce UI boundary',()=>{
+  it('passes the reviewed fee quote to automatic checkout and validates references, terms and consent before signing',async()=>{
+    const draft=await prepareCheckout(wallet,selection,delivery,id,'createOrderPaid');
+    const quote={maximumFee:'120'} as TempoPaymentQuote,guard=vi.fn();
+    await submitBuiltinCheckout(wallet,draft,selection,quote,undefined,guard);
+    expect(state.autoPay).toHaveBeenCalledOnce();expect(state.pay).not.toHaveBeenCalled();expect(state.approve).not.toHaveBeenCalled();
+    const [call,reviewed,options]=state.autoPay.mock.calls[0];
+    expect(call.method).toBe('createOrderPaid');expect(reviewed).toBe(quote);
+    await options.beforeSign();expect(guard).toHaveBeenCalledTimes(2);
+    state.fetch.mockResolvedValue(response([{...product,Price:'10001'}]));
+    await expect(options.beforeSign()).rejects.toThrow(/price changed/);
+  });
   it('compact catalog links select the configured profile without chain or contract fields',()=>{
     const productId=tempoIdToSeed(id),link=catalogLink(catalog.seed,productId,'http://localhost:5173');
     expect(link).toBe('http://localhost:5173/#'+catalog.seed+productId+'2');

@@ -25,6 +25,7 @@ export function wrapWalletAdapterWithWalletAction(adapter: WalletAdapter, opts: 
       sendContract: (...args) => tempoWrite(()=>adapter.tempo!.sendContract(...args)),
       approvePayment: (...args) => tempoWrite(()=>adapter.tempo!.approvePayment(...args)),
       payOrder: (...args) => tempoWrite(()=>adapter.tempo!.payOrder(...args)),
+      payOrderAutomatically: (...args) => tempoWrite(()=>adapter.tempo!.payOrderAutomatically(...args)),
       approve: (...args) => tempoWrite(()=>adapter.tempo!.approve(...args)),
       transfer: (...args) => tempoWrite(()=>adapter.tempo!.transfer(...args)),
       transferToken: (...args) => tempoWrite(()=>adapter.tempo!.transferToken(...args)),

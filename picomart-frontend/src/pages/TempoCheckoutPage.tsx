@@ -13,6 +13,7 @@ import type { TempoMessagePayload } from "@picomart/order-protocol/tempo-protoco
 
 import CatalogIdentity from "@/components/CatalogIdentity";
 import CopyableField from "@/components/CopyableField";
+import TempoPaymentCosts, { paymentQuoteInsufficient } from "@/components/TempoPaymentCosts";
 import {
   DeliveryInfoForm,
   type DeliveryInfo,
@@ -30,6 +31,7 @@ import {
   previewPreparedMessage,
   checkoutCall,
   submitCheckout,
+  submitBuiltinCheckout,
   marketTransactions,
   type CheckoutSelection,
   type CheckoutDraft,
@@ -97,7 +99,7 @@ export default function TempoCheckoutPage({
     [progress, setProgress] = useState(""),
     [receipt, setReceipt] = useState<TempoTransactionRecord | null>(null);
   const [cost, setCost] = useState<Awaited<
-    ReturnType<typeof marketTransactions.estimateNextPayment>
+    ReturnType<typeof marketTransactions.estimatePayment>
   > | null>(null);
   const running = useRef(false),
     controller = useRef<AbortController | null>(null);
@@ -210,7 +212,7 @@ export default function TempoCheckoutPage({
       "buyer-order",
       controller.current?.signal,
     );
-    const requirements = await marketTransactions.estimateNextPayment(
+    const requirements = await marketTransactions.estimatePayment(
       await checkoutCall(wallet.walletAdapter!, d, controller.current?.signal),
     );
     assertTempoWalletRevision(revision);
@@ -219,7 +221,9 @@ export default function TempoCheckoutPage({
     setPreview(decoded);
     setReady(true);
     setProgress(
-      requirements.approvalRequired
+      wallet.walletKind === "internal"
+        ? "Your order is ready. Review the amount and fee limit before paying."
+        : requirements.approvalRequired
         ? "Your order is prepared. Review the amount before authorizing payment."
         : "Your order is ready. Review the amount before completing payment.",
     );
@@ -239,8 +243,23 @@ export default function TempoCheckoutPage({
       await checkoutCall(wallet.walletAdapter!, draft!, controller.current?.signal),
     );
     assertTempoWalletRevision(revision);
+    if (wallet.walletKind === "internal") {
+      if (!cost) throw new Error("Prepare and review payment costs first.");
+      setProgress("Processing payment...");
+      try {
+        const payment = await submitBuiltinCheckout(wallet.walletAdapter!, draft!, selection!, cost, controller.current?.signal, undefined, (tx) => { if (!controller.current?.signal.aborted) setReceipt(tx); });
+        assertTempoWalletRevision(revision);
+        accept(payment);
+      } catch (error) {
+        if (!controller.current?.signal.aborted) {
+          try { await prepare(); } catch { setReady(false); }
+        }
+        throw error;
+      }
+      return;
+    }
     if (requirements.approvalRequired !== approvalRequired) {
-      const refreshed = await marketTransactions.estimateNextPayment(
+      const refreshed = await marketTransactions.estimatePayment(
         await checkoutCall(wallet.walletAdapter!, draft!, controller.current?.signal),
       );
       assertTempoWalletRevision(revision);
@@ -256,10 +275,12 @@ export default function TempoCheckoutPage({
         selection!,
         true,
         controller.current?.signal,
+        undefined,
+        cost?.approvalMaximumFee,
       );
       assertTempoWalletRevision(revision);
       accept(approval);
-      const nextCost = await marketTransactions.estimateNextPayment(
+      const nextCost = await marketTransactions.estimatePayment(
         await checkoutCall(wallet.walletAdapter!, draft!, controller.current?.signal),
       );
       assertTempoWalletRevision(revision);
@@ -275,6 +296,8 @@ export default function TempoCheckoutPage({
         selection!,
         false,
         controller.current?.signal,
+        undefined,
+        cost?.paymentMaximumFee,
       );
       assertTempoWalletRevision(revision);
       accept(payment);
@@ -313,7 +336,7 @@ export default function TempoCheckoutPage({
   const totalLabel = `${formatUnits(amount, currency.decimals)} ${currency.symbol}`;
   const pending = receipt?.state === "uncertain";
   const insufficient =
-    cost !== null && BigInt(cost.balance) < BigInt(cost.requiredBalance);
+    cost !== null && paymentQuoteInsufficient(cost);
   async function checkStatus() {
     if (!draft) return;
     const revision = tempoWalletRevision();
@@ -413,15 +436,15 @@ export default function TempoCheckoutPage({
         <>
           {!success && (
             <ol className="flex gap-2 text-xs" aria-label="Payment progress">
-              {["Prepare", "Authorize", "Pay"].map((step, index) => (
+              {(wallet.walletKind === "internal" ? ["Preparing order", "Processing payment", "Order placed"] : ["Prepare", "Authorize", "Pay"]).map((step, index) => (
                 <li
                   key={step}
                   aria-current={
-                    index === (!ready ? 0 : approvalRequired ? 1 : 2)
+                    index === (!ready ? 0 : wallet.walletKind === "internal" ? 1 : approvalRequired ? 1 : 2)
                       ? "step"
                       : undefined
                   }
-                  className={`flex-1 rounded-lg px-2 py-3 text-center ${index === (!ready ? 0 : approvalRequired ? 1 : 2) ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}
+                  className={`flex-1 rounded-lg px-2 py-3 text-center ${index === (!ready ? 0 : wallet.walletKind === "internal" ? 1 : approvalRequired ? 1 : 2) ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}
                 >
                   {index + 1}. {step}
                 </li>
@@ -438,51 +461,8 @@ export default function TempoCheckoutPage({
               </div>
             </details>
           )}
-          {cost && !success && (
-            <section
-              className="space-y-3 rounded-xl bg-muted/50 p-4 text-sm"
-              aria-label="Payment costs"
-            >
-              <div className="flex justify-between gap-3">
-                <span>Available balance</span>
-                <span>
-                  {formatUnits(cost.balance, currency.decimals)}{" "}
-                  {currency.symbol}
-                </span>
-              </div>
-              <div className="flex justify-between gap-3">
-                <span>Next step fee, up to</span>
-                <span>
-                  {formatUnits(cost.maximumFee, currency.decimals)}{" "}
-                  {currency.symbol}
-                </span>
-              </div>
-              <div className="flex justify-between gap-3 font-semibold">
-                <span>Balance needed now</span>
-                <span>
-                  {formatUnits(cost.requiredBalance, currency.decimals)}{" "}
-                  {currency.symbol}
-                </span>
-              </div>
-              <p className="text-muted-foreground">
-                {approvalRequired
-                  ? "Authorization and payment each have a fee. The payment fee is estimated after authorization."
-                  : "This includes your order and the estimated maximum payment fee."}{" "}
-                Fees are checked again before each transaction.
-              </p>
-              {insufficient && (
-                <p role="alert">
-                  Add {currency.symbol} to your wallet before continuing.{" "}
-                  <Link
-                    className="underline"
-                    to="/wallet?returnTo=%2Fpay-crypto"
-                  >
-                    Receive funds
-                  </Link>
-                </p>
-              )}
-            </section>
-          )}
+          {cost && !success && <TempoPaymentCosts quote={cost} />}
+          {insufficient && !success && <Link className="underline text-sm" to="/wallet?returnTo=%2Fpay-crypto">Receive funds</Link>}
           {loading && (
             <p role="status" className="flex items-center gap-2">
               <Loader2 className="h-5 w-5 animate-spin" />
@@ -554,10 +534,14 @@ export default function TempoCheckoutPage({
                       onClick={() => void run(pay)}
                     >
                       {busy
-                        ? approvalRequired
+                        ? wallet.walletKind === "internal"
+                          ? "Processing payment..."
+                          : approvalRequired
                           ? "Authorizing payment..."
                           : "Confirming payment..."
-                        : approvalRequired
+                        : wallet.walletKind === "internal"
+                          ? `Pay ${totalLabel}`
+                          : approvalRequired
                           ? "Authorize payment"
                           : `Pay ${totalLabel}`}
                     </Button>
@@ -567,7 +551,7 @@ export default function TempoCheckoutPage({
                       Complete delivery information
                     </Link>
                   )}
-                  {ready && approvalRequired && (
+                  {ready && approvalRequired && wallet.walletKind !== "internal" && (
                     <p className="text-sm text-muted-foreground">
                       Authorize the exact order amount first. This step does not
                       place your order or pay the shop.
