@@ -16,6 +16,9 @@ import {
 } from "@/components/ui/card";
 import TempoNetworkSwitch from "@/components/TempoNetworkSwitch";
 import TempoMarketShell from "@/components/TempoMarketShell";
+import { PICOMART_TEMPO_CONFIG } from "@picomart/config";
+import { TokenLabel } from "@/components/TokenAmount";
+import { useTempoAdmin } from "@/hooks/useTempoAdmin";
 
 export default function TempoSettingsPage({
   seller = false,
@@ -23,8 +26,10 @@ export default function TempoSettingsPage({
   seller?: boolean;
 }) {
   const openAccount = useSellerWalletPopup();
+  const { isAdmin } = useTempoAdmin();
   return (
     <TempoMarketShell title="Settings" seller={seller}>
+      {isAdmin && <Button asChild variant="outline"><Link to="/admin/tokens">Token administration<ArrowRight className="h-4 w-4" /></Link></Button>}
       <div className="grid items-start gap-5 md:grid-cols-2">
         <Card>
           <CardHeader>
@@ -58,9 +63,9 @@ export default function TempoSettingsPage({
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            <p className="font-semibold">PathUSD</p>
+            <div className="flex flex-wrap gap-3 font-semibold">{PICOMART_TEMPO_CONFIG.paymentTokens.map(token => <TokenLabel key={token.tokenId} token={token.tokenId} />)}</div>
             <p className="text-sm leading-6 text-muted-foreground">
-              Payments and transaction fees use PathUSD. You review the maximum
+              Choose a supported currency for each catalog. Selling transaction fees use {PICOMART_TEMPO_CONFIG.feeToken.symbol}. You review the maximum
               transaction fee before approving a selling action.
             </p>
           </CardContent>

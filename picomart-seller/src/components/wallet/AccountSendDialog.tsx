@@ -1,10 +1,10 @@
+import TokenAmount from "@/components/TokenAmount";
 import {PICOMART_TEMPO_CONFIG} from '@picomart/config';
 import { useEffect, useRef, useState } from "react";
 import { formatUnits } from "ethers";
 import { useWallet } from "@/context/WalletContext";
 import {
   accountCurrencies,
-  accountCurrency,
   formatAccountBalance,
   transferAmount,
   transferRecipient,
@@ -302,8 +302,7 @@ export default function AccountSendDialog({
             <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-4">
               <p className="text-sm text-muted-foreground">Maximum fee</p>
               <p className="text-sm font-semibold tabular-nums">
-                {formatUnits(fee.maximumFeeBaseUnits, accountCurrency(fee.feeToken ?? DEFAULT_PAYMENT_CURRENCY.tokenId).decimals)}{" "}
-                {fee.feeSymbol ?? DEFAULT_PAYMENT_CURRENCY.symbol}
+                <TokenAmount token={fee.feeToken ?? DEFAULT_PAYMENT_CURRENCY.tokenId} amount={fee.maximumFeeBaseUnits} size={16} />
               </p>
             </div>
           </div>

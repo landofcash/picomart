@@ -32,7 +32,7 @@ export function priceToBaseUnits(token: string | TokenConfig, price: string | nu
 export function priceToDisplayString(tokenType: string, price: number | bigint, displayName = true, network?: NetworkId): string {
   const token = getTokenByType(tokenType, network);
   const formatted = formatBaseUnits(exactBaseUnits(price), token.decimals);
-  return displayName ? `${formatted} ${token.name}` : formatted;
+  return displayName ? `${formatted} ${token.symbol}` : formatted;
 }
 
 export function tryGetTokenByType(tokenType: string, network?: NetworkId) {

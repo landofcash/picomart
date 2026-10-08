@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { TokenLabel } from "./TokenAmount";
 import { PackageSearch } from "lucide-react";
 import { fetchCatalogProducts, type MarketProduct } from "@/lib/tempoMarket";
 
@@ -55,12 +56,13 @@ export default function CatalogSummary({
             ? products.length +
               " " +
               (products.length === 1 ? "product" : "products") +
-              " · PathUSD"
+              " · "
             : failed
               ? "Product preview unavailable. Catalog actions remain available."
               : loadPreview
                 ? "Loading product preview..."
                 : "Published catalog"}
+          {products?.[0] && <TokenLabel token={products[0].PriceToken} size={16} />}
         </p>
         {products && products.length > 1 && (
           <p className="mt-2 line-clamp-2 text-xs leading-5 text-muted-foreground">

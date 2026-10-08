@@ -1,4 +1,5 @@
 import {formatUnits} from 'ethers';
+import {getCurrency} from '@picomart/config';
 import {useState} from 'react';
 import type {TempoMessagePayload} from '@picomart/order-protocol/tempo-protocol';
 import {Download,Eye} from 'lucide-react';
@@ -9,7 +10,8 @@ export default function TempoOrderExports({orderId,message}:{orderId:string;mess
   const [view,setView]=useState<'Text'|'JSON'|null>(null);
   const data=message.data;
   if(!('items' in data))return null;
-  const rows:[string,string][]=[['Order ID',orderId],...Object.entries(data.delivery).map(([label,value]):[string,string]=>[label,String(value??'')]),...data.items.map((item):[string,string]=>[item.name,`${item.quantity} × ${formatUnits(item.unitAmount,6)} PathUSD`])];
+  const currency=getCurrency(data.payment.tokenAddress);
+  const rows:[string,string][]=[['Order ID',orderId],...Object.entries(data.delivery).map(([label,value]):[string,string]=>[label,String(value??'')]),...data.items.map((item):[string,string]=>[item.name,`${item.quantity} × ${formatUnits(item.unitAmount,currency.decimals)} ${currency.symbol}`])];
   const text=rows.map(([label,value])=>`${label}: ${value}`).join('\n');
   const json=JSON.stringify(data,null,2);
   function download(format:'Text'|'JSON'|'CSV'){

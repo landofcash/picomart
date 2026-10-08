@@ -12,6 +12,7 @@ import TempoOrdersPage from './pages/TempoOrdersPage';
 import TempoSettingsPage from './pages/TempoSettingsPage';
 import TempoWalletPage from './pages/TempoWalletPage';
 import TempoContractPage from './pages/TempoContractPage';
+import TempoTokensPage from './pages/admin/TempoTokensPage';
 import {StorefrontSession} from './lib/storefront/session';
 import StorefrontsPage from './pages/StorefrontsPage';
 import StorefrontWorkspacePage from './pages/StorefrontWorkspacePage';
@@ -30,6 +31,7 @@ createRoot(document.getElementById('root')!).render(<StrictMode><ThemeProvider><
   <Route path="/settings" element={<TempoSettingsPage seller/>}/>
   <Route path="/tempo-wallet" element={<TempoWalletPage/>}/>
   <Route path="/tempo-contract" element={<TempoContractPage/>}/>
+  <Route path="/admin/tokens" element={<TempoTokensPage/>}/>
   <Route path="/storefronts" element={<StorefrontSession><StorefrontsPage/></StorefrontSession>}/>
   <Route path="/storefronts/:shopId" element={<StorefrontSession><StorefrontWorkspacePage/></StorefrontSession>}/>
   <Route path="*" element={<Navigate to="/" replace/>}/>

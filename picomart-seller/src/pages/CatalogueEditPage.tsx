@@ -36,6 +36,7 @@ import {
 } from "@/lib/catalogStorage";
 import { useWallet } from "@/context/WalletContext.tsx";
 import TokenIcon from "@/components/TokenIcon";
+import TokenAmount from "@/components/TokenAmount";
 import AccountUnlockButton from "@/components/wallet/AccountUnlockButton";
 import AccountDialog from "@/components/wallet/AccountDialog";
 
@@ -511,15 +512,7 @@ function CatalogueEditPage() {
                           {product.Description}
                         </div>
                         <div className="mt-1 text-sm font-mono flex items-center flex-wrap gap-1">
-                          {formatUnits(product.Price, token.decimals)}{" "}
-                          {token?.img && (
-                            <img
-                              src={token.img}
-                              alt={token.name}
-                              className="inline w-4 h-4 ml-1"
-                            />
-                          )}
-                          {token?.name ?? ""}
+                          <TokenAmount token={product.PriceToken} amount={product.Price} size={16} />
                         </div>
                       </div>
 
@@ -564,20 +557,18 @@ function CatalogueEditPage() {
       {canEditProducts && (
         <Card>
           <CardHeader>
-            <CardTitle>Continue to review</CardTitle>
+            <CardTitle>Continue to Review</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              We upload your products and check their images before you review
-              the catalog. Nothing is published for ordering until you approve
-              publication on the next step.
+              Upload your products and check their images before publishing.
+              Nothing goes live until you approve.
             </p>
             <p role="status" className="text-sm">
               {uploadProgress}
             </p>
             <p className="text-sm text-muted-foreground">
-              Uploading verifies your account access. The publication fee is
-              shown before final approval.
+              You will see the publication fee before final approval.
             </p>
             <AccountUnlockButton />
             <Button

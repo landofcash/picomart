@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { formatUnits, hexlify, keccak256, toUtf8Bytes } from "ethers";
+import { hexlify, keccak256, toUtf8Bytes } from "ethers";
 import { get, set } from "idb-keyval";
 import {
   tempoIdToSeed,
@@ -18,7 +18,7 @@ import { useWallet } from "@/context/WalletContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import CopyableField from "@/components/CopyableField";
-import TokenIcon from "@/components/TokenIcon";
+import TokenAmount, { TokenLabel } from "@/components/TokenAmount";
 import TempoMarketShell from "@/components/TempoMarketShell";
 import TempoActionDialog from "@/components/TempoActionDialog";
 import { useTransactionReview } from "@/components/TransactionReview";
@@ -75,7 +75,7 @@ export default function TempoCatalogsPage({
     children: !embedded && (
       <p className="text-sm">
         {products?.length} {products?.length === 1 ? "product" : "products"} ·
-        PathUSD
+        {products?.[0] && <TokenLabel token={products[0].PriceToken} />}
       </p>
     ),
   });
@@ -263,11 +263,10 @@ export default function TempoCatalogsPage({
             <div className="rounded-xl border border-dashed bg-muted/40 px-4 py-10 text-center">
               <PackageSearch className="h-10 w-10 mx-auto mb-4 text-primary/60" />
               <h2 className="font-semibold">
-                Your first sale starts with a catalog
+                Start with a catalog.
               </h2>
               <p className="mx-auto mt-2 mb-5 max-w-md text-sm leading-6 text-muted-foreground">
-                Add your products, then publish them for your storefront and
-                printed QR codes.
+                Add products, publish your storefront, and generate QR codes.
               </p>
               <Button asChild>
                 <Link to="/edit-product-catalogue">
@@ -413,7 +412,7 @@ export default function TempoCatalogsPage({
             <div className="space-y-4">
               <h3 className="font-semibold">{products.length} products</h3>
               <p className="text-sm text-muted-foreground">
-                Currency: <strong>PathUSD</strong>
+                Currency: {products[0] && <TokenLabel token={products[0].PriceToken} />}
               </p>
               {products.map((p) => (
                 <div
@@ -431,8 +430,7 @@ export default function TempoCatalogsPage({
                       {p.Description}
                     </p>
                     <p className="mt-2 flex items-center gap-2">
-                      <TokenIcon assetId={p.PriceToken} />
-                      {formatUnits(p.Price, 6)} PathUSD
+                      <TokenAmount token={p.PriceToken} amount={p.Price} />
                     </p>
                   </div>
                 </div>

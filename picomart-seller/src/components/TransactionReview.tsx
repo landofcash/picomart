@@ -5,7 +5,8 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { formatUnits } from "ethers";
+import { DEFAULT_PAYMENT_CURRENCY } from "@/config";
+import TokenAmount from "./TokenAmount";
 import { useWallet } from "@/context/WalletContext";
 import type { TempoFeeReview } from "@/lib/internalWallet/tempoTransactions";
 import TempoActionDialog from "./TempoActionDialog";
@@ -80,7 +81,7 @@ export function useTransactionReview({
       <div className="rounded-lg border bg-muted/30 p-4 space-y-2">
         <p className="text-sm">Maximum transaction fee</p>
         <p className="text-lg font-semibold">
-          {formatUnits(quote.maximumFeeBaseUnits, 6)} PathUSD
+          <TokenAmount token={quote.feeToken ?? DEFAULT_PAYMENT_CURRENCY.tokenId} amount={quote.maximumFeeBaseUnits} />
         </p>
         <p className="text-xs text-muted-foreground">
           This is the fee limit for this action. The actual fee may be lower. It

@@ -1,5 +1,21 @@
 import {test, expect} from '@playwright/test';
 import {mockCatalog, pantry} from './catalogMocks';
+import {PICOMART_TEMPO_CONFIG} from '@picomart/config';
+
+test('catalog prices use each configured symbol and load its icon', async ({page}) => {
+  let currency = PICOMART_TEMPO_CONFIG.paymentTokens[0];
+  await mockCatalog(page, {getProducts: () => pantry.products.map(product => ({
+    ...product, PriceToken: currency.tokenId, Price: '1234567',
+  }))});
+  for (const token of PICOMART_TEMPO_CONFIG.paymentTokens) {
+    currency = token;
+    await page.goto(`/${pantry.catalogSeed}?n=moderato&currency=${token.id}`);
+    await expect(page.getByTestId('product-price').first()).toHaveText(`1.234567 ${token.symbol}`);
+    const icon = page.locator(`img[src="${token.img}"]`).first();
+    await expect(icon).toHaveAttribute('alt', `Token ${token.name}`);
+    await expect.poll(() => icon.evaluate(image => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
+  }
+});
 
 test('existing promo seed/query URLs, catalog descriptor and about page still work', async ({page}, info) => {
   await mockCatalog(page);

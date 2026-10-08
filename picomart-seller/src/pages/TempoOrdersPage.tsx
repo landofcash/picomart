@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
-import { formatUnits } from "ethers";
+import TokenAmount from "@/components/TokenAmount";
 import {
   Package,
   ShoppingBag,
@@ -154,7 +154,7 @@ export default function TempoOrdersPage({
                             mdLength={24}
                           />
                           <p className="font-semibold">
-                            {formatUnits(o.priceAmount, 6)} PathUSD
+                            <TokenAmount token={o.priceToken} amount={o.priceAmount} />
                           </p>
                         </div>
                         <div className="flex items-center">

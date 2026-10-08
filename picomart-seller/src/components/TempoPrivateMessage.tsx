@@ -1,4 +1,4 @@
-import { formatUnits } from "ethers";
+import TokenAmount from "./TokenAmount";
 import type { TempoMessagePayload } from "@picomart/order-protocol/tempo-protocol";
 
 export default function TempoPrivateMessage({
@@ -20,7 +20,7 @@ export default function TempoPrivateMessage({
               {item.name} × {item.quantity}
             </span>
             <span className="shrink-0 font-semibold">
-              {formatUnits(item.lineAmount, 6)} PathUSD
+              <TokenAmount token={data.payment.tokenAddress} amount={item.lineAmount} size={18} />
             </span>
           </div>
         ))}

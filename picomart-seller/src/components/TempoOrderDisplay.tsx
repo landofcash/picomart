@@ -1,6 +1,5 @@
-import {getCurrency} from '@picomart/config';
 import { useEffect, useRef, useState } from "react";
-import { formatUnits } from "ethers";
+import TokenAmount from "./TokenAmount";
 import {
   Eye,
   Unlock,
@@ -97,7 +96,7 @@ export default function TempoOrderDisplay({
     children: (
       <div className="space-y-3">
         <p className="text-sm">
-          Order total: {formatUnits(order.priceAmount, getCurrency(order.priceToken).decimals)} {getCurrency(order.priceToken).symbol}
+          Order total: <TokenAmount token={order.priceToken} amount={order.priceAmount} />
         </p>
         {preview && <TempoPrivateMessage message={preview} />}
       </div>
@@ -268,7 +267,7 @@ export default function TempoOrderDisplay({
         ))}
       </div>
       <p className="font-semibold">
-        Total: {formatUnits(order.priceAmount, getCurrency(order.priceToken).decimals)} {getCurrency(order.priceToken).symbol}
+        Total: <TokenAmount token={order.priceToken} amount={order.priceAmount} />
       </p>
       {success && (
         <p

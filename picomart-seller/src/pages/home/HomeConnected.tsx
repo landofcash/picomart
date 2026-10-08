@@ -15,7 +15,7 @@ export default function HomeConnected() {
             Dashboard
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Your products, storefronts, and orders. Ready when you are.
+            Your products, storefronts, and orders.
           </p>
         </div>
         <Button asChild>
