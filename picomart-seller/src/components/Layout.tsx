@@ -1,4 +1,5 @@
 import React from "react";
+import AppVersion from "./AppVersion";
 import Header from "./Header";
 import { Toaster } from "./ui/sonner";
 import { useWallet } from "@/context/WalletContext";
@@ -29,6 +30,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       >
         {children}
       </main>
+      <footer className="px-4 py-2 print:hidden"><AppVersion/></footer>
       <Toaster richColors position="top-center" className="print:hidden" />
 
       {walletActionPending && (

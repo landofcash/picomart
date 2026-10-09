@@ -1,5 +1,7 @@
 :where(.shop-root, .shop-dialog) { color-scheme: light; color: var(--shop-ink, #233b32); font-family: var(--shop-font, system-ui, sans-serif); line-height: 1.6; }
 .shop-root { min-height: 100vh; background: var(--shop-paper, #fcfbf8); }
+.shop-app-version { padding: 8px 16px; text-align: center; font-size: 10px; line-height: 16px; color: var(--shop-muted, #62716a); }
+@media print { .shop-app-version { display: none; } }
 .shop-root *, .shop-dialog * { box-sizing: border-box; }
 .shop-root a, .shop-dialog a { color: inherit; text-decoration: none; }
 .shop-root button, .shop-dialog button { cursor: pointer; font-family: inherit; }

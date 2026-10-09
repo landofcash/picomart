@@ -1,6 +1,7 @@
 import {PICOMART_TEMPO_CONFIG} from '@picomart/config';
+import {version} from '../package.json';
 import type {NetworkId} from './context/wallet/types';
-export const APP_VERSION='1.4.0-tempo.1';
+export const APP_VERSION=version;
 export const APP_NAME='Picomart';
 export const BASE_URL='https://picomart.zkbytes.com';
 export const BASE_APP_URL='https://app.picomart.zkbytes.com';

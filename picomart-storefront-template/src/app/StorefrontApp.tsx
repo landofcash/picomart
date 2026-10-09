@@ -6,6 +6,7 @@ import {ShopContext} from '@/lib/shop/context';
 import type {StorefrontConfig} from '@/lib/shop/schema';
 import {getCatalogMetadataUrl} from '@/lib/syncService';
 import {Button} from '@/components/ui/button';
+import AppVersion from '@/components/AppVersion';
 import {ShopHeader} from '@/storefront/sections/ShopHeader';
 import {ShopFooter} from '@/storefront/sections/ShopFooter';
 import {ShopHomePage} from '@/storefront/pages/ShopHomePage';
@@ -37,7 +38,7 @@ export default function StorefrontApp() {
   if (!config) return <div className="shop-root"><main className="shop-state" aria-live="polite">
     <h1>{error ? 'Shop unavailable' : 'Opening the shop…'}</h1>
     {error && <><p>{error}</p><Button onClick={() => {setError(null); setAttempt(value => value + 1);}}>Try again</Button></>}
-  </main></div>;
+  </main><AppVersion/></div>;
   const path = (route: string) => route;
   return <ShopContext.Provider value={{config, path}}>
     <CatalogProvider key={`${config.network}:${config.catalogSeed}`} seed={config.catalogSeed} network={config.network}>
@@ -55,6 +56,7 @@ export default function StorefrontApp() {
           </Routes>
         </main>
         <ShopFooter/>
+        <AppVersion/>
       </div>
     </CatalogProvider>
   </ShopContext.Provider>;

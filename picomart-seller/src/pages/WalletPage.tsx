@@ -22,6 +22,7 @@ import AccountSendDialog from "@/components/wallet/AccountSendDialog";
 import AccountReceiveDialog from "@/components/wallet/AccountReceiveDialog";
 import { useWallet } from "@/context/WalletContext";
 import { getConfig, DEFAULT_PAYMENT_CURRENCY } from "@/config";
+import AppVersion from "@/components/AppVersion";
 import type {
   InternalWalletBackupItem,
   InternalWalletStatus,
@@ -537,6 +538,7 @@ export default function WalletPage({
             {error}
           </p>
         )}
+        <AppVersion className="pt-2"/>
       </PopoverContent>
       <InternalWalletCreateModal
         open={action === "create"}
