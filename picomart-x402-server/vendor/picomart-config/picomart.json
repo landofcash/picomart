@@ -2,7 +2,8 @@
   "app": {
     "name": "Picomart",
     "buyerUrl": "https://app.picomart.zkbytes.com",
-    "sellerUrl": "https://seller.picomart.zkbytes.com"
+    "sellerUrl": "https://picomart.zkbytes.com",
+    "promoUrl": "https://promo.picomart.zkbytes.com"
   },
   "defaultNetwork": "moderato",
   "networks": {

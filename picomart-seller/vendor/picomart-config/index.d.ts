@@ -11,7 +11,7 @@ export interface EnabledNetwork {
 }
 export interface DisabledNetwork { enabled: false; label: string; modeLabel: string; qrProfile: string; chainId: number | null;
   rpcUrl: string | null; explorerUrl: string | null; contract: EnabledNetwork['contract'] | null; currencies: Record<string, CurrencyConfig>; }
-export interface AppConfig { app: {name: string; buyerUrl: string; sellerUrl: string}; defaultNetwork: string; networks: Record<string, EnabledNetwork | DisabledNetwork>; }
+export interface AppConfig { app: {name: string; buyerUrl: string; sellerUrl: string; promoUrl: string}; defaultNetwork: string; networks: Record<string, EnabledNetwork | DisabledNetwork>; }
 export interface TempoConfig { network: string; chainId: number; rpcUrl: string; explorerUrl: string; label: string; mainnetEnabled: boolean;
   deployment: {address: `0x${string}`; block: number}; tokens: readonly TokenConfig[]; paymentTokens: readonly TokenConfig[];
   defaultPaymentToken: TokenConfig; feeToken: TokenConfig; services: Services; adminAddress: `0x${string}`; }

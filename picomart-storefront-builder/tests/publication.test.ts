@@ -168,6 +168,7 @@ test('public origin must be separate from management and preview applications', 
   assert.throws(() => loadConfig({BUILDER_PUBLIC_ORIGIN: 'http://localhost:5173'}));
   assert.throws(() => loadConfig({BUILDER_PUBLIC_ORIGIN: 'http://127.0.0.1:4181'}));
   assert.throws(() => loadConfig({BUILDER_PUBLIC_ORIGIN: 'https://app.picomart.zkbytes.com'}));
+  assert.throws(() => loadConfig({BUILDER_PUBLIC_ORIGIN: 'https://promo.picomart.zkbytes.com'}));
   assert.equal(loadConfig({BUNNY_PUBLIC_BASE_URL: 'https://fixture.b-cdn.net/'}).publicBaseUrl, 'https://fixture.b-cdn.net');
   assert.throws(() => loadConfig({BUNNY_PUBLIC_BASE_URL: 'https://fixture.b-cdn.net/subpath'}));
 });

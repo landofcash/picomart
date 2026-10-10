@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import express from 'express';
 import axios from 'axios';
 import {Wallet} from 'ethers';
-import {PICOMART_TEMPO_CONFIG} from '@picomart/config';
+import {PICOMART_CONFIG, PICOMART_TEMPO_CONFIG} from '@picomart/config';
 import {createCatalogUploadRouter} from '../routes/api/upload-to-bunny';
 import {CATALOG_CDN,IMAGE_LIMIT,storageConfig,sha256,uploadMessage,authorizeUpload,imageType,catalogBytes,deliveryBytes,storagePath,PATH_USD} from '../catalogStorage';
 
@@ -33,6 +33,14 @@ test('storage configuration uses a validated regional endpoint and explicit stor
   assert.throws(()=>storageConfig({...env,BUNNY_STORAGE_ACCESS_KEY:'',BUNNY_API_KEY:'old-account-key'}));
   assert.throws(()=>storageConfig({...env,BUNNY_STORAGE_ZONE:'../other'}));
   assert.throws(()=>storageConfig({...env,BUNNY_PUBLIC_BASE_URL:'https://evil.test'}));
+});
+
+test('default upload origins accept the seller domain and reject the promo domain',async t=>{
+  const f=await fixture(t),content=JSON.stringify(envelope([product]));
+  const body={content,...await auth('json',Buffer.from(content))};
+  assert.equal((await f.post(body,PICOMART_CONFIG.app.sellerUrl)).status,200);
+  assert.equal((await f.post(body,PICOMART_CONFIG.app.promoUrl)).status,403);
+  assert.equal(f.calls.length,1);
 });
 test('signature binds the exact public upload scope, content, wallet and deadline',async()=>{
   const now=1800000000000,expiry=now+240000,hash=sha256(png);

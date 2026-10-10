@@ -1,4 +1,4 @@
-import {PICOMART_TEMPO_CONFIG} from '@picomart/config';
+import {PICOMART_CONFIG, PICOMART_TEMPO_CONFIG} from '@picomart/config';
 import {z} from 'zod';
 
 export const NetworkSchema = z.enum(['moderato']);
@@ -15,11 +15,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env) {
   if ((env.BUILDER_COORDINATOR_COUNT ?? '1') !== '1') throw new Error('This storage prefix requires exactly one coordinator');
   const prefix = env.BUILDER_STORAGE_PREFIX || 'picomart-tempo-moderato-builder-v2';
   if (prefix === 'picomart-builder-v1' || !/^[a-zA-Z0-9_-]{1,80}$/.test(prefix)) throw new Error('Invalid builder storage prefix');
-  const origins = new Set((env.BUILDER_ORIGINS || 'http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174,https://seller.picomart.zkbytes.com').split(',').map(origin));
+  const origins = new Set((env.BUILDER_ORIGINS || `http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174,${PICOMART_CONFIG.app.sellerUrl}`).split(',').map(origin));
   const previewOrigin = origin(env.BUILDER_PREVIEW_ORIGIN || 'http://127.0.0.1:4181');
-  if (origins.has(previewOrigin) || ['picomart.zkbytes.com', 'app.picomart.zkbytes.com', 'seller.picomart.zkbytes.com'].includes(new URL(previewOrigin).hostname)) throw new Error('Preview origin must be dedicated to generated websites');
+  if (origins.has(previewOrigin) || ['picomart.zkbytes.com', 'app.picomart.zkbytes.com', 'seller.picomart.zkbytes.com', 'promo.picomart.zkbytes.com'].includes(new URL(previewOrigin).hostname)) throw new Error('Preview origin must be dedicated to generated websites');
   const publicOrigin = origin(env.BUILDER_PUBLIC_ORIGIN || 'http://127.0.0.1:4184');
-  if (origins.has(publicOrigin) || publicOrigin === previewOrigin || ['picomart.zkbytes.com', 'app.picomart.zkbytes.com', 'seller.picomart.zkbytes.com'].includes(new URL(publicOrigin).hostname)) throw new Error('Public origin must be dedicated to published websites');
+  if (origins.has(publicOrigin) || publicOrigin === previewOrigin || ['picomart.zkbytes.com', 'app.picomart.zkbytes.com', 'seller.picomart.zkbytes.com', 'promo.picomart.zkbytes.com'].includes(new URL(publicOrigin).hostname)) throw new Error('Public origin must be dedicated to published websites');
   return {
     port: integer('PORT', 4180, 1, 65535), host: env.HOST || '127.0.0.1', prefix,
     requireDeploymentVolume: z.enum(['true', 'false']).parse(env.BUILDER_REQUIRE_DEPLOYMENT_VOLUME ?? 'false') === 'true',

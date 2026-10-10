@@ -1,4 +1,5 @@
 import express from 'express';
+import {PICOMART_CONFIG} from '@picomart/config';
 import multer from 'multer';
 import axios from 'axios';
 import dotenv from 'dotenv';
@@ -19,7 +20,7 @@ export function createCatalogUploadRouter(transport:Transport=axios,env:NodeJS.P
   router.use((req,res,next)=>{
     res.setHeader('Cache-Control','no-store');
     if(env.BUNNY_UPLOAD_ENABLED!=='true')return void res.status(503).json({error:'Catalog uploads are disabled.'});
-    const origins=(env.CATALOG_UPLOAD_ORIGINS||'http://localhost:5173,http://localhost:5174,http://127.0.0.1:5173,http://127.0.0.1:5174,https://seller.picomart.zkbytes.com').split(',').map(s=>s.trim());
+    const origins=(env.CATALOG_UPLOAD_ORIGINS||`http://localhost:5173,http://localhost:5174,http://127.0.0.1:5173,http://127.0.0.1:5174,${PICOMART_CONFIG.app.sellerUrl}`).split(',').map(s=>s.trim());
     if(req.headers.origin&&!origins.includes(req.headers.origin))return void res.status(403).json({error:'Catalog upload origin is not allowed.'});
     try{storageConfig(env);}catch{return void res.status(503).json({error:'Catalog storage configuration is incomplete or invalid.'});}
     if(active>=8)return void res.status(503).json({error:'Catalog uploads are busy. Try again shortly.'});

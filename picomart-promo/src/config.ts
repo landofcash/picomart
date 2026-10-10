@@ -1,10 +1,10 @@
-import {PICOMART_TEMPO_CONFIG} from '@picomart/config';
+import {PICOMART_CONFIG, PICOMART_TEMPO_CONFIG} from '@picomart/config';
 import type {NetworkId} from './context/wallet/types';
 declare const __APP_VERSION__: string;
 export const APP_VERSION=__APP_VERSION__;
 export const APP_NAME='Picomart';
-export const BASE_URL='https://picomart.zkbytes.com';
-export const BASE_APP_URL='https://app.picomart.zkbytes.com';
+export const BASE_URL=PICOMART_CONFIG.app.promoUrl;
+export const BASE_APP_URL=PICOMART_CONFIG.app.buyerUrl;
 export const APP_KEY_PREFIX='PicomartTempoStorefront';
 export const DEFAULT_NETWORK:NetworkId=PICOMART_TEMPO_CONFIG.network as NetworkId;
 export const DEFAULT_CATALOG_SEED='AQEBAQEBAQEBAQEBAQEBAQ';

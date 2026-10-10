@@ -15,6 +15,7 @@ FROM node:24.11.0-bookworm-slim
 WORKDIR /app
 ENV NODE_ENV=production PORT=3000
 COPY --from=build --chown=node:node /app/dist ./dist
+COPY --from=build --chown=node:node /app/vendor/picomart-config ./vendor/picomart-config
 COPY --chown=node:node scripts/serve.mjs ./scripts/serve.mjs
 USER node
 CMD ["node", "scripts/serve.mjs"]

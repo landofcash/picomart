@@ -25,7 +25,7 @@
       "dockerfilePath": "Dockerfile",
       "healthcheckPath": "/healthz",
       "port": 3000,
-      "domain": "seller.picomart.zkbytes.com",
+      "domain": "picomart.zkbytes.com",
       "railwayDomain": "picomart-seller-production.up.railway.app",
       "autoDeploy": true,
       "watchPatterns": [
@@ -39,7 +39,7 @@
       "dockerfilePath": "Dockerfile",
       "healthcheckPath": "/healthz",
       "port": 3000,
-      "domain": "picomart.zkbytes.com",
+      "domain": "promo.picomart.zkbytes.com",
       "railwayDomain": "picomart-promo-production.up.railway.app",
       "autoDeploy": true,
       "watchPatterns": [

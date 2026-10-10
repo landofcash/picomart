@@ -98,6 +98,7 @@ test('preview grants expire, follow session revocation/key changes and cannot be
 test('preview origin configuration rejects application origins and non-local insecure origins', () => {
   assert.throws(() => loadConfig({BUILDER_PREVIEW_ORIGIN: 'http://localhost:5173'}));
   assert.throws(() => loadConfig({BUILDER_PREVIEW_ORIGIN: 'https://app.picomart.zkbytes.com'}));
+  assert.throws(() => loadConfig({BUILDER_PREVIEW_ORIGIN: 'https://promo.picomart.zkbytes.com'}));
   assert.throws(() => loadConfig({BUILDER_PREVIEW_ORIGIN: 'http://preview.example'}));
 });
 

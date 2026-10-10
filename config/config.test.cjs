@@ -28,7 +28,8 @@ test('currencies belong to their network and enabled currencies meet commerce re
 test('invalid defaults, deployment and credential-bearing URLs fail clearly', () => {
   for (const mutate of [c=>c.networks.moderato.defaultPaymentCurrency='missing',
     c=>c.networks.moderato.currencies.pathUSD.accountEnabled=false,
-    c=>c.networks.moderato.contract=null, c=>c.networks.moderato.rpcUrl='https://secret:password@rpc.example']) {
+    c=>c.networks.moderato.contract=null, c=>c.networks.moderato.rpcUrl='https://secret:password@rpc.example',
+    c=>delete c.app.promoUrl, c=>c.app.promoUrl='https://user:password@promo.example']) {
     const c=copy(); mutate(c); assert.throws(()=>validateConfig(c), /Picomart configuration/);
   }
 });

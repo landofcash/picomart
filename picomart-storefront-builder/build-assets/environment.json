@@ -4,7 +4,7 @@
   "checkpointName": null,
   "sdkVersion": "3.11.0",
   "templateVersion": "1.4.0-delivery.1",
-  "sourceDigest": "10e13ef7746fcd803c164d15da0567f0234b392b9885c13eb8124a92ddd49c52",
+  "sourceDigest": "88b3f24682e3fa5e1f7efe0cd0fd0f6f285d39491f10117c20b9cc1c2ed80e74",
   "lockfileSha256": "a7befa6f1f744cff5791bc158da64ac564448663a215cb28f6c3eb25c8f9f5e2",
   "node": "24.11.0",
   "npm": "11.17.0"

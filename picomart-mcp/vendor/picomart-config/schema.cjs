@@ -13,6 +13,7 @@ function validateConfig(value) {
   };
   if (!value?.networks || !own(value.networks, value.defaultNetwork)) fail('defaultNetwork must identify a configured network.');
   url(value.app?.buyerUrl, 'Buyer URL'); url(value.app?.sellerUrl, 'Seller URL');
+  url(value.app?.promoUrl, 'Promo URL');
   const profiles = new Set(), chains = new Set();
   for (const [id, network] of Object.entries(value.networks)) {
     if (typeof network.enabled !== 'boolean' || !network.label || !network.modeLabel) fail(`${id} needs labels and an enabled flag.`);

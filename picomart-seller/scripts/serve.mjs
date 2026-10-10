@@ -4,6 +4,7 @@ import { createReadStream } from 'node:fs';
 import { realpath, stat } from 'node:fs/promises';
 import { dirname, extname, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {PICOMART_CONFIG} from '../vendor/picomart-config/index.mjs';
 
 const root = await realpath(resolve(dirname(fileURLToPath(import.meta.url)), '../dist'));
 await stat(resolve(root, 'index.html'));
@@ -34,6 +35,18 @@ const server = createServer(async (req, res) => {
   try { pathname = decodeURIComponent(new URL(req.url, 'http://localhost').pathname); }
   catch { return reply(400, 'Invalid path'); }
   if (pathname === '/healthz') return reply(200, 'ok');
+  const url = new URL(req.url, 'http://localhost');
+  const hostname = String(req.headers.host || '').split(':')[0].toLowerCase();
+  // Preserve existing seller bookmarks and catalog demo links after the domain switch.
+  // A canonical 16-byte base64url seed has 21 characters plus two final bits.
+  const redirectOrigin = /^\/[A-Za-z0-9_-]{21}[AQgw]\/?$/.test(pathname) &&
+    ['picomart.zkbytes.com', 'seller.picomart.zkbytes.com'].includes(hostname)
+    ? PICOMART_CONFIG.app.promoUrl
+    : hostname === 'seller.picomart.zkbytes.com' ? PICOMART_CONFIG.app.sellerUrl : null;
+  if (redirectOrigin) {
+    res.writeHead(308, {Location: redirectOrigin + url.pathname + url.search, 'Cache-Control': 'no-cache'});
+    return res.end();
+  }
   // Do not expose dotfiles, Windows separators, or files outside the built site.
   if (pathname.includes('\\') || pathname.includes('\0') ||
       pathname.split('/').some(part => part.startsWith('.'))) return reply(404, 'Not found');
