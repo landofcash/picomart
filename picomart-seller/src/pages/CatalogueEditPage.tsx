@@ -188,6 +188,28 @@ function CatalogueEditPage() {
     setIsTokenConfirmed(true);
   };
 
+  const handleDeliverySetChange = (id: string) => {
+    if (!id) {
+      setSelectedDeliverySet('');
+      setDeliveryOptions(null);
+      return;
+    }
+    try {
+      if (!canEditProducts) throw new Error('Choose your catalog currency first.');
+      const preset = defaultDeliveryOptions(id, catalogueToken);
+      const selected = matchingDeliverySets.find(set => set.id === id);
+      if (!preset && !selected) throw new Error('Choose a delivery set matching the catalog currency.');
+      const options = preset ?? publishedDeliverySet(selected!);
+      if (options.currency !== catalogueToken) throw new Error('Delivery fees must use the catalog currency.');
+      setSelectedDeliverySet(id);
+      setDeliveryOptions(structuredClone(options));
+    } catch (error) {
+      setSelectedDeliverySet('');
+      setDeliveryOptions(null);
+      toast.error(error instanceof Error ? error.message : 'Delivery set could not be selected.');
+    }
+  };
+
   const handleImageDrop = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     const file = e.dataTransfer.files?.[0];
@@ -446,9 +468,21 @@ function CatalogueEditPage() {
       {canEditProducts && <section className="space-y-3 rounded-lg border bg-card p-5">
         <div className="flex flex-wrap justify-between gap-2"><h2 className="flex items-center gap-2 text-lg font-semibold"><Truck aria-hidden="true" className="h-5 w-5 text-primary" />Delivery set</h2><Link to="/delivery-options" target="_blank" className="underline">Manage delivery sets</Link></div>
         <p className="text-sm text-muted-foreground">Delivery fees use {selectedCatalogueToken?.name}, the currency selected for this catalog. Only matching saved sets are shown.</p>
-        <label className="block">Delivery set<select className="w-full rounded-md border bg-background px-3 py-2" value={selectedDeliverySet} onChange={e=>{setSelectedDeliverySet(e.target.value);setDeliveryOptions(null);}}><option value="">Choose a delivery set</option><optgroup label="Free defaults">{defaultDeliverySets.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</optgroup>{matchingDeliverySets.length>0&&<optgroup label="Your saved sets">{matchingDeliverySets.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</optgroup>}</select></label>
-        <Button variant="outline" disabled={!selectedDeliverySet||!isTokenConfirmed} onClick={()=>{try{const preset=defaultDeliveryOptions(selectedDeliverySet,catalogueToken);const selected=deliverySets.find(s=>s.id===selectedDeliverySet);if(!preset&&!selected)throw new Error('Choose a delivery set.');const options=preset??publishedDeliverySet(selected!);if(options.currency!==catalogueToken)throw new Error('Choose a delivery set matching the catalog currency.');setDeliveryOptions(structuredClone(options));}catch(e){toast.error((e as Error).message);}}}>Confirm delivery set</Button>
-        {deliveryOptions&&<div className="space-y-2"><p className="text-sm font-medium">Confirmed delivery options</p>{deliveryOptions.methods.map(m=><div key={m.id}><strong>{m.name}</strong><p className="text-sm text-muted-foreground">{m.description}</p>{m.type!=='digital'&&(m.type==='customer-address'?m.services:m.locations).map(o=><p className="text-sm" key={o.id}>{o.name} · {o.amount==='0'?'Free':`${formatUnits(o.amount,selectedCatalogueToken?.decimals??0)} ${selectedCatalogueToken?.name??''}`}{'address' in o?` · ${o.address} · ${'schedule' in o?o.schedule:''}`:''}</p>)}</div>)}</div>}
+        <div className="grid items-start gap-5 lg:grid-cols-2">
+          <label className="block min-w-0 space-y-2">Delivery set<select className="w-full rounded-md border bg-background px-3 py-2" value={selectedDeliverySet} onChange={event=>handleDeliverySetChange(event.target.value)}><option value="">Choose a delivery set</option><optgroup label="Free defaults">{defaultDeliverySets.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</optgroup>{matchingDeliverySets.length>0&&<optgroup label="Your saved sets">{matchingDeliverySets.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</optgroup>}</select></label>
+          {deliveryOptions && <div role="region" aria-label="Delivery options" className="min-w-0 space-y-3 rounded-lg bg-muted/40 p-4">
+            {deliveryOptions.methods.map(method=><div key={method.id} className="space-y-1">
+              <h3 className="break-words text-sm font-semibold">{method.name}</h3>
+              <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">{method.description}</p>
+              {method.type!=='digital' && (method.type==='customer-address' ? method.services : method.locations).map(option=><div key={option.id} className="space-y-1 rounded-md border bg-background p-2 text-sm">
+                <div className="flex flex-wrap items-center justify-between gap-2"><span className="min-w-0 break-words font-medium">{option.name}</span>{option.amount==='0' ? <span>Free</span> : <TokenAmount token={deliveryOptions.currency} amount={option.amount} size={16}/>}</div>
+                {option.description && <p className="whitespace-pre-wrap break-words text-muted-foreground">{option.description}</p>}
+                {'address' in option && typeof option.address==='string' && <p className="whitespace-pre-wrap break-words text-muted-foreground">{option.address}</p>}
+                {'schedule' in option && typeof option.schedule==='string' && option.schedule && <p className="break-words text-muted-foreground">{option.schedule}</p>}
+              </div>)}
+            </div>)}
+          </div>}
+        </div>
       </section>}
       {/* Catalogue Storage Options Info */}
       <Card>
