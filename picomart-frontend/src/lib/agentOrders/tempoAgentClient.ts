@@ -1,8 +1,8 @@
 import {isPaymentCurrency} from '@picomart/config';
 import {AGENT_RESOLVE_PATH,AgentProfileSchema,parseAgentHandoff,validateAgentResolution,decryptAgentDelivery,base64UrlToBytes,canonicalHash,
   type AgentQuote,type AgentHandoff,type AgentProfile,type PicomartDeliveryDetailsV1} from '../../agentProtocol.js';
-import {tempoSeedToId} from '@picomart/order-protocol/tempo-protocol';
-import {marketApi,fetchCatalogProducts,prepareCheckout,submitBuiltinCheckout,checkoutCall,marketTransactions,TEMPO_MARKET_ENABLED,type MarketCatalog,type CheckoutSelection,type CheckoutDraft} from '@/lib/tempoMarket';
+import {tempoSeedToId,tempoFulfillmentSnapshot,canonicalJson,tempoRecipientValid} from '@picomart/order-protocol/tempo-protocol';
+import {marketApi,fetchCatalogDocument,prepareCheckout,submitBuiltinCheckout,checkoutCall,marketTransactions,TEMPO_MARKET_ENABLED,type MarketCatalog,type CheckoutSelection,type CheckoutDraft} from '@/lib/tempoMarket';
 import type {TempoPaymentQuote,TempoTransactionOptions} from '@/lib/internalWallet/tempoTransactions';
 import {tempoWalletRevision,assertTempoWalletRevision} from '@/lib/internalWallet/providers/tempoInternalWalletProvider';
 import type {WalletAdapter} from '@/context/wallet/types';
@@ -21,7 +21,7 @@ export async function resolveTempoAgent(handoff:AgentHandoff,profile:AgentProfil
   if(resolved.quote.orderSeed!==handoff.orderSeed)throw new Error('This quote belongs to another order.');
   const key=base64UrlToBytes(handoff.deliveryKey);let delivery;
   try{delivery=await decryptAgentDelivery(resolved.encryptedDelivery,handoff.orderSeed,key);}finally{key.fill(0);}
-  if(await canonicalHash(delivery)!==resolved.quote.delivery.deliveryDetailsHash||!delivery.noPhysicalDelivery!==resolved.quote.delivery.required)throw new Error('Private delivery details do not match the quote.');
+  if(await canonicalHash(delivery)!==resolved.quote.delivery.deliveryDetailsHash||!delivery.noPhysicalDelivery!==resolved.quote.delivery.required||!tempoRecipientValid(resolved.quote.delivery.snapshot.type,delivery))throw new Error('Private delivery details do not match the quote.');
   return {quote:resolved.quote,delivery,trustedProfile:AgentProfileSchema.parse(profile)};
 }
 export async function prepareTempoAgentOrder(intent:TempoAgentIntent,wallet:WalletAdapter,signal?:AbortSignal):Promise<PreparedTempoAgentOrder>{
@@ -30,7 +30,10 @@ export async function prepareTempoAgentOrder(intent:TempoAgentIntent,wallet:Wall
   if(!isPaymentCurrency(intent.quote.payment.asset))throw new Error('Unsupported quoted payment currency.');
   const revision=tempoWalletRevision(),q=intent.quote,{catalog}=await marketApi<{catalog:MarketCatalog}>('/catalogs/'+q.catalog.seed);
   if(catalog.seller!==q.catalog.sellerEvmAddress||catalog.sellerPublicKey!==q.catalog.sellerPublicKey||catalog.sellerIdentityId!==q.catalog.sellerIdentityId||catalog.catalogUrl!==q.catalog.catalogUrl)throw new Error('The catalog changed; request a new quote.');
-  const products=await fetchCatalogProducts(catalog.catalogUrl),selection:CheckoutSelection={catalog,products:q.items.map(i=>{
+  const loaded=await fetchCatalogDocument(catalog.catalogUrl),products=loaded.products;
+  const f=q.delivery.snapshot,fulfillment=tempoFulfillmentSnapshot(catalog.catalogUrl,loaded.deliveryOptionsUrl,loaded.deliveryOptions,f.methodId,f.optionId);
+  if(canonicalJson(f)!==canonicalJson(fulfillment))throw new Error('Delivery terms changed; request a new quote.');
+  const selection:CheckoutSelection={catalog,fulfillment,products:q.items.map(i=>{
     const product=products.find(p=>p.ProductId===i.productId);if(!product||product.Name!==i.name||product.Price!==i.unitAmount||product.PriceToken!==q.payment.asset)throw new Error('Product terms changed; request a new quote.');return {...product,quantity:i.quantity};
   })};assertTempoWalletRevision(revision);guard();
   const draft=await prepareCheckout(wallet,selection,{...intent.delivery},tempoSeedToId(q.orderSeed),'createOrderPaid');

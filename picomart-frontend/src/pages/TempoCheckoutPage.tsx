@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 
 import TempoMarketShell from "@/components/TempoMarketShell";
 import TempoPrivateMessage from "@/components/TempoPrivateMessage";
-import type { TempoMessagePayload } from "@picomart/order-protocol/tempo-protocol";
+import {tempoRecipientValid,tempoFulfillmentSnapshot,canonicalJson,type TempoMessagePayload} from "@picomart/order-protocol/tempo-protocol";
+import FulfillmentSelector from '@/components/FulfillmentSelector';
 
 import CatalogIdentity from "@/components/CatalogIdentity";
 import CopyableField from "@/components/CopyableField";
@@ -25,6 +26,8 @@ import {
   validateSelection,
   selectionHash,
   checkoutIntent,
+  checkoutInputHash,
+  fetchCatalogDocument,
   loadCheckout,
   commerceService,
   prepareCheckout,
@@ -64,7 +67,7 @@ export default function TempoCheckoutPage({
   const navigate = useNavigate(),
     wallet = useWallet(),
     { details, saveDetails } = useTempoCheckoutDetails();
-  const [selection] = useState<CheckoutSelection | null>(() => {
+  const [selection,setSelection] = useState<CheckoutSelection | null>(() => {
     try {
       return JSON.parse(sessionStorage.getItem(tempoSelectionKey) ?? "null");
     } catch {
@@ -77,7 +80,7 @@ export default function TempoCheckoutPage({
   try {
     if (selection) {
       amount = validateSelection(selection).amount;
-      key = selectionHash(selection);
+      key = selectionHash({catalog:selection.catalog,products:selection.products});
     }
   } catch (e) {
     invalid = tempoTransactionError(e);
@@ -88,6 +91,11 @@ export default function TempoCheckoutPage({
       : PICOMART_TEMPO_CONFIG.defaultPaymentToken.tokenId,
   );
   const delivery = details?.key === key ? details.delivery : blank;
+  const inputIdentity=selection?checkoutInputHash(selection,delivery as unknown as Record<string,unknown>):'';
+  const [published,setPublished]=useState<Awaited<ReturnType<typeof fetchCatalogDocument>>|null>(null);
+  const [catalogError,setCatalogError]=useState(''),[catalogRetry,setCatalogRetry]=useState(0);
+  const catalogUrl=selection?.catalog.catalogUrl;
+  useEffect(()=>{const catalogController=new AbortController();setPublished(null);setCatalogError('');if(catalogUrl)void fetchCatalogDocument(catalogUrl,catalogController.signal).then(setPublished).catch(e=>{if(!catalogController.signal.aborted)setCatalogError((e as Error).message);});return()=>catalogController.abort();},[catalogUrl,catalogRetry]);
   const [id, setId] = useState(""),
     [draft, setDraft] = useState<CheckoutDraft | null>(null),
     [preview, setPreview] = useState<TempoMessagePayload | null>(null),
@@ -134,10 +142,10 @@ export default function TempoCheckoutPage({
     setLoading(Boolean(selection && wallet.walletAddress && !invalid));
     if (selection && wallet.walletAddress && !invalid)
       void (async () => {
-        const next = await checkoutIntent(selection, wallet.walletAddress!);
+        const next = await checkoutIntent(selection, wallet.walletAddress!,false,delivery as unknown as Record<string,unknown>);
         const saved = await loadCheckout(wallet.walletAddress!, next);
         if (saved) {
-          validateCheckoutDraft(saved, selection);
+          validateCheckoutDraft(saved, saved.selection);
           if (saved.method !== "createOrderPaid")
             throw new Error(
               "This saved order uses a different payment flow. Inspect it in contract diagnostics.",
@@ -150,6 +158,7 @@ export default function TempoCheckoutPage({
             )
           : null;
         if (live) {
+          if(tx&&tx.state!=='not-submitted'&&tx.state!=='reverted'&&saved) setSelection(saved.selection);
           setId(next);
           setDraft(saved ?? null);
           accept(tx);
@@ -167,7 +176,7 @@ export default function TempoCheckoutPage({
     };
     // The selected wallet and immutable cart snapshot define the payment operation.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, wallet.walletAddress, wallet.walletLocked]);
+  }, [inputIdentity, wallet.walletAddress, wallet.walletLocked]);
   async function run(action: () => Promise<void>) {
     if (running.current) return;
     running.current = true;
@@ -184,6 +193,8 @@ export default function TempoCheckoutPage({
     }
   }
   async function prepare() {
+    const recovered=draft?await marketTransactions.recoverOperation(draft.account,draft.operationId):null;
+    if(recovered&&recovered.state!=='not-submitted'&&recovered.state!=='reverted'){accept(recovered);return;}
     const revision = tempoWalletRevision();
     const hasMessage =
       draft &&
@@ -247,14 +258,14 @@ export default function TempoCheckoutPage({
       if (!cost) throw new Error("Prepare and review payment costs first.");
       setProgress("Processing payment...");
       try {
-        const payment = await submitBuiltinCheckout(wallet.walletAdapter!, draft!, selection!, cost, controller.current?.signal, undefined, (tx) => { if (!controller.current?.signal.aborted) setReceipt(tx); });
+        const payment = await submitBuiltinCheckout(wallet.walletAdapter!, draft!, selection!, cost, controller.current?.signal, undefined, (savedPayment) => { if (!controller.current?.signal.aborted) setReceipt(savedPayment); });
         assertTempoWalletRevision(revision);
         accept(payment);
-      } catch (error) {
+      } catch (paymentError) {
         if (!controller.current?.signal.aborted) {
           try { await prepare(); } catch { setReady(false); }
         }
-        throw error;
+        throw paymentError;
       }
       return;
     }
@@ -303,20 +314,9 @@ export default function TempoCheckoutPage({
       accept(payment);
     }
   }
-  const valid =
-    delivery.noPhysicalDelivery ||
-    ((
-      [
-        "fullName",
-        "address",
-        "city",
-        "postalCode",
-        "country",
-        "phone",
-        "email",
-      ] as const
-    ).every((field) => delivery[field].trim()) &&
-      /\S+@\S+\.\S+/.test(delivery.email));
+  let deliveryMatches=false;
+  if(published&&selection?.fulfillment){try{const f=selection.fulfillment;deliveryMatches=canonicalJson(f)===canonicalJson(tempoFulfillmentSnapshot(selection.catalog.catalogUrl,published.deliveryOptionsUrl,published.deliveryOptions,f.methodId,f.optionId));}catch{deliveryMatches=false;}}
+  const valid = Boolean(deliveryMatches&&selection?.fulfillment&&tempoRecipientValid(selection.fulfillment.type,delivery)&&delivery.noPhysicalDelivery===(selection.fulfillment.type==='digital'));
   const usable =
     TEMPO_MARKET_ENABLED &&
     wallet.walletAdapter &&
@@ -381,6 +381,8 @@ export default function TempoCheckoutPage({
             </span>
           </div>
         ))}
+        <div className="flex justify-between border-t pt-4 text-sm"><span>Items subtotal</span><span>{formatUnits(validateSelection(selection).subtotal,currency.decimals)} {currency.symbol}</span></div>
+        <div className="flex justify-between text-sm"><span>Delivery fee</span><span>{!selection.fulfillment?'Select delivery':selection.fulfillment.amount==='0'?'Free':`${formatUnits(selection.fulfillment.amount,currency.decimals)} ${currency.symbol}`}</span></div>
         <div className="flex justify-between border-t pt-4 text-lg font-bold">
           <span>Order total</span>
           <span>{totalLabel}</span>
@@ -404,23 +406,32 @@ export default function TempoCheckoutPage({
       {stage === "review" ? (
         <>
           <div className="border-t pt-6">
+            {catalogError?<div role="alert" className="space-y-2"><p>{catalogError}</p><Button variant="outline" onClick={()=>setCatalogRetry(n=>n+1)}>Try again</Button></div>:!published?<p role="status">Loading delivery options…</p>:<fieldset disabled={busy||loading||Boolean(receipt&&receipt.state!=='not-submitted'&&receipt.state!=='reverted'&&!(receipt.state==='confirmed'&&receipt.method==='approve'))} className="space-y-6">
+            {selection.fulfillment&&!deliveryMatches&&<p role="alert">Saved delivery terms differ from this catalogue. Choose your delivery option again.</p>}
+            <FulfillmentSelector catalogUrl={selection.catalog.catalogUrl} optionsUrl={published.deliveryOptionsUrl} options={published.deliveryOptions} value={selection.fulfillment} onChange={fulfillment=>{const next={catalog:selection.catalog,products:selection.products,...(fulfillment?{fulfillment}:{})};setSelection(next);sessionStorage.setItem(tempoSelectionKey,JSON.stringify(next));const kind=fulfillment?.type;saveDetails({key,delivery:{...delivery,noPhysicalDelivery:kind==='digital',...(kind&&kind!=='customer-address'?{address:'',city:'',postalCode:'',country:''}:{}),...(kind==='digital'?{fullName:'',phone:''}:{})}});}}/>
+            {selection.fulfillment&&<>
             <DeliveryInfoForm
+              key={selection.fulfillment.type}
+              method={selection.fulfillment.type}
               deliveryInfo={delivery}
               onDeliveryInfoChange={(value) =>
                 saveDetails({ key, delivery: value })
               }
             />
+            <section className="space-y-2 border-t pt-4"><h2 className="font-semibold">Delivery review</h2><p>{selection.fulfillment.name}{selection.fulfillment.optionName?` · ${selection.fulfillment.optionName}`:''}</p>{selection.fulfillment.address&&<p>{selection.fulfillment.address}</p>}{selection.fulfillment.schedule&&<p>{selection.fulfillment.schedule}</p>}<p className="text-sm text-muted-foreground">Review the recipient fields above before continuing. The shop confirms whether it can fulfill your order.</p></section>
+            </>}
+            </fieldset>}
           </div>
           <section className="border-t pt-6 space-y-3">
             <h2 className="text-lg font-semibold">Payment</h2>
             <p className="text-sm text-muted-foreground">
-              Pay from your Picomart wallet using PathUSD, a digital payment
+              Pay from your Picomart wallet using {currency.name}, a digital payment
               currency. A small network fee also applies.
             </p>
             <Button
               className="w-full"
               size="lg"
-              disabled={!valid}
+              disabled={!valid||loading||Boolean(receipt&&receipt.state!=='not-submitted'&&receipt.state!=='reverted'&&!(receipt.state==='confirmed'&&receipt.method==='approve'))}
               onClick={() => navigate("/pay-crypto")}
             >
               Continue to payment
@@ -430,6 +441,7 @@ export default function TempoCheckoutPage({
                 Complete the required delivery fields to continue.
               </p>
             )}
+            {receipt&&receipt.state!=='not-submitted'&&receipt.state!=='reverted'&&!(receipt.state==='confirmed'&&receipt.method==='approve')&&<Link className="underline" to="/pay-crypto">Check the original payment status</Link>}
           </section>
         </>
       ) : (

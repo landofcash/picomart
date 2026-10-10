@@ -3,6 +3,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import {generateKeyPair,exportJWK} from 'jose';
+import {canonicalJson} from '@picomart/order-protocol/tempo-protocol';
 import {canonicalHash,signQuoteDigest,agentRequestCommitment,agentRequirements,agentConfirmPath,encodeAgentPaymentRequired,decodeAgentPaymentSignature,AGENT_CONTRACT,AGENT_TOKEN} from './agentProtocol.js';
 import {PendingIntentStore} from './intentStore.js';
 import {PicomartOrderFlow} from './orderFlow.js';
@@ -13,7 +14,11 @@ let key:CryptoKey,config:McpConfig;beforeAll(async()=>{const keys=await generate
 async function withFlow(run:(value:{flow:PicomartOrderFlow;store:PendingIntentStore;posts:any[];state:any;directory:string})=>Promise<void>){
   const directory=await fs.mkdtemp(path.join(os.tmpdir(),'picomart-tempo-mcp-')),store=new PendingIntentStore(directory),posts:any[]=[],state:any={now:1700000000,publicOrder:null,confirmationStatus:200,corrupt:false};
   const fetcher=(async(url:any,init:any)=>{
-    const target=String(url);if(target.endsWith('/order-quotes')){
+    const target=String(url);
+    if(target.endsWith('/catalogs/'+f.request.catalogSeed))return Response.json({success:true,data:{chainId:42431,address:AGENT_CONTRACT,throughBlock:37694570,catalog:{seed:f.request.catalogSeed,catalogUrl:f.resolution.quote.catalog.catalogUrl}}});
+    if(target===f.resolution.quote.catalog.catalogUrl)return new Response(canonicalJson(f.catalog));
+    if(target===f.catalog.deliveryOptionsUrl)return new Response(canonicalJson(f.deliveryOptions));
+    if(target.endsWith('/order-quotes')){
       const body=JSON.parse(init.body);posts.push(body);const quote={...structuredClone(f.resolution.quote),orderSeed:body.orderSeed,requestHash:await agentRequestCommitment(body),
         x402:{...f.resolution.quote.x402,resourcePath:agentConfirmPath(body.orderSeed)},delivery:{...f.resolution.quote.delivery,required:body.physicalDelivery,deliveryDetailsHash:body.deliveryDetailsHash,encryptedDeliveryHash:await canonicalHash(body.encryptedDelivery)}};
       const digest=await canonicalHash(quote),jws=await signQuoteDigest(digest,'test',key),required={...f.resolution.paymentRequired,resource:{...f.resolution.paymentRequired.resource,url:config.x402Origin+agentConfirmPath(body.orderSeed)},accepts:[agentRequirements(quote,digest,jws)]};
@@ -28,10 +33,10 @@ async function withFlow(run:(value:{flow:PicomartOrderFlow;store:PendingIntentSt
   const flow=new PicomartOrderFlow(config,store,fetcher,()=>state.now);
   try{await run({flow,store,posts,state,directory});}finally{await fs.rm(directory,{recursive:true,force:true});}
 }
-const input={catalogSeed:f.request.catalogSeed,items:f.request.items,delivery:f.delivery};
+const input={catalogSeed:f.request.catalogSeed,items:f.request.items,delivery:f.delivery,fulfillment:f.request.fulfillment};
 function paid(seed:string){const id='0x'+Buffer.from(seed,'base64url').toString('hex'),buyer=f.order.buyerIdentity.context.account;
-  return {orderId:id,catalogId:'0x'+'01'.repeat(16),seller:f.resolution.quote.catalog.sellerEvmAddress,buyer,payer:buyer,priceAmount:'2500000',priceToken:AGENT_TOKEN,status:2,
-    payment:{transactionHash:'0x'+'ab'.repeat(32),payer:buyer,amount:'2500000',token:AGENT_TOKEN}};}
+  return {orderId:id,catalogId:'0x'+'01'.repeat(16),seller:f.resolution.quote.catalog.sellerEvmAddress,buyer,payer:buyer,priceAmount:'3000000',priceToken:AGENT_TOKEN,status:2,
+    payment:{transactionHash:'0x'+'ab'.repeat(32),payer:buyer,amount:'3000000',token:AGENT_TOKEN}};}
 describe('Tempo MCP handoff and confirmation',()=>{
   it('sends only delivery ciphertext and commitments; keeps the key only in the local URL/QR',async()=>withFlow(async({flow,store,posts,directory})=>{
     const {result,qrBase64}=await flow.create(input),url=new URL(result.approvalUrl),key=new URLSearchParams(url.hash.slice(1)).get('deliveryKey');

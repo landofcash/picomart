@@ -9,6 +9,7 @@ import type {ServerConfig} from './config.js';
 import {SyncClient,fetchCatalog,validateMetadata} from './tempoClients.js';
 import {QuoteRecordSchema,type QuoteStore} from './quoteStore.js';
 import {verifyTempoPayment,ProofPending} from './tempoProof.js';
+import {tempoFulfillmentSnapshot,TempoCatalogError} from '@picomart/order-protocol/tempo-protocol';
 type Dependencies={config:ServerConfig;store:QuoteStore;sync?:Pick<SyncClient,'order'|'catalog'>;fetchCatalog?:typeof fetchCatalog;verifyPayment?:typeof verifyTempoPayment};
 class HttpError extends Error{constructor(public status:number,public code:string,public retryAfter?:number){super(code);}}
 export async function createApp(d:Dependencies){
@@ -28,7 +29,11 @@ export async function createApp(d:Dependencies){
       res.set('PAYMENT-REQUIRED',encodeAgentPaymentRequired(existing.paymentRequired));res.status(402).json({paymentRequired:existing.paymentRequired});return;}
     let metadata;try{if(await sync.order(r.orderSeed))throw new HttpError(409,'seed_conflict');metadata=await sync.catalog(r.catalogSeed);}catch(e){if(e instanceof HttpError)throw e;throw new HttpError(503,'sync_unavailable',config.retrySeconds);}
     if(!metadata)throw new HttpError(404,'catalog_not_found');metadata=validateMetadata(metadata,r.catalogSeed);
-    const catalog=await catalogFetcher(metadata.catalogUrl,config),items=r.items.map(i=>{
+    let loaded;try{loaded=await catalogFetcher(metadata.catalogUrl,config);}catch(error){if(error instanceof TempoCatalogError)throw new HttpError(error.code==='network-failure'?503:422,error.code);throw error;}
+    const catalog=loaded.products;
+    let fulfillment;try{fulfillment=tempoFulfillmentSnapshot(metadata.catalogUrl,loaded.deliveryOptionsUrl,loaded.deliveryOptions,r.fulfillment.methodId,r.fulfillment.optionId);}catch{throw new HttpError(422,'invalid_fulfillment');}
+    if(r.physicalDelivery!==(fulfillment.type!=='digital'))throw new HttpError(422,'invalid_fulfillment');
+    const items=r.items.map(i=>{
       const p=catalog.find(p=>p.ProductId===i.productId);if(!p)throw new HttpError(422,'product_not_found');if(!isPaymentCurrency(p.PriceToken))throw new HttpError(422,'unsupported_asset');
       return {...i,name:p.Name,unitAmount:p.Price,lineAmount:String(BigInt(p.Price)*BigInt(i.quantity))};});
     const selectedTokens=r.items.map(i=>catalog.find(p=>p.ProductId===i.productId)!.PriceToken);
@@ -38,8 +43,8 @@ export async function createApp(d:Dependencies){
     const quote=AgentQuoteSchema.parse({version:2,orderSeed:r.orderSeed,requestHash,network:AGENT_NETWORK,
       x402:{protocolVersion:2,scheme:'picomart-order',schemeVersion:2,resourceMethod:'POST',resourcePath:agentConfirmPath(r.orderSeed),maxTimeoutSeconds:600},
       catalog:{seed:r.catalogSeed,sellerEvmAddress:metadata.seller,sellerPublicKey:metadata.sellerPublicKey,sellerIdentityId:metadata.sellerIdentityId,catalogUrl:metadata.catalogUrl},items,
-      delivery:{required:r.physicalDelivery,optionId:'pilot-seller-arranged',optionName:'Seller-arranged delivery',amount:'0',deliveryDetailsHash:r.deliveryDetailsHash,encryptedDeliveryHash:await canonicalHash(r.encryptedDelivery)},
-      payment:{symbol:currency.symbol,name:currency.name,assetType:'tip20',asset:currency.tokenId,decimals:currency.decimals,payTo:AGENT_CONTRACT,amount:String(items.reduce((s,i)=>s+BigInt(i.lineAmount),0n))},
+      delivery:{required:r.physicalDelivery,snapshot:fulfillment,amount:fulfillment.amount,deliveryDetailsHash:r.deliveryDetailsHash,encryptedDeliveryHash:await canonicalHash(r.encryptedDelivery)},
+      payment:{symbol:currency.symbol,name:currency.name,assetType:'tip20',asset:currency.tokenId,decimals:currency.decimals,payTo:AGENT_CONTRACT,amount:String(items.reduce((s,i)=>s+BigInt(i.lineAmount),BigInt(fulfillment.amount)))},
       picomart:{chainId:PICOMART_TEMPO_CONFIG.chainId,contractAddress:AGENT_CONTRACT},issuedAt,expiresAt});
     const quoteDigest=await canonicalHash(quote),quoteJws=await signQuoteDigest(quoteDigest,config.signingKid,signingKey);
     const paymentRequired=AgentPaymentRequiredSchema.parse({x402Version:2,error:'Browser approval and PAYMENT-SIGNATURE are required',

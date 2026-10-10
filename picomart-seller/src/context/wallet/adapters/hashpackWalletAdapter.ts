@@ -166,11 +166,11 @@ export class HederaWalletConnectAdapter implements WalletAdapter {
 
   async signAndSubmit(transaction: object): Promise<{ hash: string, txId: string, fileId?: string }> {
     await this.ensureInit()
-    const hederaTransaction = transaction as any
+    const hederaTransaction = transaction as Parameters<typeof transactionToBase64String>[0]
     const account = await this.requireAccount()
     const res = await this.dAppConnector.signAndExecuteTransaction({
       signerAccountId: this.formatSignerAccountId(account),
-      transactionList: transactionToBase64String(hederaTransaction as any),
+      transactionList: transactionToBase64String(hederaTransaction),
     })
     console.log(res)
     const result = (res as unknown) as TransactionResponseJSON;
@@ -180,14 +180,17 @@ export class HederaWalletConnectAdapter implements WalletAdapter {
   }
 
   async readFileContents(_fileId: string): Promise<Uint8Array> {
+    void _fileId;
     throw new Error('External Hedera file reads are not configured in seller yet.')
   }
 
   async executeContract(_payload: ContractFunctionPayload): Promise<{ hash: string }> {
+    void _payload;
     throw new Error('External Hedera contract execution is not configured in seller yet.')
   }
 
   async executeBatch(_payloads: TransactionPayload[]): Promise<{ hash: string }> {
+    void _payloads;
     throw new Error('External Hedera batch execution is not configured in seller yet.')
   }
 

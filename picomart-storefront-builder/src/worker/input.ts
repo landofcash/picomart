@@ -1,6 +1,7 @@
 import {isPaymentCurrency} from '@picomart/config';
 import {PICOMART_TEMPO_CONFIG} from '@picomart/config';
 import {z} from 'zod';
+import {loadTempoCatalog} from '@picomart/order-protocol/tempo-protocol';
 import {sha256} from '../storage/bunny.ts';
 import {readOwnedCatalog,PATH_USD} from '../tempo.ts';
 import {StorefrontConfigSchema} from '../domain/public-storefront.ts';
@@ -38,5 +39,6 @@ export async function catalogInput(config: Config, job: GenerationJob, signal: A
   // or credentials, so the coordinator cannot be used to read private network services.
   if (url.protocol !== 'https:' || url.username || url.password || url.port ||
     url.origin !== PICOMART_TEMPO_CONFIG.services.catalogOrigin) throw new Error('Unsupported catalog host; expected Bunny CDN');
-  return parseInput({config: job.config, brief: job.brief, products: await boundedJson(url.href, signal)});
+  const catalog=await loadTempoCatalog(url.href,PICOMART_TEMPO_CONFIG.services.catalogOrigin,fetch,signal);
+  return parseInput({config: job.config, brief: job.brief, products: catalog.products});
 }

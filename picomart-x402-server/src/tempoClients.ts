@@ -1,9 +1,7 @@
 import {isPaymentCurrency} from '@picomart/config';
 import {PICOMART_TEMPO_CONFIG} from '@picomart/config';
-import {z} from 'zod';
-import {createHash} from 'node:crypto';
-import {AGENT_CONTRACT,AGENT_TOKEN,AgentSeedSchema,AgentAmountSchema} from './agentProtocol.js';
-import {tempoSeedToId,createTempoReceivingContext,createTempoReceivingIdentity} from '@picomart/order-protocol/tempo-protocol';
+import {AGENT_CONTRACT,AgentSeedSchema} from './agentProtocol.js';
+import {tempoSeedToId,createTempoReceivingContext,createTempoReceivingIdentity,loadTempoCatalog} from '@picomart/order-protocol/tempo-protocol';
 import type {ServerConfig} from './config.js';
 export type CatalogMetadata={seed:string;catalogId:string;catalogUrl:string;seller:string;sellerPublicKey:string;sellerIdentityId:string};
 export function validateMetadata(value:any,seed:string):CatalogMetadata {
@@ -28,13 +26,8 @@ export class SyncClient {
   async catalog(seed:string){const v=await this.get((PICOMART_TEMPO_CONFIG.services.syncPath + '/catalogs/')+AgentSeedSchema.parse(seed));return v?validateMetadata(v.catalog,seed):null;}
   async order(seed:string){const v=await this.get((PICOMART_TEMPO_CONFIG.services.syncPath + '/orders/')+AgentSeedSchema.parse(seed));return v?.order??null;}
 }
-const productSchema=z.object({ProductId:z.string().regex(/^[A-Za-z0-9_-]{22}$/),PriceToken:z.string().refine(isPaymentCurrency),
-  Price:z.union([z.string(),z.number().int().positive().max(Number.MAX_SAFE_INTEGER)]).transform(String).pipe(AgentAmountSchema),Name:z.string().min(1).max(2000)}).passthrough();
 export async function fetchCatalog(input:string,config:Pick<ServerConfig,'catalogOrigins'|'catalogMaxBytes'>,fetcher:typeof fetch=fetch){
   const url=new URL(input);if(url.origin!==PICOMART_TEMPO_CONFIG.services.catalogOrigin||!config.catalogOrigins.has(url.origin)||url.username||url.password)throw new Error('catalog_url_not_allowed');
-  const response=await fetcher(url,{redirect:'error',signal:AbortSignal.timeout(8000)});if(!response.ok)throw new Error('catalog_unavailable');
-  const bytes=await boundedJson(response,config.catalogMaxBytes),hash=url.pathname.match(/^\/moderato\/v1\/0x[0-9a-f]{40}\/catalogs\/([0-9a-f]{64})\.json$/)?.[1];
-  if(hash&&createHash('sha256').update(bytes).digest('hex')!==hash)throw new Error('catalog_digest_mismatch');
-  const products=z.array(productSchema).min(1).max(1000).parse(JSON.parse(bytes.toString()));
-  if(new Set(products.map(p=>p.ProductId)).size!==products.length)throw new Error('duplicate_products');return products;
+  const catalog=await loadTempoCatalog(input,PICOMART_TEMPO_CONFIG.services.catalogOrigin,fetcher,AbortSignal.timeout(8000),config.catalogMaxBytes);
+  if(!isPaymentCurrency(catalog.deliveryOptions.currency))throw new Error('unsupported_asset');return catalog;
 }

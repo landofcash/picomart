@@ -1,5 +1,39 @@
 {
   "notice": "Synthetic test data only. The published test delivery key is not a real credential.",
+  "catalog": {
+    "version": 2,
+    "deliveryOptionsUrl": "https://cdn.picomart.zkbytes.com/moderato/v1/0x2222222222222222222222222222222222222222/delivery-options/819e02856483a710cd86f30dbea7aa29eebfbaadaac763e98330ab0019c4455a.json",
+    "products": [
+      {
+        "ProductId": "AwMDAwMDAwMDAwMDAwMDAw",
+        "Name": "Test product",
+        "Description": "",
+        "Image": "https://cdn.picomart.zkbytes.com/test.png",
+        "Price": "1250000",
+        "PriceToken": "0x20c0000000000000000000000000000000000000"
+      }
+    ]
+  },
+  "deliveryOptions": {
+    "version": 1,
+    "currency": "0x20c0000000000000000000000000000000000000",
+    "methods": [
+      {
+        "id": "shipping",
+        "type": "customer-address",
+        "name": "Delivery to your address",
+        "description": "",
+        "services": [
+          {
+            "id": "standard",
+            "name": "Standard delivery",
+            "description": "",
+            "amount": "500000"
+          }
+        ]
+      }
+    ]
+  },
   "request": {
     "version": 2,
     "orderSeed": "AgICAgICAgICAgICAgICAg",
@@ -18,7 +52,11 @@
       "version": 2
     },
     "deliveryDetailsHash": "1B6qXV4p4qfar19Zk-SarG0V9duf_dvq7GPBu_ITQuQ",
-    "physicalDelivery": true
+    "physicalDelivery": true,
+    "fulfillment": {
+      "methodId": "shipping",
+      "optionId": "standard"
+    }
   },
   "delivery": {
     "fullName": "Test recipient",
@@ -35,7 +73,7 @@
     "quote": {
       "version": 2,
       "orderSeed": "AgICAgICAgICAgICAgICAg",
-      "requestHash": "Zr6hHLvsdMVHfRpLZCK6c-Bh6sTJfoBtETmFh9Bb7uU",
+      "requestHash": "_yFgpiIT6NBdzbmzVCbfK5iUa9j6EEwY0A1gGxLcJHI",
       "network": "eip155:42431",
       "x402": {
         "protocolVersion": 2,
@@ -50,7 +88,7 @@
         "sellerEvmAddress": "0x2222222222222222222222222222222222222222",
         "sellerPublicKey": "0x0404040404040404040404040404040404040404040404040404040404040404",
         "sellerIdentityId": "0xd46aa5dde914825d550efffb9c18c10e1886339c264d9515c47e1ccd8832eff5",
-        "catalogUrl": "https://cdn.picomart.zkbytes.com/fixture.json"
+        "catalogUrl": "https://cdn.picomart.zkbytes.com/moderato/v1/0x2222222222222222222222222222222222222222/catalogs/c7d6f3ad2b1bcb5dfbdeb05cfa9ae89a17d733029bf882036147ed83fea666e7.json"
       },
       "items": [
         {
@@ -63,16 +101,27 @@
       ],
       "delivery": {
         "required": true,
-        "optionId": "pilot-seller-arranged",
-        "optionName": "Seller-arranged delivery",
-        "amount": "0",
+        "snapshot": {
+          "catalogUrl": "https://cdn.picomart.zkbytes.com/moderato/v1/0x2222222222222222222222222222222222222222/catalogs/c7d6f3ad2b1bcb5dfbdeb05cfa9ae89a17d733029bf882036147ed83fea666e7.json",
+          "deliveryOptionsUrl": "https://cdn.picomart.zkbytes.com/moderato/v1/0x2222222222222222222222222222222222222222/delivery-options/819e02856483a710cd86f30dbea7aa29eebfbaadaac763e98330ab0019c4455a.json",
+          "methodId": "shipping",
+          "type": "customer-address",
+          "name": "Delivery to your address",
+          "description": "",
+          "optionId": "standard",
+          "optionName": "Standard delivery",
+          "optionDescription": "",
+          "amount": "500000",
+          "currency": "0x20c0000000000000000000000000000000000000"
+        },
+        "amount": "500000",
         "deliveryDetailsHash": "1B6qXV4p4qfar19Zk-SarG0V9duf_dvq7GPBu_ITQuQ",
         "encryptedDeliveryHash": "LdnbnojiLv3ekPO6AmHHvh7-Fc2Ni1VEzJfrHYfza2w"
       },
       "payment": {
         "symbol": "PathUSD",
         "name": "PathUSD",
-        "amount": "2500000",
+        "amount": "3000000",
         "payTo": "0x3c91183f0454eab6eff6f570ac402be278dbd6f4",
         "assetType": "tip20",
         "asset": "0x20c0000000000000000000000000000000000000",
@@ -85,8 +134,8 @@
       "issuedAt": 1700000000,
       "expiresAt": 1700000600
     },
-    "quoteDigest": "23EN3kqjsjSH227vGxa8lan07wcDxfEyfLsO1Ja20ic",
-    "quoteJws": "eyJhbGciOiJFZERTQSIsImtpZCI6InN5bnRoZXRpYy10ZW1wby1hZ2VudC1maXh0dXJlIiwidHlwIjoicGljb21hcnQtb3JkZXItcXVvdGUrandzIn0..yBmF-lhrjiIByp_FP2p5G-0vyFhMlzHoig05SzbLN1VvwVESsPNXUjg-1-8uqQoG1ptTASeQnsKWx8fL-wy0Ag",
+    "quoteDigest": "iSX5Dub43EIIfEP5zUM5PKhTBO0RGABuOr18pKiYRyA",
+    "quoteJws": "eyJhbGciOiJFZERTQSIsImtpZCI6InN5bnRoZXRpYy10ZW1wby1hZ2VudC1maXh0dXJlIiwidHlwIjoicGljb21hcnQtb3JkZXItcXVvdGUrandzIn0..a4h-KMo3OinCPOJ0n1atgmWjbAphNU4txHyGAQH7Q2ywoeMq0K4H42ZBXEP6vftp_yUwv-Uc5hlXUBOiOaYMCw",
     "encryptedDelivery": {
       "algorithm": "A256GCM",
       "nonce": "AgICAgICAgICAgIC",
@@ -108,16 +157,16 @@
         {
           "scheme": "picomart-order",
           "network": "eip155:42431",
-          "amount": "2500000",
+          "amount": "3000000",
           "asset": "0x20c0000000000000000000000000000000000000",
           "payTo": "0x3c91183f0454eab6eff6f570ac402be278dbd6f4",
           "maxTimeoutSeconds": 600,
           "extra": {
             "schemeVersion": 2,
             "orderSeed": "AgICAgICAgICAgICAgICAg",
-            "quoteDigest": "23EN3kqjsjSH227vGxa8lan07wcDxfEyfLsO1Ja20ic",
+            "quoteDigest": "iSX5Dub43EIIfEP5zUM5PKhTBO0RGABuOr18pKiYRyA",
             "quotePath": "/api/v2/moderato/order-quotes/resolve",
-            "quoteJws": "eyJhbGciOiJFZERTQSIsImtpZCI6InN5bnRoZXRpYy10ZW1wby1hZ2VudC1maXh0dXJlIiwidHlwIjoicGljb21hcnQtb3JkZXItcXVvdGUrandzIn0..yBmF-lhrjiIByp_FP2p5G-0vyFhMlzHoig05SzbLN1VvwVESsPNXUjg-1-8uqQoG1ptTASeQnsKWx8fL-wy0Ag"
+            "quoteJws": "eyJhbGciOiJFZERTQSIsImtpZCI6InN5bnRoZXRpYy10ZW1wby1hZ2VudC1maXh0dXJlIiwidHlwIjoicGljb21hcnQtb3JkZXItcXVvdGUrandzIn0..a4h-KMo3OinCPOJ0n1atgmWjbAphNU4txHyGAQH7Q2ywoeMq0K4H42ZBXEP6vftp_yUwv-Uc5hlXUBOiOaYMCw"
           }
         }
       ],
@@ -135,7 +184,7 @@
     "trustedQuoteKeys": [
       {
         "kid": "synthetic-tempo-agent-fixture",
-        "publicKey": "1ddgpg6_ip-urz4juKyVJh3ijLbfni_zYlkuq_enezQ"
+        "publicKey": "l7VYDUIhIOXjdRtkYlsE-bjbuKxQcALBhFyNfMUq_1w"
       }
     ]
   },

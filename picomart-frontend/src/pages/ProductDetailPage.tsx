@@ -53,8 +53,8 @@ function ProductDetailPage() {
           setError(errorText)
           return;
         }
-        const productData = await fetchProductBySeed(state.productSeed)
-        if (productData == null) {
+        const loadedProductData = await fetchProductBySeed(state.productSeed)
+        if (loadedProductData == null) {
           const errorText = `Product Catalogue with seed:${state.productSeed} not found.`
           console.error(errorText)
           setError(errorText)
@@ -62,7 +62,7 @@ function ProductDetailPage() {
         }
         let normalizedSellerPubKey: string
         try {
-          normalizedSellerPubKey = normalizePublicKeyBase64(productData.sellerPubKey)
+          normalizedSellerPubKey = normalizePublicKeyBase64(loadedProductData.sellerPubKey)
         } catch (keyError) {
           const errorText = keyError instanceof Error ? keyError.message : 'Seller public key is invalid.'
           console.error(errorText)
@@ -70,10 +70,10 @@ function ProductDetailPage() {
           return
         }
         setProductData({
-          ...productData,
+          ...loadedProductData,
           sellerPubKey: normalizedSellerPubKey,
         })
-        const catalogueResponse = await fetch(productData.productsUrl)
+        const catalogueResponse = await fetch(loadedProductData.productsUrl)
         if (!catalogueResponse.ok) {
           const errorText = `Failed to fetch catalogue: ${catalogueResponse.status} ${catalogueResponse.statusText}`
           console.error(errorText)

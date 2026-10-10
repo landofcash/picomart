@@ -27,6 +27,7 @@ import {setInternalWalletUnlockHandler} from "@/lib/internalWallet/unlockGate.ts
 import InternalWalletUnlockDialog from "@/components/wallet/InternalWalletUnlockDialog";
 
 function createAdaptersForChain(chain: ChainId, _network: NetworkId): WalletAdapter[] {
+  void _network;
   if (chain !== "hedera") {
     return [];
   }
@@ -695,4 +696,3 @@ export function useWallet() {
   }
   return context;
 }
-

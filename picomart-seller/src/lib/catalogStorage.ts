@@ -1,4 +1,5 @@
-import {PICOMART_TEMPO_CONFIG,isPaymentCurrency} from '@picomart/config';
+import {PICOMART_TEMPO_CONFIG,isPaymentCurrency,getCurrency} from '@picomart/config';
+import {TempoDeliveryOptionsSchema, TempoSeedSchema, type TempoDeliveryOptions, canonicalJson} from '@picomart/order-protocol/tempo-protocol';
 import {hexlify,parseUnits,verifyMessage} from 'ethers';
 import type {WalletAdapter} from '@/context/wallet/types';
 import {tempoWalletRevision,assertTempoWalletRevision} from './internalWallet/providers/tempoInternalWalletProvider';
@@ -7,10 +8,11 @@ export const CATALOG_CDN=PICOMART_TEMPO_CONFIG.services.catalogOrigin;
 export const IMAGE_LIMIT=10*1024*1024;
 export interface PublicProduct {ProductId:string;Name:string;Description:string;Price:string;PriceToken:string;Image:string;}
 export type DraftProduct=PublicProduct&{LocalFile?:File};
-export function pathUsdPrice(value:string) {
-  if(!/^\d+(\.\d{1,6})?$/.test(value))throw new Error('Use a positive price with up to six decimal places.');
-  const amount=parseUnits(value,6);
-  if(amount<=0n||amount>2n**256n-1n)throw new Error('Price is outside the supported PathUSD range.');
+export function currencyAmount(value:string, token:string, allowZero=false) {
+  const decimals=getCurrency(token).decimals;
+  if(!/^\d+(\.\d+)?$/.test(value))throw new Error('Enter a valid amount.');
+  const amount=parseUnits(value,decimals);
+  if(amount<0n||(!allowZero&&amount===0n)||amount>=2n**256n)throw new Error('Amount is outside the supported range.');
   return amount.toString();
 }
 export function validateImage(file:File) {
@@ -21,7 +23,7 @@ export async function sha256(bytes:Uint8Array) {
   const hash=await crypto.subtle.digest('SHA-256',new Uint8Array(bytes));
   return hexlify(new Uint8Array(hash)).slice(2);
 }
-export function uploadMessage(account:string,kind:'image'|'json',hash:string,expiresAt:number) {
+export function uploadMessage(account:string,kind:'image'|'json'|'delivery',hash:string,expiresAt:number) {
   return `Picomart public catalog upload\nVersion: 1\nChain ID: ${PICOMART_TEMPO_CONFIG.chainId}\nContract: 0x3c91183f0454eab6eff6f570ac402be278dbd6f4\nCDN: ${CATALOG_CDN}\nAccount: ${account}\nKind: ${kind}\nSHA256: ${hash}\nExpires at: ${expiresAt}`;
 }
 async function bytesFromResponse(response:Response,limit:number) {
@@ -36,7 +38,9 @@ export async function verifyPublishedContent(url:string,hash:string,limit:number
   const bytes=await bytesFromResponse(await fetch(url,{redirect:'error',cache:'no-store',signal}),limit);
   if(await sha256(bytes)!==hash)throw new Error('Published CDN content differs from the signed upload. Retry the same content.');
 }
-export async function uploadCatalog(wallet:WalletAdapter,api:string,products:readonly DraftProduct[],signal?:AbortSignal,progress:(message:string)=>void=()=>{}) {
+export async function uploadCatalog(wallet:WalletAdapter,api:string,products:readonly DraftProduct[],delivery:TempoDeliveryOptions,signal?:AbortSignal,progress:(message:string)=>void=()=>{}) {
+  const options=TempoDeliveryOptionsSchema.parse(delivery);
+  if(!isPaymentCurrency(options.currency)||products.some(p=>p.PriceToken!==options.currency))throw new Error('Delivery fees must use the catalogue currency.');
   const revision=tempoWalletRevision(),account=(await wallet.getAddress())?.toLowerCase();
   if(wallet.chain!=='tempo'||await wallet.getNetwork?.()!== PICOMART_TEMPO_CONFIG.network||!account||!/^0x[0-9a-f]{40}$/.test(account))throw new Error('Select your Picomart account in Demo mode first.');
   const assertWallet=async()=>{signal?.throwIfAborted();assertTempoWalletRevision(revision);if((await wallet.getAddress())?.toLowerCase()!==account)throw new Error('Wallet changed during catalog upload.');};
@@ -48,12 +52,12 @@ export async function uploadCatalog(wallet:WalletAdapter,api:string,products:rea
   // Validate all products before the first storage write.
   const ids=new Set<string>();
   for(const p of products){
-    if(!p.ProductId||p.ProductId.length>100||ids.has(p.ProductId)||!p.Name.trim()||p.Name.length>60||p.Description.length>320||
+    if(!TempoSeedSchema.safeParse(p.ProductId).success||ids.has(p.ProductId)||!p.Name.trim()||p.Name.length>60||p.Description.length>320||
       !/^[1-9][0-9]{0,77}$/.test(p.Price)||BigInt(p.Price)>2n**256n-1n||!isPaymentCurrency(p.PriceToken))throw new Error('Invalid product terms or unsupported payment currency.');
     ids.add(p.ProductId);if(p.LocalFile)validateImage(p.LocalFile);
     else if(!new RegExp(`^${CATALOG_CDN.replaceAll('.','\\.')}/moderato/v1/${account}/images/[0-9a-f]{64}\\.(png|jpg|gif|webp)$`).test(p.Image))throw new Error('Re-upload images with the selected seller wallet.');
   }
-  async function publish(kind:'image'|'json',bytes:Uint8Array,file?:File) {
+  async function publish(kind:'image'|'json'|'delivery',bytes:Uint8Array,file?:File) {
     await assertWallet();const hash=await sha256(bytes),expiresAt=Date.now()+240_000,message=uploadMessage(account!,kind,hash,expiresAt);
     const signature=hexlify(await wallet.signMessage(message));await assertWallet();
     if(verifyMessage(message,signature).toLowerCase()!==account)throw new Error('Upload signature does not match this wallet.');
@@ -61,12 +65,12 @@ export async function uploadCatalog(wallet:WalletAdapter,api:string,products:rea
     let body:FormData|string;
     if(kind==='image'){const form=new FormData();form.append('file',file!);for(const [key,value] of Object.entries(auth))form.append(key,String(value));body=form;}
     else body=JSON.stringify({...auth,content:new TextDecoder().decode(bytes)});
-    const response=await fetch(`${api}/${kind}`,{method:'POST',redirect:'error',signal,headers:kind==='json'?{'Content-Type':'application/json'}:undefined,body});
+    const response=await fetch(`${api}/${kind==='delivery'?'delivery-options':kind}`,{method:'POST',redirect:'error',signal,headers:kind!=='image'?{'Content-Type':'application/json'}:undefined,body});
     const result=await response.json();await assertWallet();
     if(!response.ok||!result.success||result.version!==1||result.sha256!==hash)throw new Error(typeof result.error==='string'?result.error:'Catalog upload failed.');
-    const folder=kind==='image'?'images':'catalogs';
-    if(typeof result.url!=='string'||!new RegExp(`^${CATALOG_CDN.replaceAll('.','\\.')}/moderato/v1/${account}/${folder}/${hash}\\.${kind==='json'?'json':'(png|jpg|gif|webp)'}$`).test(result.url))throw new Error('Unexpected published content URL.');
-    await verifyPublishedContent(result.url,hash,kind==='json'?1_000_000:IMAGE_LIMIT,signal);await assertWallet();return result.url as string;
+    const folder=kind==='image'?'images':kind==='delivery'?'delivery-options':'catalogs';
+    if(typeof result.url!=='string'||!new RegExp(`^${CATALOG_CDN.replaceAll('.','\\.')}/moderato/v1/${account}/${folder}/${hash}\\.${kind!=='image'?'json':'(png|jpg|gif|webp)'}$`).test(result.url))throw new Error('Unexpected published content URL.');
+    await verifyPublishedContent(result.url,hash,kind!=='image'?1_000_000:IMAGE_LIMIT,signal);await assertWallet();return result.url as string;
   }
   const published:PublicProduct[]=[];
   for(const p of products){
@@ -74,7 +78,9 @@ export async function uploadCatalog(wallet:WalletAdapter,api:string,products:rea
     const Image=p.LocalFile?await publish('image',new Uint8Array(await p.LocalFile.arrayBuffer()),p.LocalFile):p.Image;
     published.push({ProductId:p.ProductId,Name:p.Name,Description:p.Description,Price:p.Price,PriceToken:p.PriceToken,Image});
   }
-  const bytes=new TextEncoder().encode(JSON.stringify(published));
+  progress('Publishing delivery options…');
+  const deliveryOptionsUrl=await publish('delivery',new TextEncoder().encode(canonicalJson(options)));
+  const bytes=new TextEncoder().encode(canonicalJson({version:2,deliveryOptionsUrl,products:published}));
   if(bytes.length>1_000_000)throw new Error('Catalog JSON exceeds its size limit.');
   progress('Checking products and images…');const url=await publish('json',bytes);
   return {url,products:published};

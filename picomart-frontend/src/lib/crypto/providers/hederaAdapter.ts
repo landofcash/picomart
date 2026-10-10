@@ -16,10 +16,8 @@ import {
   hederaEntityIdToSolidityAddress,
   solidityEntityAddressToId,
 } from "@picomart/order-protocol";
-// @ts-ignore
-import {Client, AccountId, PrivateKey, AccountCreateTransaction, Hbar, TokenId} from "@hiero-ledger/sdk";
+import {TokenId} from "@hiero-ledger/sdk";
 import {ethers} from "ethers";
-// @ts-ignore
 import PicomartAbi from "@/contracts/Picomart.json";
 
 // Contract catalog/order seeds are stored as raw UTF-8 bytes padded to bytes32.
@@ -566,6 +564,9 @@ export const hederaAdapter: ChainAdapter = {
     _tokenTypes: string[],
     _payerAddress: string
   ): Promise<string> {
+    void _senderAddress;
+    void _tokenTypes;
+    void _payerAddress;
     const config = getCurrentConfig();
     const topicId = await hederaUtils.requireHcsTopicId();
     const orderData = await viewOrder(seed);
@@ -609,6 +610,7 @@ export const hederaAdapter: ChainAdapter = {
     encryptedDeliveryCommentData: string,
     _senderAddress: string
   ): Promise<string> {
+    void _senderAddress;
     const config = getCurrentConfig();
     const topicId = await hederaUtils.requireHcsTopicId();
     const orderData = await viewOrder(seed);
@@ -744,7 +746,7 @@ export const hederaAdapter: ChainAdapter = {
 
 };
 
-async function viewOrder(seed: string): Promise<any> {
+async function viewOrder(seed: string): Promise<ethers.Result> {
   const config = getCurrentConfig();
     const seedBytes = seedToBytes32(seed);
   const provider = new ethers.JsonRpcProvider(config.hedera.rpcUrl);

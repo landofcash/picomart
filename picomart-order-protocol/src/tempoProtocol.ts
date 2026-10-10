@@ -3,4 +3,5 @@ export * from "./tempoPrimitives.js";
 export * from "./tempoIdentity.js";
 export * from "./tempoMessages.js";
 export * from "./tempoReferences.js";
+export * from "./tempoCatalog.js";
 export {canonicalBytes, canonicalJson} from "./canonical.js";

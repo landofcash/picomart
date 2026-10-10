@@ -11,6 +11,7 @@ describe('caller supplied network and currency policy',()=>{
     const q=structuredClone(fixture.resolution.quote);
     Object.assign(q,{network:'eip155:999',picomart:{chainId:999,contractAddress:config.contractAddress}});
     Object.assign(q.payment,{asset:token.tokenId,symbol:token.symbol,name:token.name,payTo:config.contractAddress});
+    q.delivery.snapshot.currency=token.tokenId;
     q.x402.resourcePath=p.agentConfirmPath(q.orderSeed);
     expect(p.AgentQuoteSchema.safeParse(q).success).toBe(true);
     expect(p.AgentQuoteSchema.safeParse(fixture.resolution.quote).success).toBe(false);

@@ -1,6 +1,6 @@
 {
   "name": "@picomart/order-protocol",
-  "version": "0.2.0-config.1",
+  "version": "0.3.0-delivery.2",
   "description": "Picomart protocol with isolated Tempo configuration and message/reference codecs",
   "type": "module",
   "main": "./dist/index.js",

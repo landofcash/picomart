@@ -17,6 +17,7 @@ import {StorefrontSession} from './lib/storefront/session';
 import StorefrontsPage from './pages/StorefrontsPage';
 import StorefrontWorkspacePage from './pages/StorefrontWorkspacePage';
 import CatalogueEditPage from './pages/CatalogueEditPage';
+import DeliveryOptionsPage from './pages/DeliveryOptionsPage';
 import ThemeProvider from './components/ThemeProvider';
 import {applyTheme, readTheme} from './lib/theme';
 
@@ -26,6 +27,7 @@ createRoot(document.getElementById('root')!).render(<StrictMode><ThemeProvider><
   <Route path="/add-product-catalogue" element={<TempoCatalogsPage/>}/>
   <Route path="/print-qr-codes" element={<PrintQRCodesPage/>}/>
   <Route path="/edit-product-catalogue" element={<CatalogueEditPage/>}/>
+  <Route path="/delivery-options" element={<DeliveryOptionsPage/>}/>
   <Route path="/my-orders" element={<TempoOrdersPage seller/>}/>
   <Route path="/order-details" element={<TempoOrdersPage seller/>}/>
   <Route path="/settings" element={<TempoSettingsPage seller/>}/>

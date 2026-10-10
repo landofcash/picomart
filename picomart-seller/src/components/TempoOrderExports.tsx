@@ -11,7 +11,7 @@ export default function TempoOrderExports({orderId,message}:{orderId:string;mess
   const data=message.data;
   if(!('items' in data))return null;
   const currency=getCurrency(data.payment.tokenAddress);
-  const rows:[string,string][]=[['Order ID',orderId],...Object.entries(data.delivery).map(([label,value]):[string,string]=>[label,String(value??'')]),...data.items.map((item):[string,string]=>[item.name,`${item.quantity} × ${formatUnits(item.unitAmount,currency.decimals)} ${currency.symbol}`])];
+  const rows:[string,string][]=[['Order ID',orderId],['Delivery method',data.fulfillment.name],['Delivery option',data.fulfillment.optionName??''],['Pickup address',data.fulfillment.address??''],['Collection schedule',data.fulfillment.schedule??''],['Delivery fee',data.deliveryAmount==='0'?'Free':formatUnits(data.deliveryAmount,currency.decimals)+' '+currency.symbol],['Order total',formatUnits(data.payment.amount,currency.decimals)+' '+currency.symbol],...Object.entries(data.delivery).map(([label,value]):[string,string]=>[label,String(value??'')]),...data.items.map((item):[string,string]=>[item.name,`${item.quantity} × ${formatUnits(item.unitAmount,currency.decimals)} ${currency.symbol}`])];
   const text=rows.map(([label,value])=>`${label}: ${value}`).join('\n');
   const json=JSON.stringify(data,null,2);
   function download(format:'Text'|'JSON'|'CSV'){

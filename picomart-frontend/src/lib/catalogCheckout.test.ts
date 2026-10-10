@@ -99,6 +99,6 @@ describe('catalog checkout validation', () => {
 // Retained legacy tests explicitly select their historical profile; app defaults are Tempo.
 vi.mock('@/config', async importOriginal => {
   const actual = await importOriginal<typeof import('@/config')>();
-  const {getLegacyHederaConfig} = await import('@/testFixtures/legacyHederaConfig');
-  return {...actual, getCurrentConfig: () => getLegacyHederaConfig(localStorage.getItem('Picomart-network') || 'testnet')};
+  const {getLegacyHederaConfig: getLegacyConfig} = await import('@/testFixtures/legacyHederaConfig');
+  return {...actual, getCurrentConfig: () => getLegacyConfig(localStorage.getItem('Picomart-network') || 'testnet')};
 });

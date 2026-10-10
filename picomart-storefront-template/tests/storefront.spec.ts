@@ -74,7 +74,7 @@ test('catalog failures can be retried and refreshed products replace snapshots',
   fail = false;
   await page.getByRole('button', {name: 'Try again'}).click();
   await expect(page.locator('.shop-product-card')).toHaveCount(3);
-  products = [{...pantry.products[0], Price: '2500000'}, {...pantry.products[1], ProductId: 'FFFFFFFFFFFFFFFFFFFFFF', Name: 'New catalog product'}];
+  products = [{...pantry.products[0], Price: '2500000'}, {...pantry.products[1], ProductId: 'BwcHBwcHBwcHBwcHBwcHBw', Name: 'New catalog product'}];
   await page.getByRole('button', {name: 'Refresh products'}).click();
   await expect(page.locator('.shop-product-card')).toHaveCount(2);
   await expect(page.getByText('2.5 PathUSD', {exact: true})).toBeVisible();
@@ -87,11 +87,12 @@ test('catalog failures can be retried and refreshed products replace snapshots',
 test('contrasting shop config, missing images and unknown routes', async ({page}) => {
   await page.route('**/storefront.json', route => route.fulfill({json: studio.config}));
   await mockCatalog(page, {seed: studio.config.catalogSeed, getProducts: () => studio.products});
+  await page.route('https://fixtures.picomart.test/missing.svg',route=>route.fulfill({status:404}));
   await page.goto('/');
   await expect(page.getByRole('heading', {level: 1})).toHaveText('Wear it your way.');
-  await page.goto('/products/EEEEEEEEEEEEEEEEEEEEEE');
+  await page.goto('/products/BgYGBgYGBgYGBgYGBgYGBg');
   await expect(page.getByRole('img', {name: 'Image unavailable for Canvas Tote'})).toBeVisible();
-  await expect(page.getByRole('link', {name: 'Open in Picomart', exact: true})).toHaveAttribute('href', `https://app.picomart.zkbytes.com/#${studio.config.catalogSeed}EEEEEEEEEEEEEEEEEEEEEE2`);
+  await expect(page.getByRole('link', {name: 'Open in Picomart', exact: true})).toHaveAttribute('href', `https://app.picomart.zkbytes.com/#${studio.config.catalogSeed}BgYGBgYGBgYGBgYGBgYGBg2`);
   await page.goto('/collections/missing');
   await expect(page.getByRole('heading', {name: 'Page not found'})).toBeVisible();
   await page.goto('/unknown/page');
@@ -103,17 +104,17 @@ test('invalid config, malformed catalog and failed images have usable states', a
   await page.goto('/');
   await expect(page.getByRole('heading', {name: 'Shop unavailable'})).toBeVisible();
   await page.unroute('**/storefront.json');
-  await mockCatalog(page, {getProducts: () => [{...pantry.products[0], Price: 'invalid'}]});
+  let invalid=true;await mockCatalog(page, {getProducts: () => invalid?[{...pantry.products[0], Price: 'invalid'}]:pantry.products});
   await page.getByRole('button', {name: 'Try again'}).click();
   await expect(page.getByRole('alert')).toBeVisible();
-  await page.route('https://cdn.picomart.zkbytes.com/fixture.json', route => route.fulfill({json: pantry.products}));
+  invalid=false;
   await page.route('https://fixtures.picomart.test/oil.svg', route => route.fulfill({status: 404}));
   await page.goto(`/products/${pantry.products[0].ProductId}`);
   await expect(page.getByRole('img', {name: 'Image unavailable for Extra Virgin Olive Oil'})).toBeVisible();
 });
 
-test('empty live catalog is explicit', async ({page}) => {
+test('empty published catalogue is rejected', async ({page}) => {
   await mockCatalog(page, {getProducts: () => []});
   await page.goto('/products');
-  await expect(page.getByRole('heading', {name: 'No products here yet'})).toBeVisible();
+  await expect(page.getByRole('alert')).toBeVisible();
 });

@@ -33,6 +33,7 @@ server.registerTool("create_picomart_order", {
       quantity: z.number().int().min(1).max(1_000_000),
     }).strict()).min(1).max(100),
     delivery: PicomartDeliveryDetailsV1Schema,
+    fulfillment:z.object({methodId:z.string().min(1).max(100),optionId:z.string().min(1).max(100).optional()}).strict(),
   },
 }, async input => {
   try {
@@ -55,6 +56,13 @@ server.registerTool("create_picomart_order", {
   }
 });
 
+server.registerTool('get_picomart_catalog',{
+  description:'Read products and configured delivery methods, services, locations and fees before creating an order. Use the returned method and option IDs; ask the buyer for required recipient details.',
+  inputSchema:{catalogSeed:OrderSeedSchema},
+},async({catalogSeed})=>{
+  try{const catalog=await flow.catalog(catalogSeed);return {content:[{type:'text' as const,text:JSON.stringify(catalog)}]};}
+  catch(error){return {isError:true,content:[{type:'text' as const,text:error instanceof Error?error.message:'Catalogue loading failed.'}]};}
+});
 server.registerTool("get_picomart_order_status", {
   description: "Perform one public settlement-evidence check for an existing Picomart intent and confirm it when ready.",
   inputSchema: { intentId: OrderSeedSchema },

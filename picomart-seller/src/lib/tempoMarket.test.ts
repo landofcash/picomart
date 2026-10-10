@@ -1,6 +1,7 @@
+import {createHash} from 'node:crypto';
 import {beforeEach,describe,expect,it,vi} from 'vitest';
 import {hexlify,keccak256,toUtf8Bytes} from 'ethers';
-import {createTempoReceivingIdentity,tempoIdToSeed,canonicalJson,createTempoMessageBinding,tempoReferenceCommitment} from '@picomart/order-protocol/tempo-protocol';
+import {createTempoReceivingIdentity,tempoIdToSeed,canonicalJson,createTempoMessageBinding,tempoReferenceCommitment,tempoFulfillmentSnapshot} from '@picomart/order-protocol/tempo-protocol';
 import {marketAddress,receivingContext,catalogLink,parseCatalogLink,validateProducts,validateSelection,catalogs as fetchMarketCatalogs,
   fetchCatalogProducts,checkoutIntent,prepareCheckout,loadCheckout,submitCheckout,TEMPO_MARKET_DEPLOYMENT,PATH_USD,
   authenticateOrder,verifyOrderTerms,marketInterface,type MarketOrder,type CheckoutSelection,type MarketCatalog} from './tempoMarket';
@@ -29,18 +30,23 @@ vi.mock('./internalWallet/tempoCommerce',async()=>{
 });
 const seller='0x'+'11'.repeat(20),buyer='0x'+'22'.repeat(20),id='0x'+'03'.repeat(16),catalogId='0x'+'04'.repeat(16);
 const identity=createTempoReceivingIdentity(receivingContext('seller',seller,tempoIdToSeed(catalogId)),Buffer.alloc(32,8).toString('base64'));
-const catalog:MarketCatalog={catalogId,seed:tempoIdToSeed(catalogId),seller,sellerPublicKey:hexlify(Buffer.alloc(32,8)),sellerIdentityId:identity.identityId,catalogUrl:'https://cdn.picomart.zkbytes.com/test.json'};
-const product={ProductId:'one',Name:'Product',Description:'Public description',Image:'https://cdn.picomart.zkbytes.com/one.png',PriceToken:PATH_USD,Price:'10000'};
-const selection:CheckoutSelection={catalog,products:[{...product,quantity:2}]};
+const catalog:MarketCatalog={catalogId,seed:tempoIdToSeed(catalogId),seller,sellerPublicKey:hexlify(Buffer.alloc(32,8)),sellerIdentityId:identity.identityId,catalogUrl:''};
+const product={ProductId:'AwMDAwMDAwMDAwMDAwMDAw',Name:'Product',Description:'Public description',Image:'https://cdn.picomart.zkbytes.com/one.png',PriceToken:PATH_USD,Price:'10000'};
+const deliveryOptions={version:1 as const,currency:PATH_USD,methods:[{id:'digital',type:'digital' as const,name:'Digital delivery',description:''}]};
+const hash=(v:unknown)=>createHash('sha256').update(JSON.stringify(v)).digest('hex');
+const deliveryOptionsUrl=`https://cdn.picomart.zkbytes.com/moderato/v1/${seller}/delivery-options/${hash(deliveryOptions)}.json`;
+const envelope=(products:unknown[])=>({version:2,deliveryOptionsUrl,products});
+catalog.catalogUrl=`https://cdn.picomart.zkbytes.com/moderato/v1/${seller}/catalogs/${hash(envelope([product]))}.json`;
+const selection:CheckoutSelection={catalog,products:[{...product,quantity:2}],fulfillment:tempoFulfillmentSnapshot(catalog.catalogUrl,deliveryOptionsUrl,deliveryOptions,'digital')};
 const wallet={getAddress:async()=>buyer} as WalletAdapter;
-const delivery={fullName:'Private Buyer',address:'Private Street',city:'Lisbon',postalCode:'1000',country:'PT',phone:'',email:'',noPhysicalDelivery:true};
-const response=(data:unknown)=>({ok:true,status:200,json:async()=>data,text:async()=>JSON.stringify(data)}) as Response;
+const delivery={fullName:'Private Buyer',address:'Private Street',city:'Lisbon',postalCode:'1000',country:'PT',phone:'',email:'buyer@example.test',noPhysicalDelivery:true};
+const response=(data:unknown)=>new Response(JSON.stringify(data));
 beforeEach(()=>{
   vi.clearAllMocks();state.db.clear();state.revision=1;
   vi.stubGlobal('fetch',state.fetch);
   let lock=Promise.resolve();vi.stubGlobal('navigator',{locks:{request:async(_key:string,action:()=>Promise<unknown>)=>{const previous=lock;let release!:()=>void;lock=new Promise<void>(resolve=>{release=resolve;});await previous;try{return await action();}finally{release();}}}});
   state.readCatalog.mockResolvedValue({...catalog,catalogUrl:catalog.catalogUrl});
-  state.fetch.mockResolvedValue(response([product]));state.prepare.mockResolvedValue({state:'prepared'});
+  state.fetch.mockImplementation(async(url:string)=>response(url===deliveryOptionsUrl?deliveryOptions:envelope([product])));state.prepare.mockResolvedValue({state:'prepared'});
   state.resume.mockResolvedValue({ready:true,state:'active',expiresAt:new Date(Date.now()+30*86400_000-1000).toISOString(),buyerEnvelope:'buyer-ciphertext',sellerEnvelope:'seller-ciphertext'});
   state.recoverOperation.mockResolvedValue(null);
   state.pay.mockResolvedValue({hash:'payment',state:'confirmed'});state.send.mockResolvedValue({hash:'initial',state:'confirmed'});state.approve.mockResolvedValue({hash:'approval',state:'confirmed'});
@@ -77,11 +83,11 @@ describe('Tempo commerce UI boundary',()=>{
     state.fetch.mockResolvedValue({ok:false,status:503});await expect(fetchMarketCatalogs()).rejects.toThrow(/catching up/);
   });
   it('verifies content-hashed catalog revisions before accepting public product terms',async()=>{
-    const bytes=new TextEncoder().encode(JSON.stringify([product]));
+    const bytes=new TextEncoder().encode(JSON.stringify(envelope([product])));
     const hash=hexlify(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes))).slice(2);
     const url=`https://cdn.picomart.zkbytes.com/moderato/v1/${seller}/catalogs/${hash}.json`;
     await expect(fetchCatalogProducts(url)).resolves.toHaveLength(1);
-    state.fetch.mockResolvedValue(response([{...product,Price:'999'}]));
+    state.fetch.mockResolvedValue(response(envelope([{...product,Price:'999'}])));
     await expect(fetchCatalogProducts(url)).rejects.toThrow(/revision URL/);
   });
   it('serializes tab intent creation and uses a new ID only for a deliberate new operation',async()=>{
@@ -110,7 +116,7 @@ describe('Tempo commerce UI boundary',()=>{
     await expect(prepareCheckout(wallet,selection,delivery,id,'createOrderPaid')).rejects.toThrow(/Catalog changed/);
     expect(state.prepare).not.toHaveBeenCalled();state.readCatalog.mockResolvedValue(catalog);
     state.fetch.mockResolvedValue(response([{...product,Price:'10001'}]));
-    await expect(prepareCheckout(wallet,selection,delivery,id,'createOrderPaid')).rejects.toThrow(/price changed/);
+    await expect(prepareCheckout(wallet,selection,delivery,id,'createOrderPaid')).rejects.toThrow(/revision URL/);
   });
   it('separates approval and payment and rechecks storage and terms immediately before signing',async()=>{
     const draft=await prepareCheckout(wallet,selection,delivery,id,'createOrderPaid');
@@ -163,6 +169,6 @@ describe('Tempo commerce UI boundary',()=>{
     const draft=await prepareCheckout(wallet,selection,delivery,id,'createOrderPaid');
     await expect(submitCheckout(wallet,{...draft,input:{...draft.input,priceAmount:'999999'}},selection)).rejects.toThrow(/terms differ/);
     expect(state.pay).not.toHaveBeenCalled();
-    await expect(prepareCheckout(wallet,selection,{...delivery,noPhysicalDelivery:false,fullName:''},id,'createOrderPaid')).rejects.toThrow(/required physical/);
+    await expect(prepareCheckout(wallet,selection,{...delivery,noPhysicalDelivery:false,fullName:''},id,'createOrderPaid')).rejects.toThrow(/required recipient/);
   });
 });

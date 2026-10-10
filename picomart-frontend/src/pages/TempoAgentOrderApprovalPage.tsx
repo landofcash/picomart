@@ -65,7 +65,7 @@ export default function TempoAgentOrderApprovalPage(){
   }
   async function approve(signal:AbortSignal){if(!intent||!prepared||!wallet.walletAdapter)return;
     assertQuoteExecutable(intent.quote);
-    const tx=await executeTempoAgentOrder(prepared,wallet.walletAdapter,signal,(tx)=>{if(!signal.aborted)setReceipt(tx);});
+    const tx=await executeTempoAgentOrder(prepared,wallet.walletAdapter,signal,(progress)=>{if(!signal.aborted)setReceipt(progress);});
     signal.throwIfAborted();accept(tx);
   }
   const currency=intent?getCurrency(intent.quote.payment.asset):PICOMART_TEMPO_CONFIG.defaultPaymentToken;
@@ -77,8 +77,11 @@ export default function TempoAgentOrderApprovalPage(){
     {error&&<p role="alert" className="text-destructive">{error}</p>}
     {!intent&&!error&&!hash&&<p role="status">Verifying the signed quote and private delivery handoff…</p>}
     {intent&&<><h2 className="text-lg font-semibold">Products</h2><ul className="space-y-2">{intent.quote.items.map(i=><li key={i.productId}>{i.name} × {i.quantity} — {formatUnits(BigInt(i.lineAmount),currency.decimals)} {currency.symbol}</li>)}</ul>
+      <p>Delivery fee: {intent.quote.delivery.amount==='0'?'Free':`${formatUnits(BigInt(intent.quote.delivery.amount),currency.decimals)} ${currency.symbol}`}</p>
       <p className="font-semibold">Total: {total}</p>
-      <h2 className="text-lg font-semibold">Delivery</h2>{intent.delivery.noPhysicalDelivery?<p>No physical delivery</p>:<div className="space-y-1"><p>{intent.delivery.fullName}</p><p>{intent.delivery.address}, {intent.delivery.city}, {intent.delivery.postalCode}, {intent.delivery.country}</p><p>{intent.delivery.phone} · {intent.delivery.email}</p></div>}
+      <h2 className="text-lg font-semibold">{intent.quote.delivery.snapshot.name}</h2>
+      <p>{intent.quote.delivery.snapshot.optionName}</p><p>{intent.quote.delivery.snapshot.address}</p><p>{intent.quote.delivery.snapshot.schedule}</p>
+      <div className="space-y-1">{intent.quote.delivery.snapshot.type!=='digital'&&<p>{intent.delivery.fullName}</p>}{intent.quote.delivery.snapshot.type==='customer-address'&&<p>{intent.delivery.address}, {intent.delivery.city}, {intent.delivery.postalCode}, {intent.delivery.country}</p>}{intent.quote.delivery.snapshot.type!=='digital'&&<p>{intent.delivery.phone}</p>}<p>{intent.delivery.email}</p></div>
       {intent.delivery.deliveryComments&&<p>{intent.delivery.deliveryComments}</p>}
       <p className="text-sm text-muted-foreground">Your local agent can see details you supply to it. The quote service receives ciphertext without its decryption key. The seller receives the encrypted order through the private message service.</p>
       {expired&&<p role="alert">This quote is too close to expiry. Request a new quote.</p>}

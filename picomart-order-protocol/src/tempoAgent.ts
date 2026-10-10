@@ -1,4 +1,5 @@
 import {z} from 'zod';
+import {TempoFulfillmentSnapshotSchema} from './tempoCatalog.js';
 import {TempoAddressSchema,TempoHashSchema,TempoSeedSchema} from './tempoPrimitives.js';
 import {PicomartDeliveryDetailsV1Schema,PicomartEncryptedDeliveryV1Schema} from './schemas.js';
 import {canonicalBytes,canonicalHash,canonicalJson,canonicalEqual} from './canonical.js';
@@ -34,13 +35,13 @@ const AgentEncryptedDeliverySchema=PicomartEncryptedDeliveryV1Schema.omit({versi
 const AgentItemSchema=z.object({productId:z.string().regex(/^[A-Za-z0-9_-]{22}$/),quantity:z.number().int().min(1).max(1000000)}).strict();
 const items=z.array(AgentItemSchema).min(1).max(100).refine(v=>new Set(v.map(i=>i.productId)).size===v.length,'Duplicate products');
 const AgentQuoteRequestSchema=z.object({version:z.literal(2),orderSeed:AgentSeedSchema,catalogSeed:AgentSeedSchema,items,
-  encryptedDelivery:AgentEncryptedDeliverySchema,deliveryDetailsHash:AgentDigestSchema,physicalDelivery:z.boolean()}).strict();
+  encryptedDelivery:AgentEncryptedDeliverySchema,deliveryDetailsHash:AgentDigestSchema,physicalDelivery:z.boolean(),fulfillment:z.object({methodId:z.string().min(1).max(100),optionId:z.string().min(1).max(100).optional()}).strict()}).strict();
 const AgentQuoteSchema=z.object({version:z.literal(2),orderSeed:AgentSeedSchema,requestHash:AgentDigestSchema,network:z.literal(AGENT_NETWORK),
   x402:z.object({protocolVersion:z.literal(2),scheme:z.literal('picomart-order'),schemeVersion:z.literal(2),resourceMethod:z.literal('POST'),
     resourcePath:z.string(),maxTimeoutSeconds:z.literal(600)}).strict(),
   catalog:z.object({seed:AgentSeedSchema,sellerEvmAddress:TempoAddressSchema,sellerPublicKey:TempoHashSchema,sellerIdentityId:TempoHashSchema,catalogUrl:z.string().url()}).strict(),
   items:z.array(AgentItemSchema.extend({name:z.string().min(1).max(2000),unitAmount:AgentAmountSchema,lineAmount:AgentAmountSchema}).strict()).min(1).max(100),
-  delivery:z.object({required:z.boolean(),optionId:z.literal('pilot-seller-arranged'),optionName:z.literal('Seller-arranged delivery'),amount:z.literal('0'),
+  delivery:z.object({required:z.boolean(),snapshot:TempoFulfillmentSnapshotSchema,amount:z.string().regex(/^(0|[1-9][0-9]*)$/).max(78),
     deliveryDetailsHash:AgentDigestSchema,encryptedDeliveryHash:AgentDigestSchema}).strict(),
   payment:z.object({symbol:z.string().min(1),name:z.string().min(1),amount:AgentAmountSchema,payTo:z.literal(AGENT_CONTRACT),
     assetType:z.literal('tip20'),asset:paymentAsset,decimals:z.literal(6)}).strict(),
@@ -49,7 +50,7 @@ const AgentQuoteSchema=z.object({version:z.literal(2),orderSeed:AgentSeedSchema,
     const token=config.paymentTokens.find(t=>t.tokenId===q.payment.asset);
     if(!token||token.symbol!==q.payment.symbol||token.name!==q.payment.name||token.decimals!==q.payment.decimals)c.addIssue({code:'custom',message:'Untrusted payment currency metadata'});
     if(q.items.some(i=>BigInt(i.unitAmount)*BigInt(i.quantity)!==BigInt(i.lineAmount))||
-      q.items.reduce((s,i)=>s+BigInt(i.lineAmount),0n)!==BigInt(q.payment.amount)||new Set(q.items.map(i=>i.productId)).size!==q.items.length||
+      q.items.reduce((s,i)=>s+BigInt(i.lineAmount),BigInt(q.delivery.amount))!==BigInt(q.payment.amount)||q.delivery.amount!==q.delivery.snapshot.amount||q.delivery.snapshot.currency!==q.payment.asset||q.delivery.snapshot.catalogUrl!==q.catalog.catalogUrl||q.delivery.required!==(q.delivery.snapshot.type!=='digital')||new Set(q.items.map(i=>i.productId)).size!==q.items.length||
       q.expiresAt-q.issuedAt!==600||q.x402.resourcePath!==agentConfirmPath(q.orderSeed))c.addIssue({code:'custom',message:'Invalid quote terms'});
   });
 const AgentResourceSchema=z.object({url:z.string().url(),description:z.string(),mimeType:z.literal('application/json'),serviceName:z.literal('Picomart')}).strict();
@@ -84,7 +85,7 @@ async function validateAgentResolution(value:unknown,profile:AgentProfile,now=Ma
   const keys=new Map();for(const k of p.trustedQuoteKeys)keys.set(k.kid,await importQuotePublicKey(k.publicKey));
   await verifyQuoteDigestJws(r.quoteJws,r.quoteDigest,keys);
   const request:AgentQuoteRequest={version:2,orderSeed:q.orderSeed,catalogSeed:q.catalog.seed,items:q.items.map(({productId,quantity})=>({productId,quantity})),
-    encryptedDelivery:r.encryptedDelivery,deliveryDetailsHash:q.delivery.deliveryDetailsHash,physicalDelivery:q.delivery.required};
+    encryptedDelivery:r.encryptedDelivery,deliveryDetailsHash:q.delivery.deliveryDetailsHash,physicalDelivery:q.delivery.required,fulfillment:{methodId:q.delivery.snapshot.methodId,...(q.delivery.snapshot.optionId?{optionId:q.delivery.snapshot.optionId}:{})}};
   if(await agentRequestCommitment(request)!==q.requestHash||await canonicalHash(r.encryptedDelivery)!==q.delivery.encryptedDeliveryHash)throw new Error('Quote request commitment mismatch');
   return r;
 }

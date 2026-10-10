@@ -1,5 +1,5 @@
 import {PICOMART_TEMPO_CONFIG} from '@picomart/config';
-﻿import {useEffect, useRef, useState} from "react";
+import {useEffect, useRef, useState} from "react";
 import {Link} from "react-router-dom";
 import {get,set} from "idb-keyval";
 import {hexlify, parseUnits, toUtf8String, type FunctionFragment} from "ethers";

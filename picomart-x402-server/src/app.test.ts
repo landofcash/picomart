@@ -15,7 +15,7 @@ let config:ServerConfig;beforeAll(async()=>{const keys=await generateKeyPair('Ed
 async function setup(proof:any=async()=>({orderId:'0x'+'02'.repeat(16),status:2})){const store=new InMemoryQuoteStore(config.now),q=f.resolution.quote;
   const app=await createApp({config,store,sync:{order:async()=>null,catalog:async()=>({seed:q.catalog.seed,catalogId:'0x'+'01'.repeat(16),catalogUrl:q.catalog.catalogUrl,
     seller:q.catalog.sellerEvmAddress,sellerPublicKey:q.catalog.sellerPublicKey,sellerIdentityId:q.catalog.sellerIdentityId})},
-    fetchCatalog:async()=>[{ProductId:q.items[0].productId,PriceToken:AGENT_TOKEN,Price:q.items[0].unitAmount,Name:q.items[0].name}],verifyPayment:proof});return {app,store};}
+    fetchCatalog:async()=>({...f.catalog,deliveryOptions:f.deliveryOptions}),verifyPayment:proof});return {app,store};}
 const path='/api/v2/moderato/order-quotes',confirm='/api/v2/moderato/orders/'+f.request.orderSeed+'/confirm';
 async function payment(app:any){const response=await request(app).post(path).send(f.request),r=response.body.paymentRequired;
   return {x402Version:2,resource:r.resource,accepted:r.accepts[0],payload:{transactionHash:'0x'+'aa'.repeat(32),buyer:f.order.buyerIdentity.context.account},extensions:{}};}
@@ -23,7 +23,7 @@ describe('Tempo quote API and private delivery boundary',()=>{
   it('returns signed PathUSD terms and only ciphertext; identical retries retain the original quote',async()=>{const {app}=await setup();
     const a=await request(app).post(path).send(f.request),b=await request(app).post(path).send(f.request);expect(a.status).toBe(402);expect(b.body).toEqual(a.body);expect(a.headers['cache-control']).toBe('no-store');
     const resolved=await request(app).post(path+'/resolve').send({orderSeed:f.request.orderSeed});expect(resolved.status).toBe(200);
-    expect(resolved.body.quote.payment).toMatchObject({asset:AGENT_TOKEN,payTo:AGENT_CONTRACT,decimals:6,amount:'2500000'});
+    expect(resolved.body.quote.payment).toMatchObject({asset:AGENT_TOKEN,payTo:AGENT_CONTRACT,decimals:6,amount:'3000000'});
     expect(JSON.stringify(resolved.body)).not.toContain('deliveryKey');expect(JSON.stringify(resolved.body)).not.toContain('Test recipient');});
   it('rejects delivery keys/plaintext, duplicate products, zero seeds and conflicting retries',async()=>{const {app}=await setup();
     for(const body of [{...f.request,deliveryKey:f.deliveryKey},{...f.request,delivery:f.delivery},{...f.request,items:[...f.request.items,...f.request.items]},{...f.request,orderSeed:'A'.repeat(22)}])expect((await request(app).post(path).send(body)).status).toBe(400);

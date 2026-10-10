@@ -29,7 +29,7 @@ import {
   TEMPO_MARKET_ENABLED,
   marketTransactions,
   catalogs,
-  fetchCatalogProducts,
+  fetchCatalogDocument,
   receivingContext,
   commerceService,
   verifyMarketDeployment,
@@ -59,6 +59,7 @@ export default function TempoCatalogsPage({
       (location.state as { url?: string } | null)?.url ?? "",
     ),
     [products, setProducts] = useState<MarketProduct[] | null>(null);
+  const [delivery,setDelivery]=useState<Awaited<ReturnType<typeof fetchCatalogDocument>>|null>(null);
   const [call, setCall] = useState<TempoContractCall | null>(null),
     [busy, setBusy] = useState(false),
     [loading, setLoading] = useState(false),
@@ -102,14 +103,14 @@ export default function TempoCatalogsPage({
   }, [account, counter, embedded]);
   useEffect(() => {
     setCall(null);
-    setProducts(null);
+    setProducts(null);setDelivery(null);
     setReceipt(null);
     controller.current?.abort();
   }, [url, account, wallet.network]);
   useEffect(() => {
     if (wallet.walletLocked) {
       setCall(null);
-      setProducts(null);
+      setProducts(null);setDelivery(null);
       setReceipt(null);
       controller.current?.abort();
     }
@@ -120,10 +121,10 @@ export default function TempoCatalogsPage({
     const c = new AbortController(),
       revision = tempoWalletRevision();
     setLoading(true);
-    void fetchCatalogProducts(url, c.signal)
+    void fetchCatalogDocument(url, c.signal)
       .then((loaded) => {
         assertTempoWalletRevision(revision);
-        if (!c.signal.aborted) setProducts(loaded);
+        if (!c.signal.aborted) {setProducts(loaded.products);setDelivery(loaded);}
       })
       .catch((e) => {
         if (!c.signal.aborted) setError(tempoTransactionError(e));
@@ -159,8 +160,8 @@ export default function TempoCatalogsPage({
   const canSign = TEMPO_MARKET_ENABLED && account && wallet.walletAdapter;
   const usable = canSign && !wallet.walletLocked;
   async function checkReviewedProducts() {
-    const loaded = await fetchCatalogProducts(url, controller.current?.signal);
-    if (!products || canonicalJson(loaded) !== canonicalJson(products))
+    const loaded = await fetchCatalogDocument(url, controller.current?.signal);
+    if (!products || canonicalJson(loaded) !== canonicalJson(delivery))
       throw new Error(
         "Catalog products changed. Load and review the catalog again.",
       );
@@ -380,13 +381,13 @@ export default function TempoCatalogsPage({
                 e.preventDefault();
                 void run(async () => {
                   const revision = tempoWalletRevision();
-                  const loaded = await fetchCatalogProducts(
+                  const loaded = await fetchCatalogDocument(
                     url,
                     controller.current?.signal,
                   );
                   assertTempoWalletRevision(revision);
                   controller.current?.signal.throwIfAborted();
-                  setProducts(loaded);
+                  setProducts(loaded.products);setDelivery(loaded);
                 });
               }}
             >
@@ -414,6 +415,7 @@ export default function TempoCatalogsPage({
               <p className="text-sm text-muted-foreground">
                 Currency: {products[0] && <TokenLabel token={products[0].PriceToken} />}
               </p>
+              {delivery&&<section className="space-y-3 border-t pt-4"><h3 className="font-semibold">Delivery options</h3>{delivery.deliveryOptions.methods.map(m=><div key={m.id}><strong>{m.name}</strong><p className="text-sm text-muted-foreground">{m.description}</p>{m.type!=='digital'&&(m.type==='customer-address'?m.services:m.locations).map(o=><div key={o.id} className="mt-2 text-sm"><span>{o.name} · </span>{o.amount==='0'?'Free':<TokenAmount token={delivery.deliveryOptions.currency} amount={o.amount}/>}<p>{o.description}</p>{'address' in o&&<p>{String(o.address)} · {'schedule' in o?String(o.schedule):''}</p>}</div>)}</div>)}</section>}
               {products.map((p) => (
                 <div
                   key={p.ProductId}

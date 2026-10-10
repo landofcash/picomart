@@ -527,7 +527,7 @@ export const hederaAdapter: ChainAdapter = {
   },
 };
 
-async function viewOrder(seed: string): Promise<any> {
+async function viewOrder(seed: string): Promise<ethers.Result> {
   if (!seed || seed.length !== 22) {
     throw new Error("Seed must be a 22-character string");
   }

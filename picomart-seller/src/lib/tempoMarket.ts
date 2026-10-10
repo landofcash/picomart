@@ -1,3 +1,4 @@
+import {loadTempoCatalog, TempoFulfillmentSnapshotSchema, tempoFulfillmentSnapshot, tempoCombinedTotal, tempoRecipientValid, type TempoFulfillmentSnapshot} from '@picomart/order-protocol/tempo-protocol';
 import {isPaymentCurrency} from '@picomart/config';
 import { Contract, Interface, JsonRpcProvider, ZeroAddress, hexlify, keccak256, toUtf8Bytes, toUtf8String } from 'ethers';
 import { get, set } from 'idb-keyval';
@@ -27,8 +28,8 @@ export interface MarketCatalog {catalogId:string;seed:string;seller:string;selle
 export interface MarketProduct {ProductId:string;Name:string;Description:string;Image:string;PriceToken:string;Price:string;}
 export interface MarketMessage {messageType:number;sequence:number;author:string;commitment:string;buyerEnvelope:string;sellerEnvelope:string;transactionHash:string;blockNumber:number;transactionIndex:number;logIndex:number;}
 export interface MarketOrder {orderId:string;seed:string;catalogId:string;priceAmount:string;priceToken:string;buyer:string;seller:string;payer:string;status:number;deleted:boolean;deadline:number;context:TempoOrderContext;messages:MarketMessage[];payment?:{transactionHash:string;blockNumber:number;payer:string;amount:string;token:string};}
-export interface CheckoutSelection {catalog:MarketCatalog;products:Array<MarketProduct & {quantity:number}>;}
-export interface CheckoutDraft {version:1;account:string;selectionHash:string;order:TempoOrderContext;input:Record<string,string>;expiresAt:string;preparedAt:number;operationId:string;method:'createOrderPaid'|'createOrderInitial';}
+export interface CheckoutSelection {catalog:MarketCatalog;products:Array<MarketProduct & {quantity:number}>;fulfillment?:TempoFulfillmentSnapshot;}
+export interface CheckoutDraft {version:2;account:string;selectionHash:string;inputHash:string;selection:CheckoutSelection;order:TempoOrderContext;input:Record<string,string>;expiresAt:string;preparedAt:number;operationId:string;method:'createOrderPaid'|'createOrderInitial';}
 export const statusNames = ['None','Awaiting payment','Paid','Delivering','Completed','Refund requested','Refunded to payer','Paid to seller','Canceled'];
 const pubkey = (key:string) => btoa(String.fromCharCode(...new Uint8Array(key.slice(2).match(/.{2}/g)!.map(b=>parseInt(b,16)))));
 const keyBytes = (key:string) => hexlify(Uint8Array.from(atob(key), c=>c.charCodeAt(0)));
@@ -93,15 +94,12 @@ export function validateProducts(input:unknown):MarketProduct[] {
     ids.add(p.ProductId);return {...p,Price:amount,PriceToken:p.PriceToken.toLowerCase()};
   });
 }
-export async function fetchCatalogProducts(url:string,signal?:AbortSignal) {
-  if(new URL(url).origin!==TEMPO_CDN_ORIGIN)throw new Error('Use the configured Picomart catalog CDN.');
-  const response=await fetch(url,{signal,redirect:'error'});
-  if(!response.ok)throw new Error('Catalog could not be loaded.');
-  const text=await response.text(),bytes=new TextEncoder().encode(text);if(bytes.length>1_000_000)throw new Error('Catalog exceeds its size limit.');
-  const expectedHash=new URL(url).pathname.match(/^\/moderato\/v1\/0x[0-9a-f]{40}\/catalogs\/([0-9a-f]{64})\.json$/)?.[1];
-  if(expectedHash&&hexlify(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes))).slice(2)!==expectedHash)throw new Error('Published catalog content does not match its revision URL.');
-  return validateProducts(JSON.parse(text));
+export async function fetchCatalogDocument(url:string,signal?:AbortSignal) {
+  const catalog=await loadTempoCatalog(url,TEMPO_CDN_ORIGIN,fetch,signal);
+  validateProducts(catalog.products);if(!isPaymentCurrency(catalog.deliveryOptions.currency))throw new Error('Unsupported delivery currency.');
+  return catalog;
 }
+export async function fetchCatalogProducts(url:string,signal?:AbortSignal) {return (await fetchCatalogDocument(url,signal)).products;}
 export function validateSelection(selection:CheckoutSelection) {
   catalogIdentity(selection.catalog);
   const products=validateProducts(selection.products),amount=selection.products.reduce((sum,p)=>{
@@ -109,13 +107,18 @@ export function validateSelection(selection:CheckoutSelection) {
     return sum+BigInt(p.Price)*BigInt(p.quantity);
   },0n);
   if (!products.length || new Set(products.map(p=>p.PriceToken)).size!==1) throw new Error('An order must use one payment currency.');
-  return {products,amount,token:products[0].PriceToken};
+  const fulfillment=selection.fulfillment?TempoFulfillmentSnapshotSchema.parse(selection.fulfillment):undefined;
+  if(fulfillment&&(fulfillment.catalogUrl!==selection.catalog.catalogUrl||fulfillment.currency!==products[0].PriceToken))throw new Error('Delivery selection differs from the catalogue.');
+  const total=tempoCombinedTotal(selection.products,fulfillment?.amount??'0');
+  return {products,amount:total,subtotal:amount,token:products[0].PriceToken};
 }
 export async function revalidateSelection(selection:CheckoutSelection) {
   const {amount}=validateSelection(selection);await verifyMarketDeployment();
   const actual=await marketContract.catalogs(selection.catalog.catalogId);
   if(actual.seller.toLowerCase()!==selection.catalog.seller.toLowerCase()||actual.sellerPublicKey!==selection.catalog.sellerPublicKey||actual.sellerIdentityId!==selection.catalog.sellerIdentityId||actual.catalogUrl!==selection.catalog.catalogUrl)throw new Error('Catalog changed; reload it before ordering.');
-  const listed=await fetchCatalogProducts(actual.catalogUrl);
+  const loaded=await fetchCatalogDocument(actual.catalogUrl),listed=loaded.products;
+  if(selection.fulfillment){const f=selection.fulfillment,current=tempoFulfillmentSnapshot(actual.catalogUrl,loaded.deliveryOptionsUrl,loaded.deliveryOptions,f.methodId,f.optionId);
+    if(canonicalJson(f)!==canonicalJson(current))throw new Error('Delivery terms changed; review the catalogue again.');}
   for(const product of selection.products) {
     const current=listed.find(p=>p.ProductId===product.ProductId);
     const {quantity,...terms}=product;void quantity;
@@ -128,28 +131,29 @@ export function commerceService() {
   return createTempoCommerceService({client,origins:{apiOrigin:client.apiOrigin,downloadOrigin:client.downloadOrigin},
     deployment:()=>TEMPO_MARKET_DEPLOYMENT.address,maxRetentionSeconds:2592000});
 }
-const draftKey=(account:string,id:string)=>`picomart_tempo_checkout_v1_${TEMPO_MARKET_DEPLOYMENT.address}_${marketAddress(account)}_${id}`;
+const draftKey=(account:string,id:string)=>`picomart_tempo_checkout_v2_${TEMPO_MARKET_DEPLOYMENT.address}_${marketAddress(account)}_${id}`;
 export const selectionHash=(selection:CheckoutSelection)=>keccak256(toUtf8Bytes(canonicalJson(selection)));
-export async function checkoutIntent(selection:CheckoutSelection,account:string,fresh=false) {
+export const checkoutInputHash=(selection:CheckoutSelection,delivery:Record<string,unknown>)=>keccak256(toUtf8Bytes(canonicalJson({selection,delivery})));
+export async function checkoutIntent(selection:CheckoutSelection,account:string,fresh=false,delivery?:Record<string,unknown>) {
   validateSelection(selection);
-  const key=`picomart_tempo_checkout_intent_${marketAddress(account)}_${selectionHash(selection)}`;
+  const cartHash=selectionHash({catalog:selection.catalog,products:selection.products});
+  const key=`picomart_tempo_checkout_intent_v2_${marketAddress(account)}_${cartHash}`;
   if(!navigator.locks)throw new Error('Web Locks are required for safe order recovery.');
   return navigator.locks.request(key,async()=>{
     const saved=await get<string>(key);
     if(saved){
-      if(!fresh)return saved;
       const draft=await loadCheckout(account,saved);
       const receipt=draft?await marketTransactions.recoverOperation(account,draft.operationId):null;
-      // A fresh cart checkout starts a new intent only after the previous order
-      // is confirmed. Prepared and uncertain operations always resume unchanged.
-      if(receipt?.state!=='confirmed'||receipt.method!=='createOrderPaid')return saved;
+      if(receipt&&receipt.state!=='not-submitted'&&receipt.state!=='reverted') {
+        if(!fresh||receipt.state!=='confirmed'||receipt.method!=='createOrderPaid')return saved;
+      }else if(!draft||!delivery||draft.inputHash===checkoutInputHash(selection,delivery))return saved;
     }
     const id=hexlify(crypto.getRandomValues(new Uint8Array(16)));await set(key,id);return id;
   });
 }
 export async function prepareCheckout(wallet:WalletAdapter,selection:CheckoutSelection,delivery:Record<string,unknown>,id:string,method:CheckoutDraft['method']):Promise<CheckoutDraft> {
   if(!TEMPO_MARKET_ENABLED)throw new Error('Testnet commerce is not enabled.');
-  if(delivery.noPhysicalDelivery!==true&&['fullName','address','city','postalCode','country','phone','email'].some(field=>typeof delivery[field]!=='string'||!String(delivery[field]).trim()))throw new Error('Complete the required physical delivery details.');
+  if(!selection.fulfillment||!tempoRecipientValid(selection.fulfillment.type,delivery)||delivery.noPhysicalDelivery!==(selection.fulfillment.type==='digital'))throw new Error('Select delivery and complete the required recipient details.');
   const account=marketAddress((await wallet.getAddress())??''),revision=tempoWalletRevision();
   const amount=await revalidateSelection(selection);assertTempoWalletRevision(revision);
   const service=commerceService(),sellerIdentity=catalogIdentity(selection.catalog);
@@ -158,14 +162,14 @@ export async function prepareCheckout(wallet:WalletAdapter,selection:CheckoutSel
     catalogSeed:selection.catalog.seed,orderSeed:tempoIdToSeed(id),buyerIdentity,sellerIdentity});
   const saved=await get<CheckoutDraft>(draftKey(account,id));
   const expiresAt=saved?.expiresAt??new Date(Date.now()+2592000_000-1000).toISOString().replace(/\.\d{3}Z$/,'Z');
-  const payload=TempoMessagePayloadSchema.parse({version:1,profile:'picomart-message-v1',binding:createTempoMessageBinding(order,{messageType:'buyer-order',sequence:1}),data:{catalogSeed:order.catalogSeed,orderSeed:order.orderSeed,
+  const payload=TempoMessagePayloadSchema.parse({version:2,profile:'picomart-message-v2',binding:createTempoMessageBinding(order,{messageType:'buyer-order',sequence:1}),data:{catalogSeed:order.catalogSeed,orderSeed:order.orderSeed,
     items:selection.products.map(p=>({productId:p.ProductId,name:p.Name,quantity:p.quantity,unitAmount:p.Price,lineAmount:String(BigInt(p.Price)*BigInt(p.quantity))})),
-    delivery,deliveryAmount:'0',payment:{tokenAddress:validateSelection(selection).token,amount:String(amount)}}});
+    delivery,fulfillment:selection.fulfillment,deliveryAmount:selection.fulfillment.amount,payment:{tokenAddress:validateSelection(selection).token,amount:String(amount)}}});
   const input={orderId:id,catalogId:selection.catalog.catalogId,priceAmount:String(amount),priceToken:validateSelection(selection).token,
     expectedSeller:selection.catalog.seller,expectedSellerPublicKey:selection.catalog.sellerPublicKey,
     expectedSellerIdentityId:selection.catalog.sellerIdentityId,buyerPublicKey:keyBytes(buyerIdentity.publicKey),buyerIdentityId:buyerIdentity.identityId};
-  if(saved&&(canonicalJson(saved.order)!==canonicalJson(order)||canonicalJson(saved.input)!==canonicalJson(input)||saved.method!==method))throw new Error('This saved order has different terms.');
-  const draft:CheckoutDraft=saved??{version:1,account,selectionHash:selectionHash(selection),order,input,expiresAt,preparedAt:Date.now(),operationId:`order:${id}`,method};
+  if(saved&&(canonicalJson(saved.order)!==canonicalJson(order)||canonicalJson(saved.input)!==canonicalJson(input)||saved.method!==method||saved.inputHash!==checkoutInputHash(selection,delivery)))throw new Error('This saved order has different terms.');
+  const draft:CheckoutDraft=saved??{version:2,account,selectionHash:selectionHash(selection),inputHash:checkoutInputHash(selection,delivery),selection,order,input,expiresAt,preparedAt:Date.now(),operationId:`order:${id}`,method};
   await set(draftKey(account,id),draft);
   await service.prepare(wallet,order,payload,{messageType:'buyer-order',sequence:1},expiresAt);
   assertTempoWalletRevision(revision);return draft;
@@ -176,7 +180,7 @@ export function validateCheckoutDraft(draft:CheckoutDraft,selection:CheckoutSele
   const expected={orderId:tempoSeedToId(order.orderSeed),catalogId:selection.catalog.catalogId,priceAmount:String(amount),priceToken:validateSelection(selection).token,
     expectedSeller:selection.catalog.seller,expectedSellerPublicKey:selection.catalog.sellerPublicKey,expectedSellerIdentityId:selection.catalog.sellerIdentityId,
     buyerPublicKey:keyBytes(order.buyerIdentity.publicKey),buyerIdentityId:order.buyerIdentity.identityId};
-  if(draft.version!==1||draft.selectionHash!==selectionHash(selection)||order.contractAddress!==TEMPO_MARKET_DEPLOYMENT.address||
+  if(draft.version!==2||!selection.fulfillment||draft.selectionHash!==selectionHash(selection)||order.contractAddress!==TEMPO_MARKET_DEPLOYMENT.address||
     marketAddress(draft.account)!==order.buyerIdentity.context.account||canonicalJson(order.sellerIdentity)!==canonicalJson(catalogIdentity(selection.catalog))||
     order.catalogSeed!==selection.catalog.seed||canonicalJson(expected)!==canonicalJson(draft.input)||
     draft.operationId!==`order:${expected.orderId}`||!['createOrderPaid','createOrderInitial'].includes(draft.method))throw new Error('Prepared order terms differ from the reviewed selection.');

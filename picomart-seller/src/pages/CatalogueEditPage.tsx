@@ -30,7 +30,7 @@ import {
 } from "lucide-react";
 import { formatUnits } from "ethers";
 import {
-  pathUsdPrice,
+  currencyAmount,
   validateImage,
   uploadCatalog,
 } from "@/lib/catalogStorage";
@@ -39,16 +39,11 @@ import TokenIcon from "@/components/TokenIcon";
 import TokenAmount from "@/components/TokenAmount";
 import AccountUnlockButton from "@/components/wallet/AccountUnlockButton";
 import AccountDialog from "@/components/wallet/AccountDialog";
-
-interface Product {
-  ProductId: string;
-  Name: string;
-  Description: string;
-  Price: string;
-  PriceToken: string;
-  Image: string;
-  LocalFile?: File;
-}
+import {loadDeliverySets,publishedDeliverySet,deliverySetsChanged,type DeliverySet} from '@/lib/deliverySets';
+import type {TempoDeliveryOptions} from '@picomart/order-protocol/tempo-protocol';
+import {TempoDeliveryOptionsSchema} from '@picomart/order-protocol/tempo-protocol';
+import {set} from 'idb-keyval';
+import {loadCatalogueDraft, type CatalogueProduct as Product, type ScopedCatalogueDraft} from '@/lib/catalogueDraft';
 
 // Character limits
 const NAME_MAX_LENGTH = 60;
@@ -90,6 +85,10 @@ function CatalogueEditPage() {
   const [catalogueTokenNetwork, setCatalogueTokenNetwork] = useState(network);
   const [isTokenConfirmed, setIsTokenConfirmed] = useState(false);
   const [isTokenPickerOpen, setIsTokenPickerOpen] = useState(false);
+  const [deliverySets,setDeliverySets]=useState<DeliverySet[]>(()=>loadDeliverySets());
+  const [selectedDeliverySet,setSelectedDeliverySet]=useState('');
+  const [deliveryOptions,setDeliveryOptions]=useState<TempoDeliveryOptions|null>(null);
+  useEffect(()=>{const refresh=()=>setDeliverySets(loadDeliverySets());window.addEventListener(deliverySetsChanged,refresh);window.addEventListener('focus',refresh);return()=>{window.removeEventListener(deliverySetsChanged,refresh);window.removeEventListener('focus',refresh);};},[]);
   const [newProduct, setNewProduct] = useState<EditableProduct>({
     Name: "",
     Description: "",
@@ -103,6 +102,29 @@ function CatalogueEditPage() {
   const [uploading, setUploading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const draftScope=`picomart_catalog_draft_v2_${network}_${walletAddress?.toLowerCase()??'local'}`;
+  const [loadedDraftScope,setLoadedDraftScope]=useState('');
+  const activeDraft = useRef<ScopedCatalogueDraft | undefined>(undefined);
+  useEffect(() => {
+    if (!loadedDraftScope) return;
+    activeDraft.current = {scope:loadedDraftScope,draft:{version:2,products,currency:catalogueToken,confirmed:isTokenConfirmed,setId:selectedDeliverySet,delivery:deliveryOptions}};
+  }, [loadedDraftScope,products,catalogueToken,isTokenConfirmed,selectedDeliverySet,deliveryOptions]);
+  useEffect(()=>{
+    let live=true;setLoadedDraftScope('');
+    const localScope=`picomart_catalog_draft_v2_${network}_local`;
+    void loadCatalogueDraft(draftScope,localScope,activeDraft.current).then(draft=>{
+      if(!live)return;
+      if(draft&&draft.version!==2)throw new Error('Unsupported catalogue draft. Recreate this catalogue.');
+      setProducts(draft?.products??[]);setCatalogueToken(draft?.currency??supportedTokens[0]?.tokenId??'');
+      setCatalogueTokenNetwork(network);setIsTokenConfirmed(draft?.confirmed??false);setSelectedDeliverySet(draft?.setId??'');
+      setDeliveryOptions(draft?.delivery?TempoDeliveryOptionsSchema.parse(draft.delivery):null);setLoadedDraftScope(draftScope);
+    }).catch(error=>{if(live)toast.error((error as Error).message);});
+    return()=>{live=false;};
+  },[draftScope,network,supportedTokens]);
+  useEffect(()=>{
+    if(loadedDraftScope!==draftScope)return;
+    void set(draftScope,{version:2,products,currency:catalogueToken,confirmed:isTokenConfirmed,setId:selectedDeliverySet,delivery:deliveryOptions}).catch(()=>toast.error('Catalogue draft could not be saved on this device.'));
+  },[loadedDraftScope,draftScope,products,catalogueToken,isTokenConfirmed,selectedDeliverySet,deliveryOptions]);
 
   useEffect(() => {
     uploadController.current?.abort();
@@ -152,6 +174,7 @@ function CatalogueEditPage() {
     setCatalogueTokenNetwork(network);
     setIsTokenConfirmed(false);
     setIsTokenPickerOpen(false);
+    setSelectedDeliverySet('');setDeliveryOptions(null);
   };
 
   const handleConfirmCatalogueToken = () => {
@@ -206,7 +229,7 @@ function CatalogueEditPage() {
     let microPrice: string;
     try {
       validateImage(LocalFile);
-      microPrice = pathUsdPrice(Price);
+      microPrice = currencyAmount(Price,catalogueToken);
     } catch (error) {
       toast.error((error as Error).message);
       return;
@@ -251,6 +274,7 @@ function CatalogueEditPage() {
     setUploading(true);
     setUploadProgress("Checking upload availability...");
     try {
+      if(!deliveryOptions||deliveryOptions.currency!==catalogueToken)throw new Error('Choose and confirm a delivery set matching the catalogue currency.');
       const token = validateSingleTokenCatalogue(
         products,
         supportedTokens.map((item) => item.tokenId),
@@ -263,6 +287,7 @@ function CatalogueEditPage() {
         walletAdapter,
         config.fileApiUrl,
         products,
+        deliveryOptions,
         uploadController.current.signal,
         setUploadProgress,
       );
@@ -309,6 +334,13 @@ function CatalogueEditPage() {
         <span className="text-muted-foreground">2. Review catalog</span>
         <span className="text-muted-foreground">3. Publish</span>
       </nav>
+      <section className="space-y-3 rounded-lg border bg-card p-5">
+        <div className="flex flex-wrap justify-between gap-2"><h2 className="text-lg font-semibold">Delivery set</h2><Link to="/delivery-options" target="_blank" className="underline">Manage delivery sets</Link></div>
+        <p className="text-sm text-muted-foreground">Choose options for this catalogue. Delivery fees use its confirmed currency.</p>
+        <label className="block">Saved set<select className="w-full rounded-md border bg-background px-3 py-2" value={selectedDeliverySet} onChange={e=>{setSelectedDeliverySet(e.target.value);setDeliveryOptions(null);}}><option value="">Choose a delivery set</option>{deliverySets.filter(s=>s.options.currency===catalogueToken).map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
+        <Button variant="outline" disabled={!selectedDeliverySet||!isTokenConfirmed} onClick={()=>{try{const selected=deliverySets.find(s=>s.id===selectedDeliverySet);if(!selected)throw new Error('Choose a saved delivery set.');setDeliveryOptions(structuredClone(publishedDeliverySet(selected)));}catch(e){toast.error((e as Error).message);}}}>Confirm delivery set</Button>
+        {deliveryOptions&&<div className="space-y-2"><p className="text-sm font-medium">Confirmed delivery options</p>{deliveryOptions.methods.map(m=><div key={m.id}><strong>{m.name}</strong><p className="text-sm text-muted-foreground">{m.description}</p>{m.type!=='digital'&&(m.type==='customer-address'?m.services:m.locations).map(o=><p className="text-sm" key={o.id}>{o.name} · {o.amount==='0'?'Free':`${formatUnits(o.amount,selectedCatalogueToken?.decimals??0)} ${selectedCatalogueToken?.name??''}`}{'address' in o?` · ${o.address} · ${'schedule' in o?o.schedule:''}`:''}</p>)}</div>)}</div>}
+      </section>
       {/* Catalogue Storage Options Info */}
       <Card>
         <CardHeader>

@@ -1,7 +1,7 @@
 {
   "name": "picomart-storefront-template",
   "private": true,
-  "version": "1.4.0-tempo.3",
+  "version": "1.4.0-delivery.1",
   "packageManager": "npm@11.17.0",
   "type": "module",
   "scripts": {

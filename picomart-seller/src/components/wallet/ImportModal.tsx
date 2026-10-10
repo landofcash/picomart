@@ -28,9 +28,10 @@ const ImportModal: React.FC<ImportModalProps> = ({open, onClose, onImport}) => {
     try {
       await onImport(cleaned)
       setMnemonic('')
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error('Import failed', e)
-      setError(e?.message || 'Failed to import wallet. Check your mnemonic and try again.')
+      const message = e && typeof e === 'object' && 'message' in e && typeof e.message === 'string' ? e.message : ''
+      setError(message || 'Failed to import wallet. Check your mnemonic and try again.')
     } finally {
       setSubmitting(false)
     }

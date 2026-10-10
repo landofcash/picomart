@@ -3,6 +3,7 @@ import {PICOMART_TEMPO_CONFIG} from '@picomart/config';
 import {createHash} from 'crypto';
 import {verifyMessage} from 'ethers';
 import {tempoAddress} from './tempoIdentity';
+import {parseTempoCatalog, parseTempoDeliveryOptions} from '@picomart/order-protocol/tempo-protocol';
 
 export const CATALOG_CDN = PICOMART_TEMPO_CONFIG.services.catalogOrigin;
 export const IMAGE_LIMIT = 10 * 1024 * 1024;
@@ -23,10 +24,10 @@ export function storageConfig(env: NodeJS.ProcessEnv = process.env) {
   return {baseUrl:`${endpoint.origin}/${zone}`,key,publicBase:CATALOG_CDN};
 }
 export const sha256 = (bytes: Uint8Array|string) => createHash('sha256').update(bytes).digest('hex');
-export function uploadMessage(account:string,kind:'image'|'json',hash:string,expiresAt:number) {
+export function uploadMessage(account:string,kind:'image'|'json'|'delivery',hash:string,expiresAt:number) {
   return `Picomart public catalog upload\nVersion: 1\nChain ID: ${PICOMART_TEMPO_CONFIG.chainId}\nContract: ${deployment}\nCDN: ${CATALOG_CDN}\nAccount: ${account}\nKind: ${kind}\nSHA256: ${hash}\nExpires at: ${expiresAt}`;
 }
-export function authorizeUpload(auth: Record<string,unknown>,kind:'image'|'json',hash:string,now=Date.now()) {
+export function authorizeUpload(auth: Record<string,unknown>,kind:'image'|'json'|'delivery',hash:string,now=Date.now()) {
   try {
     const account=tempoAddress(String(auth.account)),expiry=Number(auth.expiresAt);
     if(!Number.isSafeInteger(expiry)||expiry<=now||expiry>now+300_000||!/^0x[0-9a-f]{130}$/i.test(String(auth.signature)))throw new Error();
@@ -44,8 +45,9 @@ export function imageType(bytes:Buffer) {
 }
 export function catalogBytes(content:unknown,account:string):Buffer {
   if(typeof content!=='string'||Buffer.byteLength(content)>CATALOG_LIMIT)throw new CatalogInputError('Catalog JSON exceeds its limit or is missing.');
-  let products:unknown;try{products=JSON.parse(content);}catch{throw new CatalogInputError('Invalid catalog JSON.');}
-  if(!Array.isArray(products)||products.length===0||products.length>1000)throw new CatalogInputError('Catalog must contain 1–1000 products.');
+  let catalog;try{catalog=parseTempoCatalog(JSON.parse(content));}catch(error){throw new CatalogInputError(error instanceof Error?error.message:'Invalid catalog JSON.');}
+  const products=catalog.products;
+  if(!new RegExp(`^${CATALOG_CDN.replaceAll('.','\\.')}/moderato/v1/${account}/delivery-options/[0-9a-f]{64}\\.json$`).test(catalog.deliveryOptionsUrl))throw new CatalogInputError('Delivery options must use this wallet’s published Picomart options.');
   const ids=new Set<string>();
   for(const p of products) {
     if(!p||typeof p!=='object'||Object.keys(p).sort().join(',')!=='Description,Image,Name,Price,PriceToken,ProductId'||
@@ -59,6 +61,12 @@ export function catalogBytes(content:unknown,account:string):Buffer {
   }
   return Buffer.from(content,'utf8');
 }
-export function storagePath(account:string,kind:'image'|'json',hash:string,extension:string) {
-  return `moderato/v1/${account}/${kind==='image'?'images':'catalogs'}/${hash}.${extension}`;
+export function deliveryBytes(content:unknown):Buffer {
+  if(typeof content!=='string'||Buffer.byteLength(content)>CATALOG_LIMIT)throw new CatalogInputError('Delivery JSON exceeds its limit or is missing.');
+  try {const options=parseTempoDeliveryOptions(JSON.parse(content));if(!isPaymentCurrency(options.currency))throw new Error('Unsupported delivery currency.');}
+  catch(error){throw new CatalogInputError(error instanceof Error?error.message:'Invalid delivery JSON.');}
+  return Buffer.from(content,'utf8');
+}
+export function storagePath(account:string,kind:'image'|'json'|'delivery',hash:string,extension:string) {
+  return `moderato/v1/${account}/${kind==='image'?'images':kind==='delivery'?'delivery-options':'catalogs'}/${hash}.${extension}`;
 }

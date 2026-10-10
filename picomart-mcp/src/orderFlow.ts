@@ -3,20 +3,31 @@ import {randomBytes} from 'node:crypto';
 import QRCode from 'qrcode';
 import {AgentQuoteRequestSchema,AgentProfileSchema,AgentSeedSchema,AGENT_CONTRACT,AGENT_TOKEN,AGENT_NETWORK,AGENT_RESOLVE_PATH,
   PicomartDeliveryDetailsV1Schema,canonicalHash,canonicalEqual,agentRequestCommitment,encryptAgentDelivery,decodeAgentPaymentRequired,encodeAgentPaymentSignature,validateAgentResolution,type PicomartDeliveryDetailsV1} from './agentProtocol.js';
-import {tempoSeedToId} from '@picomart/order-protocol/tempo-protocol';
+import {tempoSeedToId,tempoRecipientValid,loadTempoCatalog,tempoFulfillmentSnapshot} from '@picomart/order-protocol/tempo-protocol';
 import type {McpConfig} from './config.js';
 import {PendingIntentStore,type PendingIntent} from './intentStore.js';
-export type CreateOrderInput={catalogSeed:string;items:Array<{productId:string;quantity:number}>;delivery:PicomartDeliveryDetailsV1};
+export type CreateOrderInput={catalogSeed:string;items:Array<{productId:string;quantity:number}>;delivery:PicomartDeliveryDetailsV1;fulfillment:{methodId:string;optionId?:string}};
 export class PicomartOrderFlow{
   constructor(private config:McpConfig,private store:PendingIntentStore,private fetcher:typeof fetch=fetch,private now=()=>Math.floor(Date.now()/1000)){}
   private async json(response:Response){const text=await response.text();if(text.length>512000)throw new Error('response_too_large');return JSON.parse(text);}
+  async catalog(seed:string){
+    AgentSeedSchema.parse(seed);
+    const response=await this.fetcher(this.config.syncOrigin+PICOMART_TEMPO_CONFIG.services.syncPath+'/catalogs/'+seed,{redirect:'error',signal:AbortSignal.timeout(8000)});
+    if(!response.ok)throw new Error('catalog_unavailable');const body=await this.json(response);
+    if(!body.success||body.data.chainId!==PICOMART_TEMPO_CONFIG.chainId||body.data.address!==AGENT_CONTRACT||body.data.catalog.seed!==seed)throw new Error('catalog_deployment_mismatch');
+    const catalogUrl=body.data.catalog.catalogUrl;
+    return {...await loadTempoCatalog(catalogUrl,PICOMART_TEMPO_CONFIG.services.catalogOrigin,this.fetcher,AbortSignal.timeout(8000)),catalogUrl};
+  }
   async create(input:CreateOrderInput){
     const profile=AgentProfileSchema.parse({version:2,profileId:`picomart-mcp-${PICOMART_TEMPO_CONFIG.network}-v2`,quoteOrigin:this.config.x402Origin,resourceOrigin:this.config.x402Origin,
       network:AGENT_NETWORK,chainId:PICOMART_TEMPO_CONFIG.chainId,contractAddress:AGENT_CONTRACT,trustedQuoteKeys:Object.entries(this.config.quotePublicKeys).map(([kid,publicKey])=>({kid,publicKey}))});
-    const delivery=PicomartDeliveryDetailsV1Schema.parse(input.delivery),orderSeed=randomBytes(16).toString('base64url'),key=randomBytes(32),nonce=randomBytes(12);
+    const catalog=await this.catalog(input.catalogSeed),selection=tempoFulfillmentSnapshot(catalog.catalogUrl,catalog.deliveryOptionsUrl,catalog.deliveryOptions,input.fulfillment.methodId,input.fulfillment.optionId);
+    const delivery=PicomartDeliveryDetailsV1Schema.parse(input.delivery);
+    if(!tempoRecipientValid(selection.type,delivery)||delivery.noPhysicalDelivery!==(selection.type==='digital'))throw new Error('Complete the recipient fields required by the selected delivery method.');
+    const orderSeed=randomBytes(16).toString('base64url'),key=randomBytes(32),nonce=randomBytes(12);
     let approvalKey:string,request;
     try{request=AgentQuoteRequestSchema.parse({version:2,orderSeed,catalogSeed:input.catalogSeed,items:input.items,encryptedDelivery:await encryptAgentDelivery(delivery,orderSeed,key,nonce),
-      deliveryDetailsHash:await canonicalHash(delivery),physicalDelivery:!delivery.noPhysicalDelivery});approvalKey=key.toString('base64url');}finally{key.fill(0);nonce.fill(0);}
+      deliveryDetailsHash:await canonicalHash(delivery),physicalDelivery:!delivery.noPhysicalDelivery,fulfillment:input.fulfillment});approvalKey=key.toString('base64url');}finally{key.fill(0);nonce.fill(0);}
     const response=await this.fetcher(this.config.x402Origin+(PICOMART_TEMPO_CONFIG.services.agentPath + '/order-quotes'),{method:'POST',redirect:'error',headers:{'Content-Type':'application/json'},body:JSON.stringify(request),signal:AbortSignal.timeout(10000)});
     if(response.status!==402)throw new Error('quote_creation_'+response.status);
     const header=response.headers.get('PAYMENT-REQUIRED');if(!header)throw new Error('missing_payment_required');const required=decodeAgentPaymentRequired(header);

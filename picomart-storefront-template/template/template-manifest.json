@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "templateId": "picomart-neutral-storefront",
-  "templateVersion": "1.4.0-tempo.3",
+  "templateVersion": "1.4.0-delivery.1",
   "sourceProject": "picomart-storefront-template",
   "buildMode": "production",
   "outputDirectory": "dist",
@@ -42,7 +42,7 @@
     "node": "24.11.0",
     "npm": "11.17.0",
     "lockfile": "package-lock.json",
-    "lockfileSha256": "9b615c4a4cfb456163d9a8bf262cca52df77e6c4fdad924e20a10ffc5d49c034",
+    "lockfileSha256": "a7befa6f1f744cff5791bc158da64ac564448663a215cb28f6c3eb25c8f9f5e2",
     "lockfileHashNormalization": "UTF-8 with LF line endings",
     "playwright": "1.63.0",
     "browser": "chromium",

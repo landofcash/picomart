@@ -3,7 +3,7 @@ import multer from 'multer';
 import axios from 'axios';
 import dotenv from 'dotenv';
 import {tempoAddress} from '../../tempoIdentity';
-import {storageConfig,CATALOG_CDN,IMAGE_LIMIT,CatalogInputError,sha256,authorizeUpload,imageType,catalogBytes,storagePath} from '../../catalogStorage';
+import {storageConfig,CATALOG_CDN,IMAGE_LIMIT,CatalogInputError,sha256,authorizeUpload,imageType,catalogBytes,deliveryBytes,storagePath} from '../../catalogStorage';
 
 dotenv.config();
 type Transport = Pick<typeof axios,'put'|'get'>;
@@ -27,7 +27,7 @@ export function createCatalogUploadRouter(transport:Transport=axios,env:NodeJS.P
     res.locals.releaseUpload=()=>{if(!released){released=true;active--;}};
     res.once('close',()=>{if(!res.locals.publishing)res.locals.releaseUpload();});next();
   });
-  async function publish(bytes:Buffer,account:string,kind:'image'|'json',extension:string,mime:string) {
+  async function publish(bytes:Buffer,account:string,kind:'image'|'json'|'delivery',extension:string,mime:string) {
     const config=storageConfig(env),hash=sha256(bytes),path=storagePath(account,kind,hash,extension),url=`${config.baseUrl}/${path}`;
     const options={headers:{AccessKey:config.key},maxRedirects:0,timeout:30_000,maxContentLength:IMAGE_LIMIT,maxBodyLength:IMAGE_LIMIT};
     const result=await transport.put(url,bytes,{...options,headers:{...options.headers,'Content-Type':mime,Checksum:hash.toUpperCase()}});
@@ -44,13 +44,14 @@ export function createCatalogUploadRouter(transport:Transport=axios,env:NodeJS.P
     }catch(err){res.status(err instanceof CatalogInputError?400:502).json({error:err instanceof CatalogInputError?err.message:'Catalog storage upload or read-back failed. Retry the same content.'});}
     finally{res.locals.releaseUpload?.();}
   });
-  router.post('/json',async(req,res)=>{
+  router.post(['/json','/delivery-options'],async(req,res)=>{
     try {
       if(!req.body||req.body.path)throw new CatalogInputError('Use a signed upload without a client-selected path.');
       let account:string;try{account=tempoAddress(req.body.account);}catch{throw new CatalogInputError('Invalid wallet address.');}
-      const bytes=catalogBytes(req.body.content,account);
-      authorizeUpload(req.body,'json',sha256(bytes));
-      res.locals.publishing=true;res.json(await publish(bytes,account,'json','json','application/json'));
+      const kind=req.path==='/delivery-options'?'delivery':'json';
+      const bytes=kind==='delivery'?deliveryBytes(req.body.content):catalogBytes(req.body.content,account);
+      authorizeUpload(req.body,kind,sha256(bytes));
+      res.locals.publishing=true;res.json(await publish(bytes,account,kind,'json','application/json'));
     }catch(err){res.status(err instanceof CatalogInputError?400:502).json({error:err instanceof CatalogInputError?err.message:'Catalog storage upload or read-back failed. Retry the same content.'});}
     finally{res.locals.releaseUpload?.();}
   });

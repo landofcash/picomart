@@ -1,5 +1,6 @@
 import {z} from "zod";
 import {canonicalEqual} from "./canonical.js";
+import {TempoFulfillmentSnapshotSchema, tempoRecipientValid} from './tempoCatalog.js';
 import {TempoOrderContextSchema, type TempoOrderContext} from "./tempoIdentity.js";
 import {MAX_TEMPO_MESSAGE_BYTES, TEMPO_MESSAGE_PROFILE, TEMPO_REFERENCE_PROFILE, TempoAddressSchema, TempoAmountSchema, TempoChainIdSchema, TempoHashSchema, TempoIdSchema, TempoSeedSchema, limitedTempoText, parseTempoCanonical, serializeTempoCanonical, tempoSeedToId} from "./tempoPrimitives.js";
 
@@ -38,16 +39,18 @@ const itemSchema = z.object({
 }).strict().refine(item => BigInt(item.unitAmount) * BigInt(item.quantity) === BigInt(item.lineAmount), "line amount mismatch");
 const buyerData = z.object({
   catalogSeed: TempoSeedSchema, orderSeed: TempoSeedSchema, items: z.array(itemSchema).min(1).max(100),
-  delivery: TempoDeliveryDetailsSchema, deliveryAmount: TempoAmountSchema,
+  delivery: TempoDeliveryDetailsSchema, deliveryAmount: TempoAmountSchema, fulfillment:TempoFulfillmentSnapshotSchema,
   payment: z.object({tokenAddress: TempoAddressSchema, amount: TempoAmountSchema.refine(value => BigInt(value) > 0n, "payment must be positive")}).strict(),
 }).strict().superRefine((data, ctx) => {
   const total = data.items.reduce((sum, item) => sum + BigInt(item.lineAmount), BigInt(data.deliveryAmount));
   if (total !== BigInt(data.payment.amount)) ctx.addIssue({code: "custom", message: "payment total mismatch"});
+  if(data.fulfillment.amount!==data.deliveryAmount||data.fulfillment.currency!==data.payment.tokenAddress)ctx.addIssue({code:'custom',message:'fulfillment payment mismatch'});
+  if(!tempoRecipientValid(data.fulfillment.type,data.delivery)||data.delivery.noPhysicalDelivery!==(data.fulfillment.type==='digital'))ctx.addIssue({code:'custom',message:'Invalid recipient details for delivery method'});
   if (new Set(data.items.map(item => item.productId)).size !== data.items.length) ctx.addIssue({code: "custom", message: "duplicate product ID"});
 });
 const payloadBase = {version: z.literal(1), profile: z.literal(TEMPO_MESSAGE_PROFILE)};
 export const TempoMessagePayloadSchema = z.union([
-  z.object({...payloadBase, binding: TempoMessageBindingSchema.extend({messageType: z.literal("buyer-order")}), data: buyerData}).strict(),
+  z.object({version:z.literal(2),profile:z.literal('picomart-message-v2'), binding: TempoMessageBindingSchema.extend({messageType: z.literal("buyer-order")}), data: buyerData}).strict(),
   z.object({...payloadBase, binding: TempoMessageBindingSchema.extend({messageType: z.literal("seller-delivery")}), data: z.object({shipmentCode: limitedTempoText(0, 1024), customInfo: limitedTempoText(0, 16384)}).strict()}).strict(),
   z.object({...payloadBase, binding: TempoMessageBindingSchema.extend({messageType: z.literal("seller-refusal")}), data: z.object({customInfo: limitedTempoText(1, 16384)}).strict()}).strict(),
 ]);

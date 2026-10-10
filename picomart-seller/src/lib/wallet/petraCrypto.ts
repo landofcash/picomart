@@ -31,7 +31,7 @@ export function base64EncodeUtf8Json(obj: unknown): string {
   return btoa(binary);
 }
 
-export function base64DecodeUtf8ToObj<T = any>(b64: string): T {
+export function base64DecodeUtf8ToObj<T = unknown>(b64: string): T {
   const binary = atob(b64);
   const len = binary.length;
   const bytes = new Uint8Array(len);

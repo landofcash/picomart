@@ -3,9 +3,9 @@
   "checkpointId": null,
   "checkpointName": null,
   "sdkVersion": "3.11.0",
-  "templateVersion": "1.4.0-tempo.3",
-  "sourceDigest": "2cc537f43d95131a5dafd7bdebfe9b1305998801f7ac377473555d5cae8c1f69",
-  "lockfileSha256": "9b615c4a4cfb456163d9a8bf262cca52df77e6c4fdad924e20a10ffc5d49c034",
+  "templateVersion": "1.4.0-delivery.1",
+  "sourceDigest": "10e13ef7746fcd803c164d15da0567f0234b392b9885c13eb8124a92ddd49c52",
+  "lockfileSha256": "a7befa6f1f744cff5791bc158da64ac564448663a215cb28f6c3eb25c8f9f5e2",
   "node": "24.11.0",
   "npm": "11.17.0"
 }
