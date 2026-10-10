@@ -8,7 +8,7 @@ interface TokenIconProps {
   className?: string;
 }
 
-const TokenIcon: React.FC<TokenIconProps> = ({assetId, size = 20, alt = '', className = ''}) => {
+const TokenIcon: React.FC<TokenIconProps> = ({assetId, size = 20, alt, className = ''}) => {
   const assetKey = String(assetId);
   const token = tryGetTokenByType(assetKey);
   const imgSrc = token ? token.img ?? `/tokens/${token.id}-icon.png` : undefined;
@@ -16,7 +16,7 @@ const TokenIcon: React.FC<TokenIconProps> = ({assetId, size = 20, alt = '', clas
 
   if (!token || !imgSrc || failedAssetKey === assetKey) {
     return (
-      <span className={`inline-block align-middle text-xs font-semibold ${className}`} style={{
+      <span aria-hidden={alt === '' ? true : undefined} className={`inline-block align-middle text-xs font-semibold ${className}`} style={{
         width: size,
         height: size,
         lineHeight: `${size}px`,
@@ -33,7 +33,7 @@ const TokenIcon: React.FC<TokenIconProps> = ({assetId, size = 20, alt = '', clas
   }
 
   return (
-    <img src={imgSrc} alt={alt || `Token ${token.name}`} width={size} height={size}
+    <img src={imgSrc} alt={alt ?? `Token ${token.name}`} width={size} height={size}
          className={`rounded-full inline-block align-middle ${className}`} onError={() => setFailedAssetKey(assetKey)}/>
   );
 };

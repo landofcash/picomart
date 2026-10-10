@@ -19,6 +19,7 @@ import TempoMarketShell from "@/components/TempoMarketShell";
 import { PICOMART_TEMPO_CONFIG } from "@picomart/config";
 import { TokenLabel } from "@/components/TokenAmount";
 import { useTempoAdmin } from "@/hooks/useTempoAdmin";
+import DeliverySetsBackup from "@/components/DeliverySetsBackup";
 
 export default function TempoSettingsPage({
   seller = false,
@@ -86,6 +87,7 @@ export default function TempoSettingsPage({
           </CardContent>
         </Card>
       </div>
+      {seller && <DeliverySetsBackup />}
       <details className="rounded-2xl border bg-card px-5 py-2">
         <summary className="cursor-pointer text-sm font-medium">
           Advanced settings

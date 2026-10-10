@@ -39,7 +39,7 @@ import TokenIcon from "@/components/TokenIcon";
 import TokenAmount from "@/components/TokenAmount";
 import AccountUnlockButton from "@/components/wallet/AccountUnlockButton";
 import AccountDialog from "@/components/wallet/AccountDialog";
-import {loadDeliverySets,publishedDeliverySet,deliverySetsChanged,type DeliverySet} from '@/lib/deliverySets';
+import {loadDeliverySets,publishedDeliverySet,deliverySetsChanged,defaultDeliverySets,defaultDeliveryOptions,type DeliverySet} from '@/lib/deliverySets';
 import type {TempoDeliveryOptions} from '@picomart/order-protocol/tempo-protocol';
 import {TempoDeliveryOptionsSchema} from '@picomart/order-protocol/tempo-protocol';
 import {set} from 'idb-keyval';
@@ -337,8 +337,9 @@ function CatalogueEditPage() {
       <section className="space-y-3 rounded-lg border bg-card p-5">
         <div className="flex flex-wrap justify-between gap-2"><h2 className="text-lg font-semibold">Delivery set</h2><Link to="/delivery-options" target="_blank" className="underline">Manage delivery sets</Link></div>
         <p className="text-sm text-muted-foreground">Choose options for this catalogue. Delivery fees use its confirmed currency.</p>
-        <label className="block">Saved set<select className="w-full rounded-md border bg-background px-3 py-2" value={selectedDeliverySet} onChange={e=>{setSelectedDeliverySet(e.target.value);setDeliveryOptions(null);}}><option value="">Choose a delivery set</option>{deliverySets.filter(s=>s.options.currency===catalogueToken).map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
-        <Button variant="outline" disabled={!selectedDeliverySet||!isTokenConfirmed} onClick={()=>{try{const selected=deliverySets.find(s=>s.id===selectedDeliverySet);if(!selected)throw new Error('Choose a saved delivery set.');setDeliveryOptions(structuredClone(publishedDeliverySet(selected)));}catch(e){toast.error((e as Error).message);}}}>Confirm delivery set</Button>
+        <label className="block">Delivery set<select className="w-full rounded-md border bg-background px-3 py-2" value={selectedDeliverySet} onChange={e=>{setSelectedDeliverySet(e.target.value);setDeliveryOptions(null);}}><option value="">Choose a delivery set</option><optgroup label="Free defaults — all currencies">{defaultDeliverySets.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</optgroup>{deliverySets.some(s=>s.options.currency===catalogueToken)&&<optgroup label="Your saved sets">{deliverySets.filter(s=>s.options.currency===catalogueToken).map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</optgroup>}</select></label>
+        <p className="text-xs text-muted-foreground">Free defaults use your catalogue currency. Create a custom set for delivery fees or pickup locations.</p>
+        <Button variant="outline" disabled={!selectedDeliverySet||!isTokenConfirmed} onClick={()=>{try{const preset=defaultDeliveryOptions(selectedDeliverySet,catalogueToken);const selected=deliverySets.find(s=>s.id===selectedDeliverySet);if(!preset&&!selected)throw new Error('Choose a delivery set.');const options=preset??publishedDeliverySet(selected!);if(options.currency!==catalogueToken)throw new Error('Choose a delivery set matching the catalogue currency.');setDeliveryOptions(structuredClone(options));}catch(e){toast.error((e as Error).message);}}}>Confirm delivery set</Button>
         {deliveryOptions&&<div className="space-y-2"><p className="text-sm font-medium">Confirmed delivery options</p>{deliveryOptions.methods.map(m=><div key={m.id}><strong>{m.name}</strong><p className="text-sm text-muted-foreground">{m.description}</p>{m.type!=='digital'&&(m.type==='customer-address'?m.services:m.locations).map(o=><p className="text-sm" key={o.id}>{o.name} · {o.amount==='0'?'Free':`${formatUnits(o.amount,selectedCatalogueToken?.decimals??0)} ${selectedCatalogueToken?.name??''}`}{'address' in o?` · ${o.address} · ${'schedule' in o?o.schedule:''}`:''}</p>)}</div>)}</div>}
       </section>
       {/* Catalogue Storage Options Info */}
@@ -380,7 +381,7 @@ function CatalogueEditPage() {
                 <TokenIcon
                   assetId={catalogueToken}
                   size={36}
-                  alt={selectedCatalogueToken?.name ?? catalogueToken}
+                  alt=""
                 />
                 <div>
                   <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
@@ -426,7 +427,7 @@ function CatalogueEditPage() {
                         <TokenIcon
                           assetId={catalogueToken}
                           size={20}
-                          alt={selectedCatalogueToken?.name ?? catalogueToken}
+                          alt=""
                         />
                         {selectedCatalogueToken?.name ?? catalogueToken}
                       </span>
@@ -449,7 +450,7 @@ function CatalogueEditPage() {
                         <TokenIcon
                           assetId={token.tokenId}
                           size={20}
-                          alt={token.name}
+                          alt=""
                         />
                         <span className="flex-1">{token.name}</span>
                         {catalogueToken === token.tokenId && (

@@ -11,6 +11,7 @@ import { useTransactionReview } from '@/components/TransactionReview';
 import AccountUnlockButton from '@/components/wallet/AccountUnlockButton';
 import { Button } from '@/components/ui/button';
 import TokenIcon from '@/components/TokenIcon';
+import {currencyLabel} from '@/lib/currencyLabel';
 
 export default function TempoTokensPage() {
   const wallet = useWallet();
@@ -82,7 +83,7 @@ export default function TempoTokensPage() {
       {error && <p role="alert">{error}</p>}
       <div className="space-y-3">{tokens.map(token => <section key={token.tokenId} className="flex flex-wrap items-center justify-between gap-4 rounded-xl border bg-card p-5">
         <div className="min-w-0 space-y-1">
-          <h2 className="flex items-center gap-2 font-semibold"><TokenIcon assetId={token.tokenId} />{token.name} ({token.symbol})</h2>
+          <h2 className="flex items-center gap-2 font-semibold"><TokenIcon assetId={token.tokenId} />{currencyLabel(token)}</h2>
           <p className="break-all text-xs text-muted-foreground">{token.tokenId}</p>
           <p className="text-sm">{token.decimals} decimals · {token.allowed ? 'Enabled on-chain' : 'Not enabled on-chain'}</p>
         </div>

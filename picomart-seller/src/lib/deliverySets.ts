@@ -32,6 +32,28 @@ export interface DeliverySet {
 }
 const key = `picomart_delivery_sets_v1_${PICOMART_TEMPO_CONFIG.chainId}`;
 export const deliverySetsChanged = "picomart:delivery-sets-changed";
+export const defaultDeliverySets = [
+  {id: 'default-physical-free', name: 'Physical delivery — free'},
+  {id: 'default-digital-free', name: 'Digital delivery — free'},
+] as const;
+
+/** Built-in templates take the catalogue currency when confirmed, without creating saved sets. */
+export function defaultDeliveryOptions(id: string, currency: string): TempoDeliveryOptions | null {
+  if (!defaultDeliverySets.some(set => set.id === id)) return null;
+  getCurrency(currency);
+  return TempoDeliveryOptionsSchema.parse({
+    version: 1,
+    currency,
+    methods: id === 'default-physical-free' ? [{
+      id: 'customer-address', type: 'customer-address', name: 'Delivery to your address',
+      description: 'Have your order shipped to you.',
+      services: [{id: 'regular-delivery', name: 'Regular delivery', description: 'Standard delivery', amount: '0'}],
+    }] : [{
+      id: 'digital', type: 'digital', name: 'Digital delivery',
+      description: "Receive a URL or code by email or in the order's delivery comments.",
+    }],
+  });
+}
 export function publishedDeliverySet(set: DeliverySet) {
   if (
     !set.name.trim() ||
@@ -166,7 +188,7 @@ export function newDeliverySet(
       id: "digital",
       type: "digital",
       name: "Digital delivery",
-      description: "Receive your order digitally.",
+      description: "Receive a URL or code by email or in the order's delivery comments.",
     },
   ];
   return {
