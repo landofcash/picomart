@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { hexlify, keccak256, toUtf8Bytes } from "ethers";
-import { get, set } from "idb-keyval";
+import { get, set, del } from "idb-keyval";
 import {
   tempoIdToSeed,
   canonicalJson,
+  tempoSeedToId,
 } from "@picomart/order-protocol/tempo-protocol";
 import {
   PackageSearch,
@@ -13,6 +14,7 @@ import {
   QrCode,
   Trash2,
   Store,
+  Pencil,
 } from "lucide-react";
 import { useWallet } from "@/context/WalletContext";
 import { Button } from "@/components/ui/button";
@@ -45,6 +47,9 @@ import {
   type TempoContractCall,
   type TempoTransactionRecord,
 } from "@/lib/internalWallet/tempoTransactions";
+import {checkCatalogUpdate} from '@/lib/catalogEditor';
+
+interface CatalogReviewState {url?: string; catalogSeed?: string; sourceUrl?: string; createSessionId?: string; draftScope?: string;}
 
 export default function TempoCatalogsPage({
   embedded = false,
@@ -54,6 +59,8 @@ export default function TempoCatalogsPage({
   const wallet = useWallet(),
     location = useLocation(),
     account = wallet.walletAddress?.toLowerCase();
+  const reviewState=location.state as CatalogReviewState|null;
+  const editingCatalog=Boolean(reviewState?.catalogSeed);
   const [list, setList] = useState<MarketCatalog[]>([]),
     [url, setUrl] = useState(
       (location.state as { url?: string } | null)?.url ?? "",
@@ -68,11 +75,11 @@ export default function TempoCatalogsPage({
     [receipt, setReceipt] = useState<TempoTransactionRecord | null>(null),
     [progress, setProgress] = useState("");
   const review = useTransactionReview({
-    title: embedded ? "Remove catalog" : "Publish catalog",
-    approveLabel: embedded ? "Remove catalog" : "Publish catalog",
+    title: embedded ? "Remove catalog" : editingCatalog ? "Update catalog" : "Publish catalog",
+    approveLabel: embedded ? "Remove catalog" : editingCatalog ? "Update catalog" : "Publish catalog",
     description: embedded
       ? "Remove this catalog from Picomart. Its printed QR codes will no longer support new orders. This cannot be undone."
-      : "Publish this catalog so customers can order through your storefront or printed QR codes.",
+      : editingCatalog ? "Update this catalog while keeping its catalog reference and existing product references." : "Publish this catalog so customers can order through your storefront or printed QR codes.",
     children: !embedded && (
       <p className="text-sm">
         {products?.length} {products?.length === 1 ? "product" : "products"} ·
@@ -106,7 +113,7 @@ export default function TempoCatalogsPage({
     setProducts(null);setDelivery(null);
     setReceipt(null);
     controller.current?.abort();
-  }, [url, account, wallet.network]);
+  }, [url, account, wallet.network, reviewState?.catalogSeed, reviewState?.createSessionId, reviewState?.sourceUrl]);
   useEffect(() => {
     if (wallet.walletLocked) {
       setCall(null);
@@ -160,6 +167,10 @@ export default function TempoCatalogsPage({
   const canSign = TEMPO_MARKET_ENABLED && account && wallet.walletAdapter;
   const usable = canSign && !wallet.walletLocked;
   async function checkReviewedProducts() {
+    if(reviewState?.catalogSeed){
+      if(!account||!reviewState.sourceUrl)throw new Error('The original catalog reference is unavailable. Reopen Edit catalog.');
+      await checkCatalogUpdate(reviewState.catalogSeed,account,reviewState.sourceUrl,controller.current?.signal);
+    }
     const loaded = await fetchCatalogDocument(url, controller.current?.signal);
     if (!products || canonicalJson(loaded) !== canonicalJson(delivery))
       throw new Error(
@@ -170,10 +181,19 @@ export default function TempoCatalogsPage({
     const revision = tempoWalletRevision();
     await verifyMarketDeployment();
     await checkReviewedProducts();
+    if(reviewState?.catalogSeed){
+      const existing=await checkCatalogUpdate(reviewState.catalogSeed,account!,reviewState.sourceUrl!,controller.current?.signal);
+      assertTempoWalletRevision(revision);
+      controller.current?.signal.throwIfAborted();
+      const prepared={method:'updateCatalog',args:[tempoSeedToId(existing.seed),existing.sellerPublicKey,url]};
+      setCall(prepared);
+      return prepared;
+    }
     const key =
       "picomart_tempo_catalog_intent_" +
       account +
       "_" +
+      (reviewState?.createSessionId ? reviewState.createSessionId + '_' : '') +
       keccak256(toUtf8Bytes(url));
     if (!navigator.locks)
       throw new Error("Web Locks are required for catalog recovery.");
@@ -237,7 +257,8 @@ export default function TempoCatalogsPage({
           tx.state +
           ". Check publication status to recover the same submission.",
       );
-    setProgress("Publication confirmed.");
+    setProgress(editingCatalog ? "Catalog update confirmed. Rebuild and publish existing storefronts to display the updated products." : "Publication confirmed.");
+    if(reviewState?.draftScope)await del(reviewState.draftScope);
   }
   if (embedded)
     return (
@@ -298,6 +319,7 @@ export default function TempoCatalogsPage({
                 </div>
               </details>
               <div className="flex flex-wrap gap-2">
+                <Button asChild variant="outline" size="sm"><Link to={`/edit-product-catalogue?catalog=${c.seed}`}><Pencil className="h-4 w-4"/>Edit catalog</Link></Button>
                 <Button asChild variant="outline" size="sm">
                   <Link to={"/print-qr-codes?catalog=" + c.seed}>
                     <QrCode className="h-4 w-4" />
@@ -349,12 +371,12 @@ export default function TempoCatalogsPage({
       </Card>
     );
   return (
-    <TempoMarketShell title="Review catalog" seller>
+    <TempoMarketShell title={editingCatalog?'Review catalog changes':'Review catalog'} seller>
       <nav
         aria-label="Publishing progress"
         className="flex flex-wrap gap-3 text-sm"
       >
-        <Link className="underline" to="/edit-product-catalogue">
+        <Link className="underline" to={reviewState?.catalogSeed?`/edit-product-catalogue?catalog=${reviewState.catalogSeed}`:reviewState?.createSessionId?`/edit-product-catalogue?draft=${reviewState.createSessionId}`:'/edit-product-catalogue'}>
           1. Add products
         </Link>
         <span aria-current="step" className="font-semibold">
@@ -480,7 +502,7 @@ export default function TempoCatalogsPage({
       {review.dialog}
       {receipt?.state === "confirmed" && call && (
         <TempoActionDialog
-          title="Catalog published"
+          title={editingCatalog?'Catalog updated':'Catalog published'}
           busy={false}
           onClose={() => setReceipt(null)}
         >
@@ -488,6 +510,7 @@ export default function TempoCatalogsPage({
             Your products are ready for orders. Sell offline with printed QR
             codes or online with a storefront.
           </p>
+          {editingCatalog&&<p>Existing QR codes keep their references. Rebuild and publish existing storefronts to display the updated products.</p>}
           <Button asChild>
             <Link
               to={

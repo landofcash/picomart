@@ -33,6 +33,17 @@ beforeEach(()=>{
   }));
 });
 describe('catalog storage browser integration',()=>{
+  it('keeps existing product IDs and images when publishing edited product terms',async()=>{
+    const original=await uploadCatalog(wallet,api,[product],delivery());
+    posts=[];
+    const edited={...original.products[0],Name:'Edited product',Price:'2000001'};
+    const updated=await uploadCatalog(wallet,api,[edited],delivery());
+    expect(posts.map(post=>post.kind)).toEqual(['delivery','json']);
+    expect(updated.products[0]).toEqual(edited);
+    expect(updated.products[0].ProductId).toBe(product.ProductId);
+    expect(updated.products[0].Image).toBe(original.products[0].Image);
+    expect(updated.url).not.toBe(original.url);
+  });
   it('publishes a configured currency without replacing its token',async()=>{
 
     const alpha={...product,PriceToken:'0x20c0000000000000000000000000000000000001'};

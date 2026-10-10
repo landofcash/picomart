@@ -18,6 +18,7 @@ export interface CatalogueDraft {
   confirmed: boolean;
   setId: string;
   delivery: TempoDeliveryOptions | null;
+  sourceUrl?: string;
 }
 
 export interface ScopedCatalogueDraft {

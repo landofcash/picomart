@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { getConfig, type TokenConfig } from "@/config";
 import { encodeBase64Uuid } from "@/lib/uuidUtils";
 import { validateSingleTokenCatalogue } from "@/lib/catalogueValidation.ts";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, useLocation, useSearchParams, Navigate, Link } from "react-router-dom";
 import {
   Plus,
   Upload,
@@ -42,9 +42,10 @@ import AccountUnlockButton from "@/components/wallet/AccountUnlockButton";
 import AccountDialog from "@/components/wallet/AccountDialog";
 import {loadDeliverySets,publishedDeliverySet,deliverySetsChanged,defaultDeliverySets,defaultDeliveryOptions,type DeliverySet} from '@/lib/deliverySets';
 import type {TempoDeliveryOptions} from '@picomart/order-protocol/tempo-protocol';
-import {TempoDeliveryOptionsSchema} from '@picomart/order-protocol/tempo-protocol';
-import {set} from 'idb-keyval';
+import {TempoDeliveryOptionsSchema, TempoSeedSchema} from '@picomart/order-protocol/tempo-protocol';
+import {set,del} from 'idb-keyval';
 import {loadCatalogueDraft, type CatalogueProduct as Product, type ScopedCatalogueDraft} from '@/lib/catalogueDraft';
+import {catalogDraftScope, editableCatalogDraft, checkCatalogUpdate} from '@/lib/catalogEditor';
 
 // Character limits
 const NAME_MAX_LENGTH = 60;
@@ -71,7 +72,7 @@ function toEditableProduct(
   };
 }
 
-function CatalogueEditPage() {
+function CatalogueEditPage({editorId, catalogSeed}: {editorId: string; catalogSeed?: string}) {
   const { walletAddress, walletAdapter, walletLocked, network } = useWallet();
   const config = getConfig(network);
   const supportedTokens = config.supportedTokens;
@@ -103,29 +104,44 @@ function CatalogueEditPage() {
   const [uploading, setUploading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
-  const draftScope=`picomart_catalog_draft_v2_${network}_${walletAddress?.toLowerCase()??'local'}`;
+  const draftScope=catalogDraftScope(network,walletAddress,editorId);
+  const [sourceUrl,setSourceUrl]=useState<string>();
+  const [loadError,setLoadError]=useState('');
+  const [reload,setReload]=useState(0);
   const [loadedDraftScope,setLoadedDraftScope]=useState('');
   const activeDraft = useRef<ScopedCatalogueDraft | undefined>(undefined);
   useEffect(() => {
     if (!loadedDraftScope) return;
-    activeDraft.current = {scope:loadedDraftScope,draft:{version:2,products,currency:catalogueToken,confirmed:isTokenConfirmed,setId:selectedDeliverySet,delivery:deliveryOptions}};
-  }, [loadedDraftScope,products,catalogueToken,isTokenConfirmed,selectedDeliverySet,deliveryOptions]);
+    activeDraft.current = {scope:loadedDraftScope,draft:{version:2,products,currency:catalogueToken,confirmed:isTokenConfirmed,setId:selectedDeliverySet,delivery:deliveryOptions,sourceUrl}};
+  }, [loadedDraftScope,products,catalogueToken,isTokenConfirmed,selectedDeliverySet,deliveryOptions,sourceUrl]);
   useEffect(()=>{
-    let live=true;setLoadedDraftScope('');
-    const localScope=`picomart_catalog_draft_v2_${network}_local`;
-    void loadCatalogueDraft(draftScope,localScope,activeDraft.current).then(draft=>{
+    let live=true;setLoadedDraftScope('');setLoadError('');
+    const controller=new AbortController();
+    const localScope=catalogDraftScope(network,null,editorId);
+    const load=async()=>{
+      if(catalogSeed && !walletAddress)throw new Error('Connect the account that owns this catalog to edit it.');
+      const saved=await loadCatalogueDraft(draftScope,localScope,activeDraft.current);
+      if(!catalogSeed)return saved;
+      if(saved){
+        if(!saved.sourceUrl)throw new Error('The saved edit draft is missing its catalog reference.');
+        await checkCatalogUpdate(catalogSeed,walletAddress!,saved.sourceUrl,controller.signal);
+        return saved;
+      }
+      return editableCatalogDraft(catalogSeed,walletAddress!,controller.signal);
+    };
+    void load().then(draft=>{
       if(!live)return;
       if(draft&&draft.version!==2)throw new Error('Unsupported catalog draft. Recreate this catalog.');
       setProducts(draft?.products??[]);setCatalogueToken(draft?.currency??supportedTokens[0]?.tokenId??'');
       setCatalogueTokenNetwork(network);setIsTokenConfirmed(draft?.confirmed??false);setSelectedDeliverySet(draft?.setId??'');
-      setDeliveryOptions(draft?.delivery?TempoDeliveryOptionsSchema.parse(draft.delivery):null);setLoadedDraftScope(draftScope);
-    }).catch(error=>{if(live)toast.error((error as Error).message);});
-    return()=>{live=false;};
-  },[draftScope,network,supportedTokens]);
+      setDeliveryOptions(draft?.delivery?TempoDeliveryOptionsSchema.parse(draft.delivery):null);setSourceUrl(draft?.sourceUrl);setLoadedDraftScope(draftScope);
+    }).catch(error=>{if(live)setLoadError(error instanceof Error?error.message:'Catalog could not be loaded.');});
+    return()=>{live=false;controller.abort();};
+  },[draftScope,network,supportedTokens,catalogSeed,walletAddress,editorId,reload]);
   useEffect(()=>{
     if(loadedDraftScope!==draftScope)return;
-    void set(draftScope,{version:2,products,currency:catalogueToken,confirmed:isTokenConfirmed,setId:selectedDeliverySet,delivery:deliveryOptions}).catch(()=>toast.error('Catalog draft could not be saved on this device.'));
-  },[loadedDraftScope,draftScope,products,catalogueToken,isTokenConfirmed,selectedDeliverySet,deliveryOptions]);
+    void set(draftScope,{version:2,products,currency:catalogueToken,confirmed:isTokenConfirmed,setId:selectedDeliverySet,delivery:deliveryOptions,sourceUrl}).catch(()=>toast.error('Catalog draft could not be saved on this device.'));
+  },[loadedDraftScope,draftScope,products,catalogueToken,isTokenConfirmed,selectedDeliverySet,deliveryOptions,sourceUrl]);
 
   useEffect(() => {
     uploadController.current?.abort();
@@ -140,11 +156,11 @@ function CatalogueEditPage() {
   useEffect(() => {
     const urls: Record<string, string> = {};
     products.forEach((p) => {
-      if (p.LocalFile) urls[p.ProductId] = URL.createObjectURL(p.LocalFile);
+      urls[p.ProductId] = p.LocalFile ? URL.createObjectURL(p.LocalFile) : p.Image;
     });
     setPreviews(urls);
     // cleanup on unmount or change:
-    return () => Object.values(urls).forEach(URL.revokeObjectURL);
+    return () => Object.values(urls).filter(url=>url.startsWith('blob:')).forEach(URL.revokeObjectURL);
   }, [products]);
 
   useEffect(() => {
@@ -246,19 +262,20 @@ function CatalogueEditPage() {
       toast.error("Confirm a catalog currency before adding products.");
       return;
     }
-    if (!Name.trim() || !Price || !LocalFile) {
+    const existingProduct=editingId ? products.find(product=>product.ProductId===editingId) : undefined;
+    if (!Name.trim() || !Price || (!LocalFile && !existingProduct?.Image)) {
       toast.error("Enter a name, price and image.");
       return;
     }
     let microPrice: string;
     try {
-      validateImage(LocalFile);
+      if(LocalFile)validateImage(LocalFile);
       microPrice = currencyAmount(Price,catalogueToken);
     } catch (error) {
       toast.error((error as Error).message);
       return;
     }
-    const imageUrl = "";
+    const imageUrl = existingProduct?.Image ?? "";
 
     const productEntry: Product = {
       ProductId: editingId ?? encodeBase64Uuid(crypto.randomUUID()),
@@ -298,7 +315,8 @@ function CatalogueEditPage() {
     setUploading(true);
     setUploadProgress("Checking upload availability...");
     try {
-      if(!deliveryOptions||deliveryOptions.currency!==catalogueToken)throw new Error('Choose and confirm a delivery set matching the catalog currency.');
+      if(!deliveryOptions||deliveryOptions.currency!==catalogueToken)throw new Error('Choose a delivery set matching the catalog currency.');
+      if(catalogSeed){if(!sourceUrl)throw new Error('The original catalog reference is unavailable.');await checkCatalogUpdate(catalogSeed,walletAddress,sourceUrl,uploadController.current.signal);}
       const token = validateSingleTokenCatalogue(
         products,
         supportedTokens.map((item) => item.tokenId),
@@ -317,7 +335,8 @@ function CatalogueEditPage() {
       );
       uploadController.current.signal.throwIfAborted();
       setUploadProgress("Products and images checked. Ready for review.");
-      navigate("/add-product-catalogue", { state: { url: result.url } });
+      await set(draftScope,{version:2,products:result.products,currency:catalogueToken,confirmed:true,setId:selectedDeliverySet,delivery:deliveryOptions,sourceUrl});
+      navigate("/add-product-catalogue", { state: {url:result.url,catalogSeed,sourceUrl,createSessionId:catalogSeed?undefined:editorId,draftScope} });
     } catch (error) {
       toast.error((error as Error).message);
       setUploadProgress(
@@ -343,10 +362,11 @@ function CatalogueEditPage() {
     setShowModal(true);
   };
 
+  if(loadedDraftScope!==draftScope)return <div className="seller-page space-y-4"><h1 className="text-2xl font-semibold">{catalogSeed?'Edit catalog':'Create catalog'}</h1>{loadError?<><p role="alert" className="text-destructive">{loadError}</p>{catalogSeed&&walletAddress&&<Button variant="outline" onClick={()=>{if(window.confirm('Discard saved edits and reload the current published catalog?'))void del(draftScope).then(()=>setReload(value=>value+1)).catch(()=>setLoadError('Saved edits could not be cleared.'));}}>Reload current catalog</Button>}</>:<p role="status">Loading catalog draft...</p>}<AccountUnlockButton/><Link to="/" className="underline">Back to dashboard</Link></div>;
   return (
     <div className="seller-page space-y-6">
       <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-        Create catalog
+        {catalogSeed?'Edit catalog':'Create catalog'}
       </h1>
       <nav
         aria-label="Publishing progress"
@@ -469,7 +489,7 @@ function CatalogueEditPage() {
         <div className="flex flex-wrap justify-between gap-2"><h2 className="flex items-center gap-2 text-lg font-semibold"><Truck aria-hidden="true" className="h-5 w-5 text-primary" />Delivery set</h2><Link to="/delivery-options" target="_blank" className="underline">Manage delivery sets</Link></div>
         <p className="text-sm text-muted-foreground">Delivery fees use {selectedCatalogueToken?.name}, the currency selected for this catalog. Only matching saved sets are shown.</p>
         <div className="grid items-start gap-5 lg:grid-cols-2">
-          <label className="block min-w-0 space-y-2">Delivery set<select className="w-full rounded-md border bg-background px-3 py-2" value={selectedDeliverySet} onChange={event=>handleDeliverySetChange(event.target.value)}><option value="">Choose a delivery set</option><optgroup label="Free defaults">{defaultDeliverySets.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</optgroup>{matchingDeliverySets.length>0&&<optgroup label="Your saved sets">{matchingDeliverySets.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</optgroup>}</select></label>
+        <label className="block min-w-0 space-y-2">Delivery set<select className="w-full rounded-md border bg-background px-3 py-2" value={selectedDeliverySet} onChange={event=>handleDeliverySetChange(event.target.value)}><option value="">Choose a delivery set</option>{selectedDeliverySet==='catalog-current'&&<option value="catalog-current">Current catalog delivery options</option>}<optgroup label="Free defaults">{defaultDeliverySets.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</optgroup>{matchingDeliverySets.length>0&&<optgroup label="Your saved sets">{matchingDeliverySets.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</optgroup>}</select></label>
           {deliveryOptions && <div role="region" aria-label="Delivery options" className="min-w-0 space-y-3 rounded-lg bg-muted/40 p-4">
             {deliveryOptions.methods.map(method=><div key={method.id} className="space-y-1">
               <h3 className="break-words text-sm font-semibold">{method.name}</h3>
@@ -786,10 +806,10 @@ function CatalogueEditPage() {
                       {newProduct.LocalFile.name}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Click to change image{" "}
+                  Click to change image{" "}
                     </p>
                   </div>
-                ) : (
+                ) : editingId && products.find(product=>product.ProductId===editingId)?.Image ? <div className="space-y-3"><img src={products.find(product=>product.ProductId===editingId)!.Image} alt="Current product" className="max-h-32 rounded object-contain"/><p className="text-xs text-muted-foreground">Current image. Click to replace it.</p></div> : (
                   <div className="space-y-3">
                     <FileImage className="h-12 w-12 text-muted-foreground mx-auto" />
                     <div className="space-y-1">
@@ -832,4 +852,19 @@ function CatalogueEditPage() {
   );
 }
 
-export default CatalogueEditPage;
+function CatalogEditorEntry() {
+  const [params]=useSearchParams();
+  const [freshId]=useState(()=>crypto.randomUUID());
+  const catalogSeed=params.get('catalog')??undefined;
+  const draftId=params.get('draft');
+  if(catalogSeed && !TempoSeedSchema.safeParse(catalogSeed).success)return <div className="seller-page"><p role="alert">Invalid catalog reference.</p></div>;
+  if(!catalogSeed && !draftId)return <Navigate replace to={`/edit-product-catalogue?draft=${freshId}`}/>;
+  if(!catalogSeed && !/^[0-9a-f-]{36}$/i.test(draftId!))return <div className="seller-page"><p role="alert">Invalid catalog draft reference.</p></div>;
+  const editorId=catalogSeed?`edit_${catalogSeed}`:draftId!;
+  return <CatalogueEditPage key={editorId} editorId={editorId} catalogSeed={catalogSeed}/>;
+}
+
+export default function CatalogEditorRoute() {
+  const location=useLocation();
+  return <CatalogEditorEntry key={location.key}/>;
+}
