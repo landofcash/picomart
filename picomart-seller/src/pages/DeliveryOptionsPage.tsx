@@ -140,14 +140,14 @@ export default function DeliveryOptionsPage() {
 
   return <div className="seller-page space-y-6">
     <div className="flex flex-wrap items-start justify-between gap-3"><div className="space-y-2"><h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Delivery sets</h1>
-      <p className="max-w-2xl text-sm text-muted-foreground">Create custom delivery choices for fees or pickup locations. Free physical and digital defaults are already available in each catalogue. Published catalogues keep their saved delivery terms.</p></div>
-      <Link className="inline-flex items-center gap-1 text-sm underline" to="/edit-product-catalogue"><ArrowLeft className="h-4 w-4"/>Back to catalogue</Link>
+      <p className="max-w-2xl text-sm text-muted-foreground">Create custom delivery choices for fees or pickup locations. Free physical and digital defaults are already available in each catalog. Published catalogs keep their saved delivery terms.</p></div>
+      <Link className="inline-flex items-center gap-1 text-sm underline" to="/edit-product-catalogue"><ArrowLeft className="h-4 w-4"/>Back to catalog</Link>
     </div>
     <div className="grid items-start gap-5 lg:grid-cols-[220px_minmax(0,1fr)] xl:grid-cols-[220px_minmax(0,1fr)_280px]">
       <Card className="min-w-0 lg:sticky lg:top-6"><CardHeader><div className="flex flex-wrap items-center justify-between gap-2"><CardTitle className="text-lg">Your sets</CardTitle>
         <Button size="sm" variant="outline" disabled={busy} onClick={()=>{setNewName(''); setNewCurrency(active?.options.currency ?? PICOMART_TEMPO_CONFIG.defaultPaymentToken.tokenId); setCreateError(''); setTemplate('physical'); setCreating(true);}}><Plus className="h-4 w-4"/>Create set</Button>
       </div></CardHeader><CardContent className="space-y-3">
-        {!sets.length && <p className="text-sm text-muted-foreground">No custom sets yet. Use a free default in your catalogue, or create a set for your own delivery choices.</p>}
+        {!sets.length && <p className="text-sm text-muted-foreground">No custom sets yet. Use a free default in your catalog, or create a set for your own delivery choices.</p>}
         {PICOMART_TEMPO_CONFIG.paymentTokens.map(token=>{
           const group = sets.filter(set=>set.options.currency===token.tokenId);
           if (!group.length) return null;
@@ -238,7 +238,7 @@ export default function DeliveryOptionsPage() {
       </CardContent></Card>}
     </div>
     <div className="sticky bottom-3 z-10 flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-background/95 p-4 shadow-lg backdrop-blur">
-      <div className="min-w-0 flex-1"><p className="text-sm font-medium">{dirty ? 'Unsaved changes' : 'Saved on this device'}</p><p className="text-xs text-muted-foreground">Saving updates all sets. Published catalogues keep their current terms.</p>{status && <p role="status" className="mt-1 text-sm text-primary">{status}</p>}{error && <p role="alert" className="mt-1 text-sm text-destructive">{error}</p>}</div>
+      <div className="min-w-0 flex-1"><p className="text-sm font-medium">{dirty ? 'Unsaved changes' : 'Saved on this device'}</p><p className="text-xs text-muted-foreground">Saving updates all sets. Published catalogs keep their current terms.</p>{status && <p role="status" className="mt-1 text-sm text-primary">{status}</p>}{error && <p role="alert" className="mt-1 text-sm text-destructive">{error}</p>}</div>
       <Button disabled={busy || !dirty} onClick={save}><Save className="h-4 w-4"/>{busy ? 'Working…' : 'Save changes'}</Button>
     </div>
     <AccountDialog open={creating} title="Create delivery set" onClose={()=>setCreating(false)}>

@@ -114,7 +114,7 @@ function CatalogueEditPage() {
     const localScope=`picomart_catalog_draft_v2_${network}_local`;
     void loadCatalogueDraft(draftScope,localScope,activeDraft.current).then(draft=>{
       if(!live)return;
-      if(draft&&draft.version!==2)throw new Error('Unsupported catalogue draft. Recreate this catalogue.');
+      if(draft&&draft.version!==2)throw new Error('Unsupported catalog draft. Recreate this catalog.');
       setProducts(draft?.products??[]);setCatalogueToken(draft?.currency??supportedTokens[0]?.tokenId??'');
       setCatalogueTokenNetwork(network);setIsTokenConfirmed(draft?.confirmed??false);setSelectedDeliverySet(draft?.setId??'');
       setDeliveryOptions(draft?.delivery?TempoDeliveryOptionsSchema.parse(draft.delivery):null);setLoadedDraftScope(draftScope);
@@ -123,7 +123,7 @@ function CatalogueEditPage() {
   },[draftScope,network,supportedTokens]);
   useEffect(()=>{
     if(loadedDraftScope!==draftScope)return;
-    void set(draftScope,{version:2,products,currency:catalogueToken,confirmed:isTokenConfirmed,setId:selectedDeliverySet,delivery:deliveryOptions}).catch(()=>toast.error('Catalogue draft could not be saved on this device.'));
+    void set(draftScope,{version:2,products,currency:catalogueToken,confirmed:isTokenConfirmed,setId:selectedDeliverySet,delivery:deliveryOptions}).catch(()=>toast.error('Catalog draft could not be saved on this device.'));
   },[loadedDraftScope,draftScope,products,catalogueToken,isTokenConfirmed,selectedDeliverySet,deliveryOptions]);
 
   useEffect(() => {
@@ -274,7 +274,7 @@ function CatalogueEditPage() {
     setUploading(true);
     setUploadProgress("Checking upload availability...");
     try {
-      if(!deliveryOptions||deliveryOptions.currency!==catalogueToken)throw new Error('Choose and confirm a delivery set matching the catalogue currency.');
+      if(!deliveryOptions||deliveryOptions.currency!==catalogueToken)throw new Error('Choose and confirm a delivery set matching the catalog currency.');
       const token = validateSingleTokenCatalogue(
         products,
         supportedTokens.map((item) => item.tokenId),
@@ -336,10 +336,10 @@ function CatalogueEditPage() {
       </nav>
       <section className="space-y-3 rounded-lg border bg-card p-5">
         <div className="flex flex-wrap justify-between gap-2"><h2 className="text-lg font-semibold">Delivery set</h2><Link to="/delivery-options" target="_blank" className="underline">Manage delivery sets</Link></div>
-        <p className="text-sm text-muted-foreground">Choose options for this catalogue. Delivery fees use its confirmed currency.</p>
+        <p className="text-sm text-muted-foreground">Choose options for this catalog. Delivery fees use its confirmed currency.</p>
         <label className="block">Delivery set<select className="w-full rounded-md border bg-background px-3 py-2" value={selectedDeliverySet} onChange={e=>{setSelectedDeliverySet(e.target.value);setDeliveryOptions(null);}}><option value="">Choose a delivery set</option><optgroup label="Free defaults — all currencies">{defaultDeliverySets.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</optgroup>{deliverySets.some(s=>s.options.currency===catalogueToken)&&<optgroup label="Your saved sets">{deliverySets.filter(s=>s.options.currency===catalogueToken).map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</optgroup>}</select></label>
-        <p className="text-xs text-muted-foreground">Free defaults use your catalogue currency. Create a custom set for delivery fees or pickup locations.</p>
-        <Button variant="outline" disabled={!selectedDeliverySet||!isTokenConfirmed} onClick={()=>{try{const preset=defaultDeliveryOptions(selectedDeliverySet,catalogueToken);const selected=deliverySets.find(s=>s.id===selectedDeliverySet);if(!preset&&!selected)throw new Error('Choose a delivery set.');const options=preset??publishedDeliverySet(selected!);if(options.currency!==catalogueToken)throw new Error('Choose a delivery set matching the catalogue currency.');setDeliveryOptions(structuredClone(options));}catch(e){toast.error((e as Error).message);}}}>Confirm delivery set</Button>
+        <p className="text-xs text-muted-foreground">Free defaults use your catalog currency. Create a custom set for delivery fees or pickup locations.</p>
+        <Button variant="outline" disabled={!selectedDeliverySet||!isTokenConfirmed} onClick={()=>{try{const preset=defaultDeliveryOptions(selectedDeliverySet,catalogueToken);const selected=deliverySets.find(s=>s.id===selectedDeliverySet);if(!preset&&!selected)throw new Error('Choose a delivery set.');const options=preset??publishedDeliverySet(selected!);if(options.currency!==catalogueToken)throw new Error('Choose a delivery set matching the catalog currency.');setDeliveryOptions(structuredClone(options));}catch(e){toast.error((e as Error).message);}}}>Confirm delivery set</Button>
         {deliveryOptions&&<div className="space-y-2"><p className="text-sm font-medium">Confirmed delivery options</p>{deliveryOptions.methods.map(m=><div key={m.id}><strong>{m.name}</strong><p className="text-sm text-muted-foreground">{m.description}</p>{m.type!=='digital'&&(m.type==='customer-address'?m.services:m.locations).map(o=><p className="text-sm" key={o.id}>{o.name} · {o.amount==='0'?'Free':`${formatUnits(o.amount,selectedCatalogueToken?.decimals??0)} ${selectedCatalogueToken?.name??''}`}{'address' in o?` · ${o.address} · ${'schedule' in o?o.schedule:''}`:''}</p>)}</div>)}</div>}
       </section>
       {/* Catalogue Storage Options Info */}

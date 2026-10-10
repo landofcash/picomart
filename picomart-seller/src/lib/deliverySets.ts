@@ -37,7 +37,7 @@ export const defaultDeliverySets = [
   {id: 'default-digital-free', name: 'Digital delivery — free'},
 ] as const;
 
-/** Built-in templates take the catalogue currency when confirmed, without creating saved sets. */
+/** Built-in templates take the catalog currency when confirmed, without creating saved sets. */
 export function defaultDeliveryOptions(id: string, currency: string): TempoDeliveryOptions | null {
   if (!defaultDeliverySets.some(set => set.id === id)) return null;
   getCurrency(currency);

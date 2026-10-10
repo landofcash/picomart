@@ -108,7 +108,7 @@ export function validateSelection(selection:CheckoutSelection) {
   },0n);
   if (!products.length || new Set(products.map(p=>p.PriceToken)).size!==1) throw new Error('An order must use one payment currency.');
   const fulfillment=selection.fulfillment?TempoFulfillmentSnapshotSchema.parse(selection.fulfillment):undefined;
-  if(fulfillment&&(fulfillment.catalogUrl!==selection.catalog.catalogUrl||fulfillment.currency!==products[0].PriceToken))throw new Error('Delivery selection differs from the catalogue.');
+  if(fulfillment&&(fulfillment.catalogUrl!==selection.catalog.catalogUrl||fulfillment.currency!==products[0].PriceToken))throw new Error('Delivery selection differs from the catalog.');
   const total=tempoCombinedTotal(selection.products,fulfillment?.amount??'0');
   return {products,amount:total,subtotal:amount,token:products[0].PriceToken};
 }
@@ -118,7 +118,7 @@ export async function revalidateSelection(selection:CheckoutSelection) {
   if(actual.seller.toLowerCase()!==selection.catalog.seller.toLowerCase()||actual.sellerPublicKey!==selection.catalog.sellerPublicKey||actual.sellerIdentityId!==selection.catalog.sellerIdentityId||actual.catalogUrl!==selection.catalog.catalogUrl)throw new Error('Catalog changed; reload it before ordering.');
   const loaded=await fetchCatalogDocument(actual.catalogUrl),listed=loaded.products;
   if(selection.fulfillment){const f=selection.fulfillment,current=tempoFulfillmentSnapshot(actual.catalogUrl,loaded.deliveryOptionsUrl,loaded.deliveryOptions,f.methodId,f.optionId);
-    if(canonicalJson(f)!==canonicalJson(current))throw new Error('Delivery terms changed; review the catalogue again.');}
+    if(canonicalJson(f)!==canonicalJson(current))throw new Error('Delivery terms changed; review the catalog again.');}
   for(const product of selection.products) {
     const current=listed.find(p=>p.ProductId===product.ProductId);
     const {quantity,...terms}=product;void quantity;

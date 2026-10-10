@@ -40,7 +40,7 @@ export async function verifyPublishedContent(url:string,hash:string,limit:number
 }
 export async function uploadCatalog(wallet:WalletAdapter,api:string,products:readonly DraftProduct[],delivery:TempoDeliveryOptions,signal?:AbortSignal,progress:(message:string)=>void=()=>{}) {
   const options=TempoDeliveryOptionsSchema.parse(delivery);
-  if(!isPaymentCurrency(options.currency)||products.some(p=>p.PriceToken!==options.currency))throw new Error('Delivery fees must use the catalogue currency.');
+  if(!isPaymentCurrency(options.currency)||products.some(p=>p.PriceToken!==options.currency))throw new Error('Delivery fees must use the catalog currency.');
   const revision=tempoWalletRevision(),account=(await wallet.getAddress())?.toLowerCase();
   if(wallet.chain!=='tempo'||await wallet.getNetwork?.()!== PICOMART_TEMPO_CONFIG.network||!account||!/^0x[0-9a-f]{40}$/.test(account))throw new Error('Select your Picomart account in Demo mode first.');
   const assertWallet=async()=>{signal?.throwIfAborted();assertTempoWalletRevision(revision);if((await wallet.getAddress())?.toLowerCase()!==account)throw new Error('Wallet changed during catalog upload.');};
