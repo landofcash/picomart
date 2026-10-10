@@ -8,8 +8,23 @@ import {
 import WalletAuth from "./WalletAuth";
 import ThemePicker from "./ThemePicker";
 import { useWallet } from "@/context/WalletContext";
+import {useLayoutEffect, useRef} from "react";
 
 export default function Header() {
+  const header = useRef<HTMLElement>(null);
+  useLayoutEffect(() => {
+    const element = header.current;
+    const shell = element?.parentElement;
+    if (!element || !shell) return;
+    const updateHeight = () => shell.style.setProperty('--seller-header-height', `${element.getBoundingClientRect().height}px`);
+    updateHeight();
+    const observer = new ResizeObserver(updateHeight);
+    observer.observe(element, {box: 'border-box'});
+    return () => {
+      observer.disconnect();
+      shell.style.removeProperty('--seller-header-height');
+    };
+  }, []);
   const { walletAddress } = useWallet(),
     { pathname } = useLocation();
   const links = [
@@ -28,7 +43,7 @@ export default function Header() {
     },
   ];
   return (
-    <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur-md print:hidden">
+    <header ref={header} className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur-md print:hidden">
       <div className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 px-3 py-3 sm:px-6 lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:gap-5">
         <div className="flex min-w-0 items-center gap-1.5 sm:gap-2.5">
           <Link

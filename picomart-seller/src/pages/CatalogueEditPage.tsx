@@ -25,6 +25,7 @@ import {
   ArrowRight,
   FileImage,
   Coins,
+  Truck,
   ChevronDown,
   Check,
 } from "lucide-react";
@@ -164,6 +165,7 @@ function CatalogueEditPage() {
 
   const catalogueNetworkMismatch = catalogueTokenNetwork !== network;
   const canEditProducts = isTokenConfirmed && !catalogueNetworkMismatch;
+  const matchingDeliverySets = deliverySets.filter(set => set.options.currency === catalogueToken);
   const selectedCatalogueToken = supportedTokens.find(
     (token) => token.tokenId === catalogueToken,
   );
@@ -334,39 +336,6 @@ function CatalogueEditPage() {
         <span className="text-muted-foreground">2. Review catalog</span>
         <span className="text-muted-foreground">3. Publish</span>
       </nav>
-      <section className="space-y-3 rounded-lg border bg-card p-5">
-        <div className="flex flex-wrap justify-between gap-2"><h2 className="text-lg font-semibold">Delivery set</h2><Link to="/delivery-options" target="_blank" className="underline">Manage delivery sets</Link></div>
-        <p className="text-sm text-muted-foreground">Choose options for this catalog. Delivery fees use its confirmed currency.</p>
-        <label className="block">Delivery set<select className="w-full rounded-md border bg-background px-3 py-2" value={selectedDeliverySet} onChange={e=>{setSelectedDeliverySet(e.target.value);setDeliveryOptions(null);}}><option value="">Choose a delivery set</option><optgroup label="Free defaults — all currencies">{defaultDeliverySets.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</optgroup>{deliverySets.some(s=>s.options.currency===catalogueToken)&&<optgroup label="Your saved sets">{deliverySets.filter(s=>s.options.currency===catalogueToken).map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</optgroup>}</select></label>
-        <p className="text-xs text-muted-foreground">Free defaults use your catalog currency. Create a custom set for delivery fees or pickup locations.</p>
-        <Button variant="outline" disabled={!selectedDeliverySet||!isTokenConfirmed} onClick={()=>{try{const preset=defaultDeliveryOptions(selectedDeliverySet,catalogueToken);const selected=deliverySets.find(s=>s.id===selectedDeliverySet);if(!preset&&!selected)throw new Error('Choose a delivery set.');const options=preset??publishedDeliverySet(selected!);if(options.currency!==catalogueToken)throw new Error('Choose a delivery set matching the catalog currency.');setDeliveryOptions(structuredClone(options));}catch(e){toast.error((e as Error).message);}}}>Confirm delivery set</Button>
-        {deliveryOptions&&<div className="space-y-2"><p className="text-sm font-medium">Confirmed delivery options</p>{deliveryOptions.methods.map(m=><div key={m.id}><strong>{m.name}</strong><p className="text-sm text-muted-foreground">{m.description}</p>{m.type!=='digital'&&(m.type==='customer-address'?m.services:m.locations).map(o=><p className="text-sm" key={o.id}>{o.name} · {o.amount==='0'?'Free':`${formatUnits(o.amount,selectedCatalogueToken?.decimals??0)} ${selectedCatalogueToken?.name??''}`}{'address' in o?` · ${o.address} · ${'schedule' in o?o.schedule:''}`:''}</p>)}</div>)}</div>}
-      </section>
-      {/* Catalogue Storage Options Info */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Info className="h-5 w-5 text-primary" />
-            Add products
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="bg-primary/5 p-4 rounded border-l-4 border-primary/20 text-sm text-foreground space-y-3">
-            <div className="flex items-start gap-3">
-              <Cloud className="h-5 w-5 mt-0.5 text-primary flex-shrink-0" />
-              <div>
-                <p className="font-medium">Create with Picomart Seller</p>
-                <p className="text-primary">
-                  Use this page to create your product catalog and store it on
-                  our secure servers. This is the easiest way to get started -
-                  just add your products and we'll handle the hosting.{" "}
-                </p>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -473,6 +442,40 @@ function CatalogueEditPage() {
           )}
         </CardContent>
       </Card>
+
+      {canEditProducts && <section className="space-y-3 rounded-lg border bg-card p-5">
+        <div className="flex flex-wrap justify-between gap-2"><h2 className="flex items-center gap-2 text-lg font-semibold"><Truck aria-hidden="true" className="h-5 w-5 text-primary" />Delivery set</h2><Link to="/delivery-options" target="_blank" className="underline">Manage delivery sets</Link></div>
+        <p className="text-sm text-muted-foreground">Delivery fees use {selectedCatalogueToken?.name}, the currency selected for this catalog. Only matching saved sets are shown.</p>
+        <label className="block">Delivery set<select className="w-full rounded-md border bg-background px-3 py-2" value={selectedDeliverySet} onChange={e=>{setSelectedDeliverySet(e.target.value);setDeliveryOptions(null);}}><option value="">Choose a delivery set</option><optgroup label="Free defaults">{defaultDeliverySets.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</optgroup>{matchingDeliverySets.length>0&&<optgroup label="Your saved sets">{matchingDeliverySets.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</optgroup>}</select></label>
+        <Button variant="outline" disabled={!selectedDeliverySet||!isTokenConfirmed} onClick={()=>{try{const preset=defaultDeliveryOptions(selectedDeliverySet,catalogueToken);const selected=deliverySets.find(s=>s.id===selectedDeliverySet);if(!preset&&!selected)throw new Error('Choose a delivery set.');const options=preset??publishedDeliverySet(selected!);if(options.currency!==catalogueToken)throw new Error('Choose a delivery set matching the catalog currency.');setDeliveryOptions(structuredClone(options));}catch(e){toast.error((e as Error).message);}}}>Confirm delivery set</Button>
+        {deliveryOptions&&<div className="space-y-2"><p className="text-sm font-medium">Confirmed delivery options</p>{deliveryOptions.methods.map(m=><div key={m.id}><strong>{m.name}</strong><p className="text-sm text-muted-foreground">{m.description}</p>{m.type!=='digital'&&(m.type==='customer-address'?m.services:m.locations).map(o=><p className="text-sm" key={o.id}>{o.name} · {o.amount==='0'?'Free':`${formatUnits(o.amount,selectedCatalogueToken?.decimals??0)} ${selectedCatalogueToken?.name??''}`}{'address' in o?` · ${o.address} · ${'schedule' in o?o.schedule:''}`:''}</p>)}</div>)}</div>}
+      </section>}
+      {/* Catalogue Storage Options Info */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Info className="h-5 w-5 text-primary" />
+            Add products
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="bg-primary/5 p-4 rounded border-l-4 border-primary/20 text-sm text-foreground space-y-3">
+            <div className="flex items-start gap-3">
+              <Cloud className="h-5 w-5 mt-0.5 text-primary flex-shrink-0" />
+              <div>
+                <p className="font-medium">Create with Picomart Seller</p>
+                <p className="text-primary">
+                  Use this page to create your product catalog and store it on
+                  our secure servers. This is the easiest way to get started -
+                  just add your products and we'll handle the hosting.{" "}
+                </p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+
 
       {catalogueNetworkMismatch && (
         <Card className="border-amber-200 bg-amber-50">

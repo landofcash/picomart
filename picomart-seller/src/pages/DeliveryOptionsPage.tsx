@@ -8,6 +8,7 @@ import {Button} from '@/components/ui/button';
 import {Card, CardContent, CardHeader, CardTitle} from '@/components/ui/card';
 import AccountDialog from '@/components/wallet/AccountDialog';
 import TokenIcon from '@/components/TokenIcon';
+import TokenAmount from '@/components/TokenAmount';
 import {currencyLabel} from '@/lib/currencyLabel';
 import {currencyAmount} from '@/lib/catalogStorage';
 import {deliverySetErrors} from '@/lib/deliverySetValidation';
@@ -144,7 +145,7 @@ export default function DeliveryOptionsPage() {
       <Link className="inline-flex items-center gap-1 text-sm underline" to="/edit-product-catalogue"><ArrowLeft className="h-4 w-4"/>Back to catalog</Link>
     </div>
     <div className="grid items-start gap-5 lg:grid-cols-[220px_minmax(0,1fr)] xl:grid-cols-[220px_minmax(0,1fr)_280px]">
-      <Card className="min-w-0 lg:sticky lg:top-6"><CardHeader><div className="flex flex-wrap items-center justify-between gap-2"><CardTitle className="text-lg">Your sets</CardTitle>
+      <Card className="min-w-0 lg:sticky lg:top-[calc(var(--seller-header-height,0px)+16px)]"><CardHeader><div className="flex flex-wrap items-center justify-between gap-2"><CardTitle className="text-lg">Your sets</CardTitle>
         <Button size="sm" variant="outline" disabled={busy} onClick={()=>{setNewName(''); setNewCurrency(active?.options.currency ?? PICOMART_TEMPO_CONFIG.defaultPaymentToken.tokenId); setCreateError(''); setTemplate('physical'); setCreating(true);}}><Plus className="h-4 w-4"/>Create set</Button>
       </div></CardHeader><CardContent className="space-y-3">
         {!sets.length && <p className="text-sm text-muted-foreground">No custom sets yet. Use a free default in your catalog, or create a set for your own delivery choices.</p>}
@@ -223,13 +224,13 @@ export default function DeliveryOptionsPage() {
           })}
         </fieldset>
       </div> : <Card className="lg:col-span-1 xl:col-span-2"><CardContent className="flex flex-col items-center gap-3 py-16 text-center"><Truck className="h-10 w-10 text-muted-foreground"/><h2 className="text-lg font-semibold">Set up your delivery choices</h2><p className="max-w-sm text-sm text-muted-foreground">Create a set, name it, and choose how customers receive their products.</p></CardContent></Card>}
-      {active && <Card className="min-w-0 lg:col-start-2 xl:col-start-auto xl:sticky xl:top-6"><CardHeader><CardTitle className="flex items-center gap-2 text-lg"><Eye className="h-4 w-4"/>Buyer preview</CardTitle><p className="text-xs text-muted-foreground">The delivery choices shown at checkout.</p></CardHeader><CardContent className="space-y-3">
+      {active && <Card className="min-w-0 lg:col-start-2 xl:col-start-auto xl:sticky xl:top-[calc(var(--seller-header-height,0px)+16px)]"><CardHeader><CardTitle className="flex items-center gap-2 text-lg"><Eye className="h-4 w-4"/>Buyer preview</CardTitle><p className="text-xs text-muted-foreground">The delivery choices shown at checkout.</p></CardHeader><CardContent className="space-y-3">
         {Object.keys(errors).length>0 && <p className="rounded-md bg-muted p-3 text-xs text-muted-foreground">This set is incomplete. Finish its details before saving.</p>}
         {!active.options.methods.some(method=>!active.disabledTypes.includes(method.type)) && <p className="text-sm text-muted-foreground">Enable a method to preview your delivery choices.</p>}
         {active.options.methods.filter(method=>!active.disabledTypes.includes(method.type)).map(method=>{
           const Icon=methodInfo[method.type].icon;
           return <div key={method.id} className="space-y-2 rounded-lg border p-3"><div className="flex items-start gap-2"><Icon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground"/><div className="min-w-0"><h3 className="break-words text-sm font-medium">{method.name || methodInfo[method.type].title}</h3><p className="mt-1 whitespace-pre-wrap break-words text-xs text-muted-foreground">{method.description}</p></div></div>
-            {method.type!=='digital' && (method.type==='customer-address' ? method.services : method.locations).map(option=><div key={option.id} className="space-y-1 rounded-md bg-muted/50 p-2 text-xs"><div className="flex justify-between gap-2"><span className="min-w-0 break-words font-medium">{option.name || 'Unnamed option'}</span><span className="shrink-0 font-medium">{option.amount==='0' ? 'Free' : `${formatUnits(option.amount,currency.decimals)} ${currency.symbol}`}</span></div>
+            {method.type!=='digital' && (method.type==='customer-address' ? method.services : method.locations).map(option=><div key={option.id} className="space-y-1 rounded-md bg-muted/50 p-2 text-xs"><div className="flex justify-between gap-2"><span className="min-w-0 break-words font-medium">{option.name || 'Unnamed option'}</span><span className="shrink-0 font-medium">{option.amount==='0' ? 'Free' : <TokenAmount token={currency.tokenId} amount={option.amount} size={16}/>}</span></div>
               {option.description && <p className="whitespace-pre-wrap break-words text-muted-foreground">{option.description}</p>}
               {isPickupLocation(option) && <><p className="whitespace-pre-wrap break-words text-muted-foreground">{placeholderAddresses.includes(option.address) ? 'Pickup address required' : option.address}</p>{option.schedule && <p className="break-words text-muted-foreground">{option.schedule}</p>}</>}
             </div>)}
