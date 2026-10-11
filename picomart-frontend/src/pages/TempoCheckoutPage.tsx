@@ -139,7 +139,9 @@ export default function TempoCheckoutPage({
     setReceipt(null);
     setError("");
     setProgress("");
-    setLoading(Boolean(selection && wallet.walletAddress && !invalid));
+    // Recover payment operations only after the buyer finishes entering details.
+    setLoading(stage === "payment" && Boolean(selection && wallet.walletAddress && !invalid));
+    if (stage !== "payment") return;
     if (selection && wallet.walletAddress && !invalid)
       void (async () => {
         const next = await checkoutIntent(selection, wallet.walletAddress!,false,delivery as unknown as Record<string,unknown>);
@@ -174,9 +176,9 @@ export default function TempoCheckoutPage({
       live = false;
       controller.current?.abort();
     };
-    // The selected wallet and immutable cart snapshot define the payment operation.
+    // Recipient edits invalidate prepared payments; recovery starts on the payment page.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inputIdentity, wallet.walletAddress, wallet.walletLocked]);
+  }, [stage, inputIdentity, wallet.walletAddress, wallet.walletLocked]);
   async function run(action: () => Promise<void>) {
     if (running.current) return;
     running.current = true;
@@ -406,7 +408,7 @@ export default function TempoCheckoutPage({
       {stage === "review" ? (
         <>
           <div className="border-t pt-6">
-            {catalogError?<div role="alert" className="space-y-2"><p>{catalogError}</p><Button variant="outline" onClick={()=>setCatalogRetry(n=>n+1)}>Try again</Button></div>:!published?<p role="status">Loading delivery options…</p>:<fieldset disabled={busy||loading||Boolean(receipt&&receipt.state!=='not-submitted'&&receipt.state!=='reverted'&&!(receipt.state==='confirmed'&&receipt.method==='approve'))} className="space-y-6">
+            {catalogError?<div role="alert" className="space-y-2"><p>{catalogError}</p><Button variant="outline" onClick={()=>setCatalogRetry(n=>n+1)}>Try again</Button></div>:!published?<p role="status">Loading delivery options…</p>:<fieldset disabled={busy||Boolean(receipt&&receipt.state!=='not-submitted'&&receipt.state!=='reverted'&&!(receipt.state==='confirmed'&&receipt.method==='approve'))} className="space-y-6">
             {selection.fulfillment&&!deliveryMatches&&<p role="alert">Saved delivery terms differ from this catalogue. Choose your delivery option again.</p>}
             <FulfillmentSelector catalogUrl={selection.catalog.catalogUrl} optionsUrl={published.deliveryOptionsUrl} options={published.deliveryOptions} value={selection.fulfillment} onChange={fulfillment=>{const next={catalog:selection.catalog,products:selection.products,...(fulfillment?{fulfillment}:{})};setSelection(next);sessionStorage.setItem(tempoSelectionKey,JSON.stringify(next));const kind=fulfillment?.type;saveDetails({key,delivery:{...delivery,noPhysicalDelivery:kind==='digital',...(kind&&kind!=='customer-address'?{address:'',city:'',postalCode:'',country:''}:{}),...(kind==='digital'?{fullName:'',phone:''}:{})}});}}/>
             {selection.fulfillment&&<>

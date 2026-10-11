@@ -11,6 +11,6 @@ export async function loadCatalog(seed:string,network:NetworkId,signal?:AbortSig
   const bytes=new Uint8Array(size);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.length;}
   const expectedHash=url.pathname.match(/^\/moderato\/v1\/0x[0-9a-f]{40}\/catalogs\/([0-9a-f]{64})\.json$/)?.[1];
   if(expectedHash){const hash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)),v=>v.toString(16).padStart(2,'0')).join('');if(hash!==expectedHash)throw new Error('Catalog revision digest mismatch.');}
-  return {metadata,products:parseCatalog(JSON.parse(new TextDecoder().decode(bytes)))};
+  return {metadata,products:parseCatalog(JSON.parse(new TextDecoder().decode(bytes)),url.href)};
 }
 export type LoadedCatalog=Awaited<ReturnType<typeof loadCatalog>>;

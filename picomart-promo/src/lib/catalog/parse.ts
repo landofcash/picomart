@@ -1,15 +1,11 @@
-import {z} from 'zod';
+import {assertTempoDeliveryUrl, parseTempoCatalog} from '@picomart/order-protocol/tempo-protocol';
 import {ProductCatalogueSchema} from '../productSchemas';
 import {exactBaseUnits} from '../pricing/amount';
 
-const InputProduct = z.object({Price: z.union([z.string(), z.number(), z.bigint()])}).passthrough();
-
-export function parseCatalog(data: unknown) {
-  const products = ProductCatalogueSchema.parse(z.array(InputProduct).parse(data).map(product => ({
+export function parseCatalog(data: unknown, catalogUrl: string) {
+  const catalog = parseTempoCatalog(data);
+  assertTempoDeliveryUrl(catalogUrl, catalog.deliveryOptionsUrl);
+  return ProductCatalogueSchema.parse(catalog.products.map(product => ({
     ...product, Price: exactBaseUnits(product.Price),
   })));
-  if (new Set(products.map(product => product.ProductId)).size !== products.length) {
-    throw new Error('Catalog contains duplicate product IDs');
-  }
-  return products;
 }
