@@ -87,6 +87,8 @@ jobs:
         run: |
           npm run sandbox:prepare
           npm run sandbox:build
+          # Exercise the same browser acceptance suite used for generated storefronts.
+          npm run sandbox:build -- --fixture pantry
 
       - name: Package validated checkpoint
         run: |

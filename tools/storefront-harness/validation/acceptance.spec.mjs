@@ -1,5 +1,6 @@
 import {test,expect} from '@playwright/test';
 import fs from 'node:fs';
+import {createHash} from 'node:crypto';
 import {tempoSeedToId,createTempoReceivingContext,createTempoReceivingIdentity} from '@picomart/order-protocol/tempo-protocol';
 import {formatBaseUnits} from '../src/lib/pricing/amount.ts';
 const input=JSON.parse(fs.readFileSync(new URL('./input.json',import.meta.url),'utf8'));
@@ -7,10 +8,30 @@ const {config,products:original,base}=input;
 const url=route=>`${base}${route}`;
 async function mock(page,{products=()=>original,fail=()=>false}={}) {
   const seller='0x'+'11'.repeat(20),key='0x'+'05'.repeat(32),deployment='0x3c91183f0454eab6eff6f570ac402be278dbd6f4';
+  const root=`https://cdn.picomart.zkbytes.com/moderato/v1/${seller}`;
+  const revisions=new Map();
+  const revision=(folder,value)=>{
+    const body=JSON.stringify(value),digest=createHash('sha256').update(body).digest('hex');
+    const url=`${root}/${folder}/${digest}.json`;
+    revisions.set(url,body);return url;
+  };
+  const deliveryOptionsUrl=revision('delivery-options',{version:1,currency:original[0].PriceToken,
+    methods:[{id:'shipping',type:'customer-address',name:'Delivery to your address',description:'',
+      services:[{id:'standard',name:'Standard delivery',description:'',amount:'0'}]}]});
   const identity=createTempoReceivingIdentity(createTempoReceivingContext({version:1,profile:'picomart-receiving-v1',chainId:42431,contractAddress:deployment,role:'seller',account:seller,catalogSeed:config.catalogSeed}),Buffer.from(key.slice(2),'hex').toString('base64'));
-  await page.route('https://sync.picomart.zkbytes.com/api/v1/moderato/catalogs/**',route=>route.fulfill(fail()?{status:503,json:{success:false}}:route.request().url().endsWith('/'+config.catalogSeed)?{json:{success:true,data:{chainId:42431,address:deployment,throughBlock:37694566,catalog:{seed:config.catalogSeed,catalogId:tempoSeedToId(config.catalogSeed),catalogUrl:'https://cdn.picomart.zkbytes.com/fixture.json',seller,sellerPublicKey:key,sellerIdentityId:identity.identityId}}}}:{status:404,json:{success:false}}));
-  await page.route('https://cdn.picomart.zkbytes.com/fixture.json',route=>route.fulfill({json:products()}));
+  await page.route('https://sync.picomart.zkbytes.com/api/v1/moderato/catalogs/**',route=>{
+    if(fail())return route.fulfill({status:503,json:{success:false}});
+    if(!route.request().url().endsWith('/'+config.catalogSeed))return route.fulfill({status:404,json:{success:false}});
+    const catalogUrl=revision('catalogs',{version:2,deliveryOptionsUrl,products:products()});
+    return route.fulfill({json:{success:true,data:{chainId:42431,address:deployment,throughBlock:37694566,
+      catalog:{seed:config.catalogSeed,catalogId:tempoSeedToId(config.catalogSeed),catalogUrl,seller,sellerPublicKey:key,sellerIdentityId:identity.identityId}}}});
+  });
+  await page.route(`${root}/**`,route=>{
+    const body=revisions.get(route.request().url());
+    return body?route.fulfill({contentType:'application/json',body}):route.fulfill({status:404});
+  });
   await page.route('https://fixtures.picomart.test/*.svg',route=>route.fulfill({contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300"><rect width="300" height="300" fill="#ddd9ca"/><rect x="90" y="70" width="120" height="160" rx="15" fill="#506053"/></svg>'}));
+  await page.route('https://fixtures.picomart.test/unavailable.svg',route=>route.fulfill({status:404}));
 }
 test('compiled homepage, search, collection, direct refresh and buyer handoff',async({page},info)=>{
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
@@ -36,18 +57,19 @@ test('compiled homepage, search, collection, direct refresh and buyer handoff',a
   await page.keyboard.press('Escape');await expect(page.getByRole('button',{name:'Show product QR code'})).toBeFocused();
   expect(errors).toEqual([]);
 });
-test('current products replace snapshots; empty, missing and retry states remain usable',async({page})=>{
+test('current products replace snapshots; invalid, missing and retry states remain usable',async({page})=>{
   let failure=true,products=original;
   await mock(page,{fail:()=>failure,products:()=>products});await page.goto(url('products'));
   await expect(page.getByRole('alert')).toBeVisible();failure=false;await page.getByRole('button',{name:'Try again'}).click();
   await expect(page.getByTestId('product-card')).toHaveCount(original.length);
-  const id='FFFFFFFFFFFFFFFFFFFFFF';products=[{...original[0],ProductId:id,Name:'New live catalog product',Image:''}];
+  const id='BgYGBgYGBgYGBgYGBgYGBg';products=[{...original[0],ProductId:id,Name:'New live catalog product',Image:'https://fixtures.picomart.test/unavailable.svg'}];
   await page.getByRole('button',{name:'Refresh products'}).click();await expect(page.getByTestId('product-card')).toHaveCount(1);
   await expect(page.getByText('New live catalog product',{exact:true})).toBeVisible();
   await page.goto(url(`products/${id}`));await expect(page.getByRole('img',{name:'Image unavailable for New live catalog product'})).toBeVisible();
   await page.goto(url(`products/${original[0].ProductId}`));await expect(page.getByRole('heading',{name:'Product unavailable'})).toBeVisible();
   await expect(page.getByRole('link',{name:'Open in Picomart',exact:true})).toHaveCount(0);
-  products=[];await page.goto(url('products'));await expect(page.getByRole('heading',{name:'No products here yet'})).toBeVisible();
+  // Empty published catalogues are invalid in v2; the shop must expose its retry state.
+  products=[];await page.goto(url('products'));await expect(page.getByRole('alert')).toBeVisible();
   await page.goto(url('collections/missing'));await expect(page.getByRole('heading',{name:'Page not found'})).toBeVisible();
 });
 test('mobile navigation is reachable and keyboard dismissible',async({page},info)=>{
