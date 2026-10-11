@@ -1,19 +1,12 @@
 import {Card, CardContent} from "@/components/ui/card";
-import type {NetworkId} from "@/context/wallet/types.ts";
 
 interface CoverPageProps {
   isApprovedWallet: boolean;
-  network: NetworkId;
 }
 
-export default function CoverPage({isApprovedWallet, network}: CoverPageProps) {
+export default function CoverPage({isApprovedWallet}: CoverPageProps) {
   return (
     <Card className="relative h-full flex items-center justify-center bg-gradient-to-br from-white to-neutral-200 text-neutral-900 shadow-2xl border-neutral-100">
-      {network !== "mainnet" && (
-        <div className="absolute top-4 right-4 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-800">
-          {network}
-        </div>
-      )}
       <CardContent className="w-full h-full flex flex-col items-center justify-center text-center px-4 sm:px-12 space-y-4 sm:space-y-6">
         <img src="/logo.svg" alt="Picomart logo" className="w-20 h-20 mb-2"/>
         <h1 className="text-5xl font-bold tracking-tight drop-shadow-sm mb-3 text-slate-900">Picomart</h1>

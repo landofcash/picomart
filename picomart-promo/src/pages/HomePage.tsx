@@ -119,7 +119,7 @@ export default function HomePage() {
   }
 
   return (
-    <main className="flex items-center justify-center min-h-screen px-4 py-6">
+    <main className="flex items-center md:items-start justify-center min-h-screen px-4 py-6">
       <div key="header" className="h-full overflow-hidden drop-shadow-[0_20px_60px_rgba(0,0,0,0.35)] w-full max-w-[1200px]">
         {products.length > 0 ? (
           isMobile ? (
@@ -132,7 +132,7 @@ export default function HomePage() {
             >
               <SwiperSlide key="cover">
                 <div className="w-full h-full">
-                  <CoverPage isApprovedWallet={isApprovedWallet} network={activeNetwork}/>
+                  <CoverPage isApprovedWallet={isApprovedWallet}/>
                 </div>
               </SwiperSlide>
               {products.map((product) => (
@@ -180,7 +180,7 @@ export default function HomePage() {
               swipeDistance={0}
             >
               <div key="cover" className="w-full h-full">
-                <CoverPage isApprovedWallet={isApprovedWallet} network={activeNetwork}/>
+                <CoverPage isApprovedWallet={isApprovedWallet}/>
               </div>
               {products.map((product, index) => (
                 <div key={product.ProductId} className="w-full h-full">
