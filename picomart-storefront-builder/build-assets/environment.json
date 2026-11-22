@@ -4,8 +4,8 @@
   "checkpointName": null,
   "sdkVersion": "3.11.0",
   "templateVersion": "1.4.0-delivery.1",
-  "sourceDigest": "88b3f24682e3fa5e1f7efe0cd0fd0f6f285d39491f10117c20b9cc1c2ed80e74",
-  "lockfileSha256": "a7befa6f1f744cff5791bc158da64ac564448663a215cb28f6c3eb25c8f9f5e2",
+  "sourceDigest": "a2bd4f95da4857aeb96141e1452c5ebf955ddf23eebaa445cf0fedbbf4876426",
+  "lockfileSha256": "86b230c6a1ad10e1620a25a61d3c18fc15cb09d49914e7c501b4ad18e23c6757",
   "node": "24.11.0",
   "npm": "11.17.0"
 }
