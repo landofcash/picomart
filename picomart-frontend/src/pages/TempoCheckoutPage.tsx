@@ -90,7 +90,8 @@ export default function TempoCheckoutPage({
       ? selection.products[0].PriceToken
       : PICOMART_TEMPO_CONFIG.defaultPaymentToken.tokenId,
   );
-  const delivery = details?.key === key ? details.delivery : blank;
+  const savedDelivery = details?.key === key ? details.delivery : blank;
+  const delivery = selection?.fulfillment?.type === 'shop-pickup' ? blank : savedDelivery;
   const inputIdentity=selection?checkoutInputHash(selection,delivery as unknown as Record<string,unknown>):'';
   const [published,setPublished]=useState<Awaited<ReturnType<typeof fetchCatalogDocument>>|null>(null);
   const [catalogError,setCatalogError]=useState(''),[catalogRetry,setCatalogRetry]=useState(0);
@@ -410,17 +411,17 @@ export default function TempoCheckoutPage({
           <div className="border-t pt-6">
             {catalogError?<div role="alert" className="space-y-2"><p>{catalogError}</p><Button variant="outline" onClick={()=>setCatalogRetry(n=>n+1)}>Try again</Button></div>:!published?<p role="status">Loading delivery options…</p>:<fieldset disabled={busy||Boolean(receipt&&receipt.state!=='not-submitted'&&receipt.state!=='reverted'&&!(receipt.state==='confirmed'&&receipt.method==='approve'))} className="space-y-6">
             {selection.fulfillment&&!deliveryMatches&&<p role="alert">Saved delivery terms differ from this catalogue. Choose your delivery option again.</p>}
-            <FulfillmentSelector catalogUrl={selection.catalog.catalogUrl} optionsUrl={published.deliveryOptionsUrl} options={published.deliveryOptions} value={selection.fulfillment} onChange={fulfillment=>{const next={catalog:selection.catalog,products:selection.products,...(fulfillment?{fulfillment}:{})};setSelection(next);sessionStorage.setItem(tempoSelectionKey,JSON.stringify(next));const kind=fulfillment?.type;saveDetails({key,delivery:{...delivery,noPhysicalDelivery:kind==='digital',...(kind&&kind!=='customer-address'?{address:'',city:'',postalCode:'',country:''}:{}),...(kind==='digital'?{fullName:'',phone:''}:{})}});}}/>
+            <FulfillmentSelector catalogUrl={selection.catalog.catalogUrl} optionsUrl={published.deliveryOptionsUrl} options={published.deliveryOptions} value={selection.fulfillment} onChange={fulfillment=>{const next={catalog:selection.catalog,products:selection.products,...(fulfillment?{fulfillment}:{})};setSelection(next);sessionStorage.setItem(tempoSelectionKey,JSON.stringify(next));const kind=fulfillment?.type;saveDetails({key,delivery:{...delivery,noPhysicalDelivery:kind==='digital',...(kind&&kind!=='customer-address'?{address:'',city:'',postalCode:'',country:''}:{}),...(kind==='digital'||kind==='shop-pickup'?{fullName:'',phone:''}:{}),...(kind==='shop-pickup'?{email:'',deliveryComments:''}:{})}});}}/>
             {selection.fulfillment&&<>
-            <DeliveryInfoForm
+            {selection.fulfillment.type!=='shop-pickup'&&<DeliveryInfoForm
               key={selection.fulfillment.type}
               method={selection.fulfillment.type}
               deliveryInfo={delivery}
               onDeliveryInfoChange={(value) =>
                 saveDetails({ key, delivery: value })
               }
-            />
-            <section className="space-y-2 border-t pt-4"><h2 className="font-semibold">Delivery review</h2><p>{selection.fulfillment.name}{selection.fulfillment.optionName?` · ${selection.fulfillment.optionName}`:''}</p>{selection.fulfillment.address&&<p>{selection.fulfillment.address}</p>}{selection.fulfillment.schedule&&<p>{selection.fulfillment.schedule}</p>}<p className="text-sm text-muted-foreground">Review the recipient fields above before continuing. The shop confirms whether it can fulfill your order.</p></section>
+            />}
+            <section className="space-y-2 border-t pt-4"><h2 className="font-semibold">Delivery review</h2><p>{selection.fulfillment.name}{selection.fulfillment.optionName?` · ${selection.fulfillment.optionName}`:''}</p>{selection.fulfillment.address&&<p>{selection.fulfillment.address}</p>}{selection.fulfillment.schedule&&<p>{selection.fulfillment.schedule}</p>}<p className="text-sm text-muted-foreground">{selection.fulfillment.type==='shop-pickup'?'Keep your order reference to show the shop when you collect it. The shop confirms whether it can fulfill your order.':'Review the recipient fields above before continuing. The shop confirms whether it can fulfill your order.'}</p></section>
             </>}
             </fieldset>}
           </div>

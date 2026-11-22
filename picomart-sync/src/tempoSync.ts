@@ -19,7 +19,7 @@ export interface TempoCatalog {
 export interface TempoMessage {
   messageType: number; sequence: number; author: string; commitment: string;
   buyerEnvelope: string; sellerEnvelope: string;
-  transactionHash: string; blockNumber: number; transactionIndex: number; logIndex: number;
+  transactionHash: string; blockNumber: number; blockTimestamp: number; transactionIndex: number; logIndex: number;
 }
 export interface TempoOrder {
   orderId: string; seed: string; version: number; catalogId: string; status: number;
@@ -127,7 +127,7 @@ export function applyTempoLog(state: TempoProjection, log: TempoLog, timestamp: 
     equal(protocol.tempoReferenceCommitment(binding, buyerEnvelope, sellerEnvelope, order.context, expected), a.commitment, 'message commitment');
     if (messageType === 1) order.buyerCommitment = a.commitment; else order.sellerCommitment = a.commitment;
     order.messages.push({ messageType, sequence, author: tempoAddress(a.author), commitment: a.commitment,
-      buyerEnvelope, sellerEnvelope, transactionHash: log.transactionHash, blockNumber: log.blockNumber,
+      buyerEnvelope, sellerEnvelope, transactionHash: log.transactionHash, blockNumber: log.blockNumber, blockTimestamp: timestamp,
       transactionIndex: log.transactionIndex, logIndex: log.index });
   } else if (event.name.startsWith('Order')) {
     const order = state.orders.get(tempoEntityId(a.orderId));

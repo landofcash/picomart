@@ -49,6 +49,9 @@ export default function TempoPrivateMessage({
                 </div>
               ))}
           </dl>
+          {f.type === "shop-pickup" && !Object.values(fields).some(Boolean) && (
+            <p className="text-sm text-muted-foreground">No contact details provided for shop pickup. Match the customer with the order reference.</p>
+          )}
         </div>
         <div className="space-y-3 border-t pt-4">
           <h3 className="font-semibold">Items</h3>

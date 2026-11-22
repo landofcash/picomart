@@ -1,3 +1,4 @@
+import {OrderMessageUnavailableError} from "../orderMessageAvailability";
 import {get, set} from "idb-keyval";
 import {z} from "zod";
 import {clearItemKeys, decodeBase64, decryptPayload, decryptStorageItem, deriveItemKeys, encodeBase32, encodeBase64, encryptPayload, normalizeAndVerifyMasterSignature, parseStrictJson, prepareItem, randomBytes, signEd25519, unwrapAesKey, validateStorageItem, validateX25519PublicKey, verifyEd25519Base64, wrapAesKey, WRAPPING_ALGORITHM, type ItemKeyPair, type StorageItem, type ZkbytesClient} from "@zkbytes/sdk";
@@ -108,7 +109,7 @@ export function createTempoCommerceService(options:TempoCommerceOptions) {
     const ref = await privateReference(role === "buyer" ? op.buyerEnvelope : op.sellerEnvelope,op.order,expectedFor(op),role,keys);
     const item = validateStorageItem(await validateTempoObjectMetadata(itemInput,ref,op.order));
     const decrypted = await decryptStorageItem(item,ref.reference.expectedCreator,keys.encryptionPrivateKey);
-    if (decrypted.expired) throw new Error("The private message has expired.");
+    if (decrypted.expired) throw new OrderMessageUnavailableError();
     return parseTempoMessage(decrypted.plaintext,op.order,expectedFor(op));
   }
   async function open(input:unknown, order:TempoOrderContext, expected:TempoExpectedMessage, keys:ItemKeyPair):Promise<Operation> {
@@ -265,10 +266,20 @@ export function createTempoCommerceService(options:TempoCommerceOptions) {
       if (tempoReferenceCommitment(binding,buyerEnvelope,sellerEnvelope,order,expected) !== TempoHashSchema.parse(trustedCommitment)) throw new Error("Public reference commitment differs from authenticated order evidence.");
       return withKeys(wallet,identityFor(order,role).context,async (keys,checkpoint) => {
         const ref=await privateReference(role === "buyer" ? buyerEnvelope : sellerEnvelope,order,expected,role,keys); await checkpoint();
-        const downloaded=await client.download(ref.reference.seed); await checkpoint();
+        if (Date.parse(ref.reference.expiresAt) <= Date.now()) throw new OrderMessageUnavailableError();
+        let downloaded: StorageItem;
+        try { downloaded = await client.download(ref.reference.seed); }
+        catch (error) {
+          // A failed CDN request alone does not prove permanent unavailability.
+          const status = await client.getStatus(ref.reference.seed).catch(() => null);
+          await checkpoint();
+          if (status?.state === 'expired' || status?.state === 'deleted') throw new OrderMessageUnavailableError();
+          throw error;
+        }
+        await checkpoint();
         const item=validateStorageItem(await validateTempoObjectMetadata(downloaded,ref,order));
         const decrypted=await decryptStorageItem(item,ref.reference.expectedCreator,keys.encryptionPrivateKey);
-        if (decrypted.expired) throw new Error("The private message has expired.");
+        if (decrypted.expired) throw new OrderMessageUnavailableError();
         const result=parseTempoMessage(decrypted.plaintext,order,expected); await checkpoint(); return result;
       });
     },

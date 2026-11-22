@@ -5,6 +5,7 @@
     "sellerUrl": "https://picomart.zkbytes.com",
     "promoUrl": "https://promo.picomart.zkbytes.com"
   },
+  "orderMessageRetentionDays": 30,
   "defaultNetwork": "moderato",
   "networks": {
     "moderato": {

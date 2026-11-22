@@ -123,6 +123,7 @@ export function tempoCombinedTotal(items:readonly {Price:string;quantity:number}
 }
 export function tempoRecipientValid(type:TempoFulfillmentSnapshot['type'], input:object) {
   const recipient=input as Record<string,unknown>;
+  if(type==='shop-pickup') return !recipient.email || (typeof recipient.email==='string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient.email));
   const required=type==='digital'?['email']:type==='customer-address'?['fullName','address','city','postalCode','country','phone','email']:['fullName','phone','email'];
   return required.every(key=>typeof recipient[key]==='string'&&String(recipient[key]).trim()) && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(recipient.email));
 }

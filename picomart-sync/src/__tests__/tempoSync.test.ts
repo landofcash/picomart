@@ -85,6 +85,7 @@ test('replay sorts and deduplicates logs; retains payer, encrypted references an
   await indexer.tick();
   const state = indexer.snapshot()!, order = state.orders.get(oid)!;
   assert.equal(order.status, 4); assert.equal(order.payer, payer); assert.equal(order.priceAmount, '10000');
+  assert.equal(order.messages[0].blockTimestamp, timestamp);
   assert.equal(order.messages.length, 2); assert.equal(order.messages[0].buyerEnvelope, be);
   assert.equal(order.payment?.payer, payer); assert.equal(order.context.contractAddress, deployment.address);
   assert.equal(state.seen.size, 7); assert.equal(indexer.status().lag, 0);

@@ -2,7 +2,7 @@ import {loadTempoCatalog, TempoFulfillmentSnapshotSchema, tempoFulfillmentSnapsh
 import {isPaymentCurrency} from '@picomart/config';
 import { Contract, Interface, JsonRpcProvider, ZeroAddress, hexlify, keccak256, toUtf8Bytes, toUtf8String } from 'ethers';
 import { get, set } from 'idb-keyval';
-import {PICOMART_TEMPO_CONFIG} from '@picomart/config';
+import {PICOMART_CONFIG, PICOMART_TEMPO_CONFIG} from '@picomart/config';
 import {compactCatalogLink, parseCompactCatalogLink} from '@/lib/tempoLinks';
 import { PICOMART_TEMPO_ABI, PICOMART_TEMPO_BUILD } from '@picomart/order-protocol/tempo-contract';
 import { TempoOrderContextSchema, TempoMessagePayloadSchema, createTempoReceivingContext, createTempoReceivingIdentity,
@@ -26,7 +26,7 @@ export const marketInterface = new Interface(PICOMART_TEMPO_ABI);
 export const marketTransactions = createTempoWalletTransactions({deployment:()=>TEMPO_MARKET_ENABLED ? TEMPO_MARKET_DEPLOYMENT : null});
 export interface MarketCatalog {catalogId:string;seed:string;seller:string;sellerPublicKey:string;sellerIdentityId:string;catalogUrl:string;}
 export interface MarketProduct {ProductId:string;Name:string;Description:string;Image:string;PriceToken:string;Price:string;}
-export interface MarketMessage {messageType:number;sequence:number;author:string;commitment:string;buyerEnvelope:string;sellerEnvelope:string;transactionHash:string;blockNumber:number;transactionIndex:number;logIndex:number;}
+export interface MarketMessage {messageType:number;sequence:number;author:string;commitment:string;buyerEnvelope:string;sellerEnvelope:string;transactionHash:string;blockNumber:number;blockTimestamp?:number;transactionIndex:number;logIndex:number;}
 export interface MarketOrder {orderId:string;seed:string;catalogId:string;priceAmount:string;priceToken:string;buyer:string;seller:string;payer:string;status:number;deleted:boolean;deadline:number;context:TempoOrderContext;messages:MarketMessage[];payment?:{transactionHash:string;blockNumber:number;payer:string;amount:string;token:string};}
 export interface CheckoutSelection {catalog:MarketCatalog;products:Array<MarketProduct & {quantity:number}>;fulfillment?:TempoFulfillmentSnapshot;}
 export interface CheckoutDraft {version:2;account:string;selectionHash:string;inputHash:string;selection:CheckoutSelection;order:TempoOrderContext;input:Record<string,string>;expiresAt:string;preparedAt:number;operationId:string;method:'createOrderPaid'|'createOrderInitial';}
@@ -129,7 +129,7 @@ export async function revalidateSelection(selection:CheckoutSelection) {
 export function commerceService() {
   const client=configuredProofClient();if(!client)throw new Error('The private message service is not configured.');
   return createTempoCommerceService({client,origins:{apiOrigin:client.apiOrigin,downloadOrigin:client.downloadOrigin},
-    deployment:()=>TEMPO_MARKET_DEPLOYMENT.address,maxRetentionSeconds:2592000});
+    deployment:()=>TEMPO_MARKET_DEPLOYMENT.address,maxRetentionSeconds:PICOMART_CONFIG.orderMessageRetentionDays*86400});
 }
 const draftKey=(account:string,id:string)=>`picomart_tempo_checkout_v2_${TEMPO_MARKET_DEPLOYMENT.address}_${marketAddress(account)}_${id}`;
 export const selectionHash=(selection:CheckoutSelection)=>keccak256(toUtf8Bytes(canonicalJson(selection)));
@@ -161,7 +161,7 @@ export async function prepareCheckout(wallet:WalletAdapter,selection:CheckoutSel
   const order=TempoOrderContextSchema.parse({version:1,chainId:PICOMART_TEMPO_CONFIG.chainId,contractAddress:TEMPO_MARKET_DEPLOYMENT.address,
     catalogSeed:selection.catalog.seed,orderSeed:tempoIdToSeed(id),buyerIdentity,sellerIdentity});
   const saved=await get<CheckoutDraft>(draftKey(account,id));
-  const expiresAt=saved?.expiresAt??new Date(Date.now()+2592000_000-1000).toISOString().replace(/\.\d{3}Z$/,'Z');
+  const expiresAt=saved?.expiresAt??new Date(Date.now()+PICOMART_CONFIG.orderMessageRetentionDays*86400_000-1000).toISOString().replace(/\.\d{3}Z$/,'Z');
   const payload=TempoMessagePayloadSchema.parse({version:2,profile:'picomart-message-v2',binding:createTempoMessageBinding(order,{messageType:'buyer-order',sequence:1}),data:{catalogSeed:order.catalogSeed,orderSeed:order.orderSeed,
     items:selection.products.map(p=>({productId:p.ProductId,name:p.Name,quantity:p.quantity,unitAmount:p.Price,lineAmount:String(BigInt(p.Price)*BigInt(p.quantity))})),
     delivery,fulfillment:selection.fulfillment,deliveryAmount:selection.fulfillment.amount,payment:{tokenAddress:validateSelection(selection).token,amount:String(amount)}}});
@@ -190,7 +190,7 @@ export async function readyReference(wallet:WalletAdapter,order:TempoOrderContex
   if(!op.ready)throw new Error(op.state==='pending'
     ? 'Order details are still being verified. Resume preparation to check the saved details again.'
     : `Saved order details are ${op.state}. Resume the saved preparation before submitting.`);
-  if(Date.parse(op.expiresAt)-Date.now()<29*86400_000-2000)throw new Error('Message retention is insufficient. Keep this operation for recovery; prepare a fresh intentional action.');
+  if(Date.parse(op.expiresAt)-Date.now()<(PICOMART_CONFIG.orderMessageRetentionDays-1)*86400_000-2000)throw new Error('Message retention is insufficient. Keep this operation for recovery; prepare a fresh intentional action.');
   return op;
 }
 const reference=(op:TempoOperationSummary)=>({sequence:1,buyerEnvelope:hexlify(toUtf8Bytes(op.buyerEnvelope)),sellerEnvelope:hexlify(toUtf8Bytes(op.sellerEnvelope))});
@@ -237,7 +237,7 @@ export async function verifyOrderTerms(order:MarketOrder) {
 export async function sellerMessage(wallet:WalletAdapter,order:MarketOrder,type:'seller-delivery'|'seller-refusal',data:Record<string,string>,signal?:AbortSignal) {
   const revision=tempoWalletRevision();await verifyMarketDeployment();assertTempoWalletRevision(revision);
   validateMarketOrder(order);const key=`picomart_tempo_seller_message_${TEMPO_MARKET_DEPLOYMENT.address}_${order.orderId}_${type}`;
-  const expiresAt=await get<string>(key)??new Date(Date.now()+2592000_000-1000).toISOString().replace(/\.\d{3}Z$/,'Z');
+  const expiresAt=await get<string>(key)??new Date(Date.now()+PICOMART_CONFIG.orderMessageRetentionDays*86400_000-1000).toISOString().replace(/\.\d{3}Z$/,'Z');
   await set(key,expiresAt);
   const service=commerceService(),expected={messageType:type,sequence:1};
   await service.prepare(wallet,order.context,TempoMessagePayloadSchema.parse({version:1,profile:'picomart-message-v1',binding:createTempoMessageBinding(order.context,expected),data}),expected,expiresAt);

@@ -84,6 +84,17 @@ describe('Tempo commerce UI boundary',()=>{
     expect(state.prepare.mock.calls[0][2].data).toMatchObject({deliveryAmount:'500',payment:{amount:'20500'},fulfillment:{amount:'500'}});
     state.prepare.mockClear();await expect(prepareCheckout(wallet,{...shipping,fulfillment:{...shipping.fulfillment,amount:'501'}},contact,'0x'+'05'.repeat(16),'createOrderPaid')).rejects.toThrow('Delivery terms changed');expect(state.prepare).not.toHaveBeenCalled();
   });
+  it('prepares a paid shop pickup order with no buyer contact fields',async()=>{
+    const options={version:1 as const,currency:PATH_USD,methods:[{id:'shop-pickup',type:'shop-pickup' as const,name:'Shop pickup',description:'',locations:[{id:'counter',name:'Counter',description:'',address:'1 Shop Street',schedule:'',amount:'0'}]}]};
+    const optionsUrl=`https://cdn.picomart.zkbytes.com/moderato/v1/${seller}/delivery-options/${hash(options)}.json`,document={version:2,deliveryOptionsUrl:optionsUrl,products:[product]};
+    const pickupCatalog={...catalog,catalogUrl:`https://cdn.picomart.zkbytes.com/moderato/v1/${seller}/catalogs/${hash(document)}.json`};
+    const pickup={...selection,catalog:pickupCatalog,fulfillment:tempoFulfillmentSnapshot(pickupCatalog.catalogUrl,optionsUrl,options,'shop-pickup','counter')};
+    const noContact={fullName:'',address:'',city:'',postalCode:'',country:'',phone:'',email:'',noPhysicalDelivery:false};
+    state.readCatalog.mockResolvedValue(pickupCatalog);state.fetch.mockImplementation(async(url:string)=>response(url===optionsUrl?options:document));
+    const draft=await prepareCheckout(wallet,pickup,noContact,id,'createOrderPaid');
+    expect(draft.input.priceAmount).toBe('20000');
+    expect(state.prepare.mock.calls[0][2].data).toMatchObject({delivery:noContact,fulfillment:{type:'shop-pickup',optionId:'counter'}});
+  });
   it('passes the reviewed fee quote to automatic checkout and validates references, terms and consent before signing',async()=>{
     const draft=await prepareCheckout(wallet,selection,delivery,id,'createOrderPaid');
     const quote={maximumFee:'120'} as TempoPaymentQuote,guard=vi.fn();

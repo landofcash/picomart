@@ -65,6 +65,20 @@ beforeEach(async () => {
 });
 
 describe("built-in Tempo commerce preparation and durable encrypted recovery", () => {
+  it('distinguishes expired storage from a retryable download failure', async () => {
+    const s=server(),example=fixture.examples[0],expected=example.expected as TempoExpectedMessage;
+    await select('buyer');
+    const prepared=await s.service.prepare(adapter,order,TempoMessagePayloadSchema.parse(example.payload),expected,expiration());
+    await s.service.resumeUpload(adapter,order,expected,{waitForReady:true});
+    vi.spyOn(s.client,'download').mockRejectedValue(new Error('Network failure'));
+    const receive=()=>s.service.receive(adapter,order,expected,'buyer',prepared.buyerEnvelope,prepared.sellerEnvelope,prepared.commitment);
+    await expect(receive()).rejects.toThrow('Network failure');
+    s.mode='expired';
+    await expect(receive()).rejects.toThrow('Details no longer available.');
+    s.mode='deleted';
+    await expect(receive()).rejects.toThrow('Details no longer available.');
+  });
+
   for (const example of fixture.examples) {
     it(`automatically uploads and verifies ${example.expected.messageType} without a second action`,async()=>{
       const s=server(),expected=example.expected as TempoExpectedMessage,payload=TempoMessagePayloadSchema.parse(example.payload);

@@ -1,3 +1,4 @@
+import {messagePastRetention, OrderMessageUnavailableError} from "@/lib/orderMessageAvailability";
 import { getCurrency } from "@picomart/config";
 import { useEffect, useRef, useState } from "react";
 import { formatUnits } from "ethers";
@@ -43,6 +44,7 @@ type Action =
   | "cancelOrder"
   | "confirmOrder"
   | "requireRefund"
+  | "checkTimeouts"
   | "seller-delivery"
   | "seller-refusal";
 export default function TempoOrderDisplay({
@@ -61,6 +63,9 @@ export default function TempoOrderDisplay({
   const [visible, setVisible] = useState(false),
     [messages, setMessages] = useState<TempoMessagePayload[]>([]),
     [technical, setTechnical] = useState(false);
+  const [unavailable, setUnavailable] = useState<string[]>([]);
+  const [retryDetails, setRetryDetails] = useState(false);
+  const [now, setNow] = useState(Date.now());
   const [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [success, setSuccess] = useState(""),
@@ -73,8 +78,24 @@ export default function TempoOrderDisplay({
     controller = useRef<AbortController | null>(null);
   const usable =
     TEMPO_MARKET_ENABLED && wallet.walletAdapter && !wallet.walletLocked;
+  const availableMessages = order.messages.filter(m => !messagePastRetention(m, now) && !unavailable.includes(m.commitment));
+  const missingDetails = availableMessages.length < order.messages.length;
+  const expired = !order.deleted && order.deadline > 0 && now >= order.deadline * 1000;
+  const timeoutConsequence = order.status === 3
+    ? "The delivery deadline passed. Settling now releases the held payment to the shop; a refund request can no longer be submitted."
+    : order.status === 5
+      ? "The refund decision deadline passed. Settling now returns the held payment to the wallet that paid."
+      : order.status === 2
+        ? "The delivery deadline passed. Settling now returns the held payment to the wallet that paid."
+        : "The payment deadline passed. Settling now cancels this unpaid order.";
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
   useEffect(() => {
     setMessages([]);
+    setUnavailable([]);
+    setRetryDetails(false);
     setVisible(false);
     setAction(null);
     setCall(null);
@@ -101,26 +122,30 @@ export default function TempoOrderDisplay({
     }
   }
   async function decrypt() {
-    if (visible) {
+    if (visible && !retryDetails) {
       setVisible(false);
       setMessages([]);
       return;
     }
     const revision = tempoWalletRevision();
-    const decoded = await Promise.all(
-      order.messages.map((m) =>
-        decryptOrderMessage(
-          wallet.walletAdapter!,
-          order,
-          m,
-          seller ? "seller" : "buyer",
-        ),
-      ),
+    const results = await Promise.allSettled(
+      availableMessages.map(m => decryptOrderMessage(wallet.walletAdapter!, order, m, seller ? "seller" : "buyer")),
     );
     assertTempoWalletRevision(revision);
     if (controller.current?.signal.aborted) return;
+    const decoded: TempoMessagePayload[] = [];
+    const missing: string[] = [];
+    let failed = false;
+    results.forEach((result, index) => {
+      if (result.status === "fulfilled") decoded.push(result.value);
+      else if (result.reason instanceof OrderMessageUnavailableError) missing.push(availableMessages[index].commitment);
+      else failed = true;
+    });
+    setUnavailable(previous => [...new Set([...previous, ...missing])]);
     setMessages(decoded);
-    setVisible(true);
+    setRetryDetails(failed);
+    if (failed) setError("Some details could not be loaded. Try again.");
+    setVisible(decoded.length > 0);
   }
   function open(next: Action) {
     setAction(next);
@@ -155,6 +180,9 @@ export default function TempoOrderDisplay({
   }
   async function submit(next: Action | null = action) {
     if (!next || !account) return;
+    if (order.deadline > 0 && Date.now() >= order.deadline * 1000 &&
+      ["confirmOrder", "requireRefund", "seller-delivery", "seller-refusal"].includes(next))
+      throw new Error(timeoutConsequence);
     const revision = tempoWalletRevision();
     const sellerAction =
       next === "seller-delivery" || next === "seller-refusal";
@@ -169,6 +197,9 @@ export default function TempoOrderDisplay({
       signal: controller.current?.signal,
       beforeSign: async () => {
         await verifyOrderTerms(order);
+        if (order.deadline > 0 && Date.now() >= order.deadline * 1000 &&
+          ["confirmOrder", "requireRefund", "seller-delivery", "seller-refusal"].includes(next))
+          throw new Error(timeoutConsequence);
         if (sellerAction) {
           const verified = await resumeSellerMessage(
             wallet.walletAdapter!,
@@ -210,6 +241,8 @@ export default function TempoOrderDisplay({
           ? "Cancel Order"
           : action === "requireRefund"
             ? "Request Refund"
+            : action === "checkTimeouts"
+              ? "Settle Expired Order"
             : "Confirm Receipt";
   const Container = seller ? "section" : "details";
   const Header = seller ? "div" : "summary";
@@ -316,7 +349,7 @@ export default function TempoOrderDisplay({
         <div className="space-y-3 border-t pt-4">
           {!order.deleted && account === order.buyer && (
             <>
-              {order.status === 3 && (
+              {order.status === 3 && !expired && (
                 <>
                   <Button
                     className="w-full"
@@ -348,7 +381,13 @@ export default function TempoOrderDisplay({
               )}
             </>
           )}
-          <Button
+          {expired && [1, 2, 3, 5].includes(order.status) && (
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">{timeoutConsequence}</p>
+              <Button className="w-full" variant="outline" disabled={!usable || busy} onClick={() => open("checkTimeouts")}>Settle Expired Order</Button>
+            </div>
+          )}
+          {(availableMessages.length > 0 || visible) && <Button
             className="w-full"
             variant="outline"
             size="sm"
@@ -365,7 +404,7 @@ export default function TempoOrderDisplay({
             ) : (
               <Unlock className="mr-2 h-4 w-4" />
             )}
-            {busy && !action
+            {retryDetails ? "Retry loading details" : busy && !action
               ? "Decrypting..."
               : seller
                 ? visible
@@ -374,7 +413,8 @@ export default function TempoOrderDisplay({
                 : visible
                   ? "Hide Order Details"
                   : "View Order Details"}
-          </Button>
+          </Button>}
+          {missingDetails && <p className="text-sm text-muted-foreground">{availableMessages.length ? "Some older details are no longer available." : "Details no longer available."}</p>}
           {visible && (
             <div className="space-y-4">
               {messages.map((m) => (
@@ -393,7 +433,7 @@ export default function TempoOrderDisplay({
           )}
           {seller &&
             !order.deleted &&
-            order.status === 2 &&
+            order.status === 2 && !expired &&
             account === order.seller && (
               <div className="flex flex-wrap gap-3">
                 <Button
@@ -453,6 +493,8 @@ export default function TempoOrderDisplay({
                 ? "Confirm that you received your order. This releases payment to the shop."
                 : action === "requireRefund"
                   ? "Request a refund for this order? A request does not mean the refund has been approved."
+                  : action === "checkTimeouts"
+                    ? timeoutConsequence
                   : "Cancel this order and return eligible funds to the wallet that paid?"}
             </p>
             <Button

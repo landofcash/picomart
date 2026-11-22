@@ -1,3 +1,4 @@
+import {messagePastRetention} from "@/lib/orderMessageAvailability";
 import { useEffect, useState } from "react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
 import TokenAmount from "@/components/TokenAmount";
@@ -161,7 +162,7 @@ export default function TempoOrdersPage({
                           <Button asChild variant="outline" size="sm">
                             <Link to={"/order-details?order=" + o.orderId}>
                               <Eye className="mr-2 h-4 w-4" />
-                              View Details
+                              {o.messages.length > 0 && o.messages.every(m => messagePastRetention(m)) ? "View order status" : "View Details"}
                             </Link>
                           </Button>
                         </div>

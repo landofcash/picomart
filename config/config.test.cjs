@@ -49,3 +49,10 @@ test('same symbol on two networks never supplies a missing network configuration
   validateConfig(c);
   assert.notEqual(c.networks.mainnet.currencies.pathUSD.address,c.networks.moderato.currencies.pathUSD.address);
 });
+
+test('order message retention rejects invalid settings', () => {
+  for (const days of [undefined, 0, -1, 1, 1.5, '30']) {
+    const c=copy(); c.orderMessageRetentionDays=days;
+    assert.throws(()=>validateConfig(c), /orderMessageRetentionDays/);
+  }
+});
